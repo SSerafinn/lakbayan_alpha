@@ -48,7 +48,9 @@ Firestore collections: `destinations` (+ `segments` sub), `offlineBundles`, `tou
 - **Keep AR isolated** — it's a stretch module built last; the app must run fully without it.
 - **Security rules are code** — review every change; test with the emulator suite.
 - Prefer editing existing feature modules over adding new top-level structure.
-- Don't hardcode brand colors — use the theme in `lib/core/theme/`.
+- Don't hardcode brand colors — use the theme in `lib/core/theme/` (see `docs/DESIGN_SYSTEM.md`).
+- **Gold is never a button** and green text on light must be `/700`+ — the design
+  system's rules are load-bearing for accessibility, not preferences.
 
 ## Build plan
 Work through `PLAN.md` phase by phase. Use `/implement-next` to pick up the next task.

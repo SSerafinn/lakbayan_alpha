@@ -13,6 +13,15 @@ These were open; the scaffold defaults to the left. Confirm with the team before
 
 Accepted: province-first scope · Android-first · Firebase backend · companion positioning.
 
+## D-07 · Design system vs wireframes precedence
+
+**Accepted.** The Claude Design *design system* governs visual design (colour, type,
+spacing, component styling). The *wireframes* govern app structure (screens, layout,
+navigation). Wireframes win on structure; the design system wins on styling.
+
+First application: bottom navigation is *Explore · Map · Itineraries · Profile* per
+the wireframes, not the specimen's *Trips · Saved*. See `docs/DESIGN_SYSTEM.md`.
+
 ## Forced during scaffold setup (2026-08-03)
 
 - **D-01 is now Riverpod 3, not 2.** On Dart 3.11.4 no `riverpod_lint` release

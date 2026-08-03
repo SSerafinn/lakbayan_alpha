@@ -62,20 +62,26 @@ class LakbayanBadge extends StatelessWidget {
     return Container(
       height: 24,
       padding: const EdgeInsets.symmetric(horizontal: 10),
-      alignment: Alignment.center,
       decoration: BoxDecoration(
         color: fill,
         borderRadius: BorderRadius.circular(6),
       ),
-      child: Text(
-        isAccent ? label.toUpperCase() : label,
-        style: AppTypography.caption.copyWith(
-          fontSize: 11,
-          fontWeight: FontWeight.w600,
-          fontVariations: const [FontVariation("wght", 600)],
-          letterSpacing: isAccent ? 1.2 : 0.6,
-          height: 1,
-          color: text,
+      // `Center(widthFactor: 1)` rather than `Container(alignment:)` — a
+      // Container with an alignment expands to fill its loose constraints, so
+      // the badge would stretch to the full row width instead of hugging its
+      // label. widthFactor pins the width to the child.
+      child: Center(
+        widthFactor: 1,
+        child: Text(
+          isAccent ? label.toUpperCase() : label,
+          style: AppTypography.caption.copyWith(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            fontVariations: const [FontVariation("wght", 600)],
+            letterSpacing: isAccent ? 1.2 : 0.6,
+            height: 1,
+            color: text,
+          ),
         ),
       ),
     );
