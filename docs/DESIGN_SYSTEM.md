@@ -83,9 +83,8 @@ Resolved under that rule:
 - **Bottom navigation** is *Explore · Map · Itineraries · Profile* (wireframes),
   not *Explore · Map · Trips · Saved* (specimen) — that is structure.
 
-Still open, because it is neither visual nor structural but **scope**:
-
-- **Auth providers.** The wireframes show Facebook and Twitter buttons;
-  `docs/DECISIONS.md` D-06 scopes v1 to **Google + email**. Adding Facebook and
-  Twitter is a cost and review decision (Meta app review, X API pricing), so it
-  needs an explicit call rather than being inherited from the wireframes.
+- **Auth providers** are email/password + Google only. The wireframes draw Facebook
+  and Twitter buttons; those are out of v1 scope. This is the one deliberate
+  exception to "wireframes win on structure" — provider choice is scope, not
+  structure. Build the auth screen's *layout* from the wireframes, but render two
+  providers. See `docs/DECISIONS.md` D-06.

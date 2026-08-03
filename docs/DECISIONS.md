@@ -9,9 +9,22 @@ These were open; the scaffold defaults to the left. Confirm with the team before
 | D-03 | Local cache DB | **hive_ce** | Isar (complex queries) |
 | D-04 | Admin app stack | **React** (separate repo) | Flutter Web |
 | D-05 | AR implementation | **native channel to ARCore** | ar_flutter_plugin |
-| D-06 | Social auth (v1) | **Google + email** | add Facebook/Twitter later |
+| D-06 | Social auth (v1) | **Google + email** — *confirmed, see below* | add Facebook/Twitter later |
 
 Accepted: province-first scope · Android-first · Firebase backend · companion positioning.
+
+## D-06 · Auth providers — CONFIRMED (2026-08-03)
+
+**Firebase Auth with email/password and Google Sign-In only for v1.**
+
+This closes the conflict with the mobile wireframes, which draw Facebook and
+Twitter buttons on the auth screen. Those two are **not** in v1 scope: each carries
+a real external cost (Meta app review, X API pricing) that a provider toggle in the
+Firebase console does not.
+
+Note this is the one place the wireframes are *not* followed — D-07 gives wireframes
+authority over app structure, but provider choice is scope, not structure. Build the
+auth screen's layout from the wireframes; render two providers, not four.
 
 ## D-07 · Design system vs wireframes precedence
 
