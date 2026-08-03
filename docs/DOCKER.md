@@ -25,10 +25,26 @@ The containers exist to kill two specific problems:
 
 Docker Desktop for Windows with the WSL2 backend. Nothing else.
 
+**Budget ~13 GB of disk.** The images are large and mostly not our doing:
+
+| Image | Size | Where it goes |
+|---|---|---|
+| `lakbayan-toolchain` | 10.4 GB | ~7.8 GB base (Flutter + Android SDK), 2.4 GB NDK + CMake, 240 MB pub cache |
+| `lakbayan-emulators` | 1.6 GB | Ubuntu + JDK 21 + firebase-tools + emulator jars |
+
+If disk is tight, the 2.4 GB NDK layer is the only part worth attacking — see the
+comment in `docker/flutter/Dockerfile`. Nothing in the current dependency set
+compiles native code, so dropping `ndkVersion` from `android/app/build.gradle.kts`
+would remove it. That stops being safe the moment a plugin ships C++.
+
 ## First run
 
+Build both images. The `--profile tools` flag is **required** — `toolchain` sits
+behind a profile so that `docker compose up` doesn't start it, and a bare
+`docker compose build` skips it silently, leaving you without the image:
+
 ```bash
-docker compose build
+docker compose --profile tools build
 ```
 
 Then start the backend:
@@ -161,3 +177,10 @@ natively, not in Docker.
 
 **Gradle downloads everything on each build** — the `gradle-home` volume was
 removed or pruned. `docker volume ls` should show `lakbayan_gradle-home`.
+
+**`toolchain` image missing / "service has no image"** — you ran `docker compose
+build` without `--profile tools`, which skips profiled services without warning.
+Re-run `docker compose --profile tools build`.
+
+**`Failed to install the following SDK components: ndk;...`** — the toolchain image
+predates the NDK layer. Rebuild it: `docker compose --profile tools build toolchain`.

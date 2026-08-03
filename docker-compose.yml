@@ -40,8 +40,15 @@ services:
 
   # CI-parity toolchain. Not started by `up` — invoke per command:
   #   docker compose run --rm toolchain flutter analyze
+  #
+  # NOTE: because this service sits behind a profile, a bare `docker compose
+  # build` silently skips it. Build with `docker compose --profile tools build`.
   toolchain:
-    build: ./docker/flutter
+    build:
+      # Context is the repo root, not docker/flutter — the Dockerfile needs to
+      # COPY pubspec files, and the root .dockerignore keeps the context small.
+      context: .
+      dockerfile: docker/flutter/Dockerfile
     profiles: ["tools"]
     working_dir: /app
     volumes:
