@@ -1,52 +1,81 @@
 import "package:flutter/foundation.dart";
-import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
 
+import "../../features/auth/domain/auth_providers.dart";
+import "../../features/auth/presentation/sign_in_screen.dart";
+import "../../features/auth/presentation/splash_screen.dart";
 import "../../features/design_system/presentation/design_system_gallery.dart";
+import "../../features/explore/presentation/home_shell.dart";
 
-// Placeholder router. Phase 1: add auth-gated routes and the feature routes.
+abstract final class Routes {
+  static const splash = "/splash";
+  static const signIn = "/sign-in";
+  static const home = "/";
+  static const designSystem = "/design-system";
+}
+
+/// The app router, with the auth redirect.
+///
+/// Note this is **not** a hard auth gate. Wireframe 1b offers "Skip for now —
+/// browse as guest", and notes that guest skip keeps discovery open while
+/// saving a tour prompts auth. So the redirect only forces the auth screen for
+/// a cold start; once the user is signed in *or* has chosen guest, everything
+/// is reachable. Per-action gating belongs on the save actions themselves.
 final appRouterProvider = Provider<GoRouter>((ref) {
-  return GoRouter(
-    initialLocation: "/",
+  final router = GoRouter(
+    initialLocation: Routes.splash,
+    debugLogDiagnostics: kDebugMode,
+    redirect: (context, state) {
+      final auth = ref.read(authStateProvider);
+      final isGuest = ref.read(guestModeProvider);
+      final here = state.matchedLocation;
+
+      // Hold on the splash until the first auth state resolves. Without this,
+      // a signed-in user is bounced to the sign-in screen for a frame while
+      // Firebase restores the session.
+      if (auth.isLoading && !auth.hasValue) {
+        return here == Routes.splash ? null : Routes.splash;
+      }
+
+      final signedIn = auth.value != null;
+      final mayEnter = signedIn || isGuest;
+      final atGate = here == Routes.splash || here == Routes.signIn;
+
+      if (!mayEnter) return atGate && here == Routes.signIn ? null : Routes.signIn;
+      if (atGate) return Routes.home;
+      return null;
+    },
     routes: [
       GoRoute(
-        path: "/",
-        builder: (context, state) => const _HomePlaceholder(),
+        path: Routes.splash,
+        builder: (context, state) => const SplashScreen(),
       ),
-      // Debug-only: the living design system specimen. Excluded from release
-      // so it cannot be reached in a shipped build.
+      GoRoute(
+        path: Routes.signIn,
+        builder: (context, state) => const SignInScreen(),
+      ),
+      GoRoute(
+        path: Routes.home,
+        builder: (context, state) => const HomeShell(),
+      ),
+      // Debug-only: the living design system specimen. Excluded from release so
+      // it cannot be reached in a shipped build.
       if (kDebugMode)
         GoRoute(
-          path: "/design-system",
+          path: Routes.designSystem,
           builder: (context, state) => const DesignSystemGallery(),
         ),
     ],
   );
+
+  // Re-evaluate the redirect when auth or guest state changes. Rebuilding the
+  // provider instead would construct a new GoRouter and throw away navigation
+  // state, so listen and refresh rather than watch.
+  ref
+    ..listen(authStateProvider, (_, _) => router.refresh())
+    ..listen(guestModeProvider, (_, _) => router.refresh())
+    ..onDispose(router.dispose);
+
+  return router;
 });
-
-class _HomePlaceholder extends StatelessWidget {
-  const _HomePlaceholder();
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text("Lakbayan")),
-      body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text("Lakbayan — start with PLAN.md, Phase 1."),
-            if (kDebugMode) ...[
-              const SizedBox(height: 16),
-              FilledButton(
-                onPressed: () => context.go("/design-system"),
-                child: const Text("Design system"),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-}

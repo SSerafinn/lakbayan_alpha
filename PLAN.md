@@ -7,14 +7,26 @@ and `flutter test` before committing; commit with `/commit`.
 > Tip for Claude Code: run `/implement-next` to pick up the first unchecked task.
 
 ## Phase 1 · Weeks 1–2 — Foundation  → Milestone **M1 (Alpha)**
-- [ ] Confirm the open decisions in `docs/DECISIONS.md`; adjust `pubspec.yaml` if changed.
-- [ ] `flutter pub get` + `/gen`; app boots to a placeholder home screen.
-- [ ] Firebase: dev/prod projects, `flutterfire configure`, enable Auth (Google + email).
-- [ ] Implement `features/auth` (splash, sign-in, Google + email) using Firebase Auth.
-- [ ] Define base Firestore schema + `firestore.rules` (use `/add-collection` for `destinations`, `users`).
-- [ ] Wire go_router with auth-gated routes; set up the theme from `lib/core/theme`.
+- [x] Confirm the open decisions in `docs/DECISIONS.md`; adjust `pubspec.yaml` if changed.
+      *(D-01→Riverpod 3 and D-03→hive_ce forced; D-06 confirmed; D-07 added.)*
+- [x] `flutter pub get` + `/gen`; app boots to a placeholder home screen.
+- [ ] **Firebase: dev/prod projects, `flutterfire configure`, enable Auth (Google + email).**
+      *Needs a human with console access — see the note below.*
+- [x] Implement `features/auth` (splash, sign-in, Google + email) using Firebase Auth.
+      *Email/password verified against the emulator. Google is written but
+      unverifiable until `flutterfire configure` + SHA-1 registration.*
+- [ ] Define base Firestore schema + `firestore.rules`
+      *(`users` done — model, rules, `docs/DATA_MODEL.md`. `destinations` outstanding;
+      use `/add-collection`.)*
+- [x] Wire go_router with routes; set up the theme from `lib/core/theme`.
+      *Not a hard auth gate — wireframe 1b requires guest browsing. See D-07.*
 - [ ] CI green (`analyze`, `test`, build APK).
 - **DoD:** a user can sign in and reach an (empty) home screen; schema + rules deployed to the emulator.
+
+> **Blocked on you:** `flutterfire configure` needs a Google account and the Firebase
+> console, so it can't be automated. Until it runs, the app targets the `demo-lakbayan`
+> emulator project and Google Sign-In cannot work — obtaining a Google ID token needs
+> a real project with this app's SHA-1 registered. Email/password is unaffected.
 
 ## Phase 2 · Weeks 3–5 — Core content
 - [ ] `/add-collection destinations` finalized (+ `segments` subcollection, storage paths).

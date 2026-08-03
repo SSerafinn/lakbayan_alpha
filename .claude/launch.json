@@ -11,7 +11,8 @@
         "--web-hostname",
         "127.0.0.1",
         "--web-port",
-        "8088"
+        "8088",
+        "--dart-define-from-file=config/dev.json"
       ],
       "port": 8088
     }

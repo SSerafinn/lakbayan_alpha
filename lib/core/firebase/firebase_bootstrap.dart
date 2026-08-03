@@ -17,15 +17,23 @@ enum FirebaseBootstrapStatus {
 
   /// Firebase was skipped: no emulator defines and no generated options.
   notConfigured,
+
+  /// Initialization was attempted and failed — most often the emulator suite
+  /// is not running. The app still boots; anything touching Firebase will fail.
+  unavailable,
 }
 
 /// Initializes Firebase and, in emulator mode, repoints the SDKs at the local
 /// Emulator Suite.
 ///
-/// Deliberately never throws. Until someone runs `flutterfire configure` there
-/// are no real options to initialize with, and a hard failure there would stop
-/// the app booting to its placeholder home screen for everyone not running the
-/// emulators. Returns [FirebaseBootstrapStatus.notConfigured] instead.
+/// **Never throws, and that is load-bearing.** `main()` awaits this before
+/// `runApp`, so anything escaping here means no Flutter view is ever mounted and
+/// the app is a black screen with nothing on screen to explain why. That is
+/// exactly what happens when the emulator suite is not running, which is a
+/// routine state for a developer who has not started Docker yet.
+///
+/// Failures are logged and reported as a status; booting to the sign-in screen
+/// with broken auth is far more diagnosable than a blank window.
 Future<FirebaseBootstrapStatus> bootstrapFirebase() async {
   if (!AppConfig.useFirebaseEmulators) {
     // TODO(phase-1): after `flutterfire configure`, import the generated
@@ -40,9 +48,19 @@ Future<FirebaseBootstrapStatus> bootstrapFirebase() async {
     return FirebaseBootstrapStatus.notConfigured;
   }
 
-  await _initializeApp(demoFirebaseOptions);
-  await _connectEmulators();
-  return FirebaseBootstrapStatus.emulators;
+  try {
+    await _initializeApp(demoFirebaseOptions);
+    await _connectEmulators();
+    return FirebaseBootstrapStatus.emulators;
+  } catch (e, st) {
+    debugPrint(
+      "Firebase emulator bootstrap FAILED on ${AppConfig.emulatorHost}: $e\n"
+      "Is the suite running? `docker compose up emulators`. "
+      "The app will start, but anything touching Firebase will fail.",
+    );
+    debugPrintStack(stackTrace: st);
+    return FirebaseBootstrapStatus.unavailable;
+  }
 }
 
 /// Creates the default [FirebaseApp], tolerating one already existing.
