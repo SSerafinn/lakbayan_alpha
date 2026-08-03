@@ -9,10 +9,14 @@ This repository is set up to be built with **Claude Code** as the AI pair-progra
   build toolchain; see `docs/DOCKER.md`
 - Firebase CLI + FlutterFire CLI (only needed to link a real Firebase project)
 
-> **JDK note:** Gradle rejects JDK 26 and the Firebase CLI requires JDK 21+, so no
-> single host JDK works for both. Install JDK 21 and point Flutter at it with
-> `flutter config --jdk-dir=...`, or run the emulators in Docker and keep JDK 17
-> locally for Gradle. See `docs/DOCKER.md`.
+> **JDK note:** Gradle 8.14 rejects JDK 26 and the Firebase CLI requires JDK 21+, so
+> no single host JDK works for both. Keep JDK 17 for Gradle on the host and let the
+> emulators run in Docker with their own Java 21.
+>
+> Pin Gradle's JVM in `~/.gradle/gradle.properties` — **not** just
+> `flutter config --jdk-dir`, which other tools bypass. If you see a build fail in
+> under two seconds with `* What went wrong: 26.0.1`, that's this. Fix in
+> [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md).
 
 ## First-run
 ```bash
