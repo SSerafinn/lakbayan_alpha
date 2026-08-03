@@ -29,6 +29,12 @@ ios/Runner/GoogleService-Info.plist
 lib/firebase_options.dart
 **/serviceAccount*.json
 
+# Docker / local backend
+# Emulator state is per-developer scratch. To share a seed, export it
+# deliberately and commit it under a named folder — see docs/DOCKER.md.
+.emulator-data/
+artifacts/
+
 # misc
 *.log
 .DS_Store

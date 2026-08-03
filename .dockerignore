@@ -1,0 +1,17 @@
+# Keep the build context small — the images only need pubspec + rules files.
+.git
+.dart_tool
+.idea
+.vscode
+build
+artifacts
+.emulator-data
+android/.gradle
+android/app/build
+**/*.g.dart
+**/*.freezed.dart
+*.log
+.env
+**/google-services.json
+**/serviceAccount*.json
+lib/firebase_options.dart

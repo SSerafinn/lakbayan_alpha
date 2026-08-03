@@ -1,0 +1,71 @@
+name: lakbayan
+
+services:
+  # Shared local backend. `docker compose up` starts only this.
+  emulators:
+    build: ./docker/firebase
+    container_name: lakbayan-emulators
+    ports:
+      - "4000:4000"   # Emulator Suite UI  -> http://localhost:4000
+      - "4400:4400"   # hub
+      - "4500:4500"   # logging
+      # Published ahead of time. The functions emulator is deliberately absent
+      # from firebase.json until Phase 3 creates functions/ — configuring it
+      # with no source makes the suite print a hard error on every startup.
+      - "5001:5001"   # functions (Phase 3)
+      - "8080:8080"   # firestore
+      - "9099:9099"   # auth
+      - "9150:9150"   # firestore websocket
+      - "9199:9199"   # storage
+    volumes:
+      # Rules and indexes are read-only: the emulator hot-reloads them on save,
+      # so editing firestore.rules on Windows takes effect without a restart.
+      - ./firebase.json:/app/firebase.json:ro
+      - ./firestore.rules:/app/firestore.rules:ro
+      - ./firestore.indexes.json:/app/firestore.indexes.json:ro
+      - ./storage.rules:/app/storage.rules:ro
+      # Auth users and Firestore documents survive a restart.
+      - ./.emulator-data:/app/.emulator-data
+    command: >
+      firebase emulators:start
+      --project demo-lakbayan
+      --import=/app/.emulator-data
+      --export-on-exit=/app/.emulator-data
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:4000"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 40s
+
+  # CI-parity toolchain. Not started by `up` — invoke per command:
+  #   docker compose run --rm toolchain flutter analyze
+  toolchain:
+    build: ./docker/flutter
+    profiles: ["tools"]
+    working_dir: /app
+    volumes:
+      - .:/app
+      # Linux build artifacts MUST NOT share a directory with the Windows host's.
+      # A .dart_tool/package_config.json written on Windows contains Windows
+      # paths; letting the container overwrite it breaks host builds and vice
+      # versa. Named volumes keep the two toolchains completely separate.
+      - dart-tool:/app/.dart_tool
+      - build-out:/app/build
+      - gradle-project:/app/android/.gradle
+      - pub-cache:/root/.pub-cache
+      - gradle-home:/root/.gradle
+      # Anything you want on the Windows side (APKs) must be copied here.
+      - ./artifacts:/app/artifacts
+    environment:
+      # Reachable hostname for the emulator suite from inside the compose network.
+      FIREBASE_EMULATOR_HOST: emulators
+    stdin_open: true
+    tty: true
+
+volumes:
+  dart-tool:
+  build-out:
+  gradle-project:
+  pub-cache:
+  gradle-home:
