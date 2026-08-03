@@ -16,8 +16,13 @@ tours/{id}
 guides/{id}
   name, town, specialties[], contact, verified, featured
 users/{uid}
-  profile, savedTourIds[], downloadedTownIds[], role           // role: admin only, never client-writable
+  profile, savedTourIds[], downloadedTownIds[]                 // no role field — see below
 ```
+
+**Admin rights are a custom auth claim (`request.auth.token.admin`), not a Firestore
+field.** A trusted Cloud Function sets it. Rules never read a `role` document, so
+admin checks cost no extra read and `firestore.rules` / `storage.rules` stay
+consistent. Writing a `role` field from a client is rejected outright.
 
 Enums: `category` = church | nature | heritage | museum | food.
 Storage paths: `/destinations/{id}/images/{n}.jpg`, `/destinations/{id}/audio/{segmentId}.mp3`,

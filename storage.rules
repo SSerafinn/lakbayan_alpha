@@ -1,11 +1,20 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
-    // Public read for content assets; writes handled by admins/functions.
-    // Tighten write with custom claims (request.auth.token.admin == true) once set up.
-    match /{allPaths=**} {
-      allow read: if true;
-      allow write: if request.auth != null && request.auth.token.admin == true;
+
+    function isAdmin() {
+      return request.auth != null && request.auth.token.admin == true;
     }
+
+    // Public content assets only — enumerated per docs/DATA_MODEL.md rather than
+    // a blanket {allPaths=**}, so that any future private path is denied by
+    // default instead of being world-readable the moment it is added.
+    match /destinations/{destId}/images/{image} { allow read: if true; allow write: if isAdmin(); }
+    match /destinations/{destId}/audio/{audio}  { allow read: if true; allow write: if isAdmin(); }
+    match /ar/{destId}/markers/{marker}         { allow read: if true; allow write: if isAdmin(); }
+    match /tiles/{townId}/{pack}                { allow read: if true; allow write: if isAdmin(); }
+
+    // Everything else: denied by default. Cloud Functions using the Admin SDK
+    // bypass these rules, so server-side ingestion is unaffected.
   }
 }

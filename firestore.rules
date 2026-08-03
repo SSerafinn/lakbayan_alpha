@@ -3,31 +3,54 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     function isSignedIn() { return request.auth != null; }
+
+    // Admin is a custom claim set by a trusted Cloud Function — NOT a field on the
+    // user document. This matches storage.rules and costs no extra document read.
     function isAdmin() {
-      return isSignedIn()
-        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      return isSignedIn() && request.auth.token.admin == true;
     }
 
+    function isOwner(uid) { return isSignedIn() && request.auth.uid == uid; }
+
     // Public content: readable when published; writable by admins only.
-    match /destinations/{id} {
+    //
+    // NOTE: this rule is evaluated per document, so a *collection query* only
+    // succeeds if the query itself is constrained to published docs, e.g.
+    //   collection('destinations').where('status', isEqualTo: 'published')
+    // An unfiltered query fails wholesale with permission-denied.
+    match /destinations/{destId} {
       allow read: if resource.data.status == 'published' || isAdmin();
       allow write: if isAdmin();
+
+      // Segments inherit the parent's visibility — otherwise draft narration
+      // scripts leak. Costs one document read per evaluation; if that becomes
+      // hot, denormalize `status` onto each segment and check it directly.
       match /segments/{sid} {
-        allow read: if true;
+        allow read: if isAdmin()
+          || get(/databases/$(database)/documents/destinations/$(destId))
+               .data.status == 'published';
         allow write: if isAdmin();
       }
     }
-    match /offlineBundles/{townId} { allow read: if true; allow write: if isAdmin(); }
-    match /tours/{id}            { allow read: if true; allow write: if isAdmin(); }
-    match /guides/{id}           { allow read: if true; allow write: if isAdmin(); }
 
-    // Each user owns their document; role is never client-writable.
+    // Offline bundle manifests and curated tours are public catalog data.
+    match /offlineBundles/{townId} { allow read: if true; allow write: if isAdmin(); }
+    match /tours/{id}             { allow read: if true; allow write: if isAdmin(); }
+
+    // Guides carry contact details for real people — require sign-in so the
+    // directory is not anonymously scrapeable.
+    match /guides/{id} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // Each user owns their document. `role` is never client-writable; admin
+    // rights live in custom claims, so no role field should be written at all.
     match /users/{uid} {
-      allow read: if isSignedIn() && request.auth.uid == uid;
-      allow create: if isSignedIn() && request.auth.uid == uid
-                    && !( 'role' in request.resource.data );
-      allow update: if isSignedIn() && request.auth.uid == uid
-                    && request.resource.data.role == resource.data.role;
+      allow read: if isOwner(uid);
+      allow create: if isOwner(uid) && !('role' in request.resource.data);
+      allow update: if isOwner(uid) && !('role' in request.resource.data);
+      allow delete: if isOwner(uid);
     }
   }
 }
