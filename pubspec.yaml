@@ -51,3 +51,14 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+
+  # Bundled rather than fetched via google_fonts: offline-first is a hard
+  # guardrail, and google_fonts downloads at first run by default.
+  # Both are variable fonts — see the FontVariation note in app_typography.dart.
+  fonts:
+    - family: PlusJakartaSans
+      fonts:
+        - asset: assets/fonts/PlusJakartaSans.ttf
+    - family: Inter
+      fonts:
+        - asset: assets/fonts/Inter.ttf

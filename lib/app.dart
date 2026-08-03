@@ -14,6 +14,10 @@ class LakbayanApp extends ConsumerWidget {
       title: "Lakbayan",
       debugShowCheckedModeBanner: false,
       theme: buildAppTheme(),
+      // Dark mode is v2 scope in the design system. Wired so the tokens are
+      // exercised, but the app stays light until the palette is signed off.
+      darkTheme: buildAppDarkTheme(),
+      themeMode: ThemeMode.light,
       routerConfig: router,
     );
   }
