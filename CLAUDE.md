@@ -17,7 +17,7 @@ replaces them**. Android-first, Flutter + Firebase.
 
 ## Key commands
 - Install deps: `flutter pub get`
-- Codegen (freezed/json/riverpod/hive): `dart run build_runner build --delete-conflicting-outputs`
+- Codegen (freezed/json/riverpod/hive): `dart run build_runner build`
 - Run app: `flutter run`
 - Analyze / test: `flutter analyze` · `flutter test`
 - Firebase emulators: `firebase emulators:start`

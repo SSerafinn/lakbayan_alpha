@@ -11,7 +11,7 @@ This repository is set up to be built with **Claude Code** as the AI pair-progra
 ## First-run
 ```bash
 flutter pub get
-dart run build_runner build --delete-conflicting-outputs
+dart run build_runner build
 flutterfire configure          # links a Firebase project, writes firebase_options.dart
 cp .env.example .env           # add your map tile token, etc.
 firebase emulators:start       # local Auth/Firestore/Storage/Functions
@@ -27,8 +27,6 @@ flutter run                    # against the dev flavor
   - `/gen` — run build_runner codegen
   - `/commit` — write a Conventional Commit for staged changes
   - `/implement-next` — pick and implement the next task from `PLAN.md`
-- First time running the app? Use the bundled `/run-skill-generator` once so
-  `/run` and `/verify` learn how to launch this project.
 
 ## Layout
 ```

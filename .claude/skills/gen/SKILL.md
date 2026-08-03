@@ -9,8 +9,10 @@ allowed-tools: Bash(dart run build_runner *)
 Run:
 
 ```!
-dart run build_runner build --delete-conflicting-outputs
+dart run build_runner build
 ```
+
+(`--delete-conflicting-outputs` was removed in build_runner 2.15 and is now ignored.)
 
 If generation fails, read the first error, fix the annotated source, and re-run.
 Never hand-edit `*.g.dart` or `*.freezed.dart` files.
