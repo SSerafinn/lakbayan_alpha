@@ -1,0 +1,31 @@
+# Flutter / Dart
+.dart_tool/
+.packages
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+*.g.dart.lock
+
+# generated (regenerate with build_runner)
+# (keep generated files out of VCS; regenerate on checkout)
+*.g.dart
+*.freezed.dart
+
+# IDE
+.idea/
+*.iml
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+
+# Secrets / config — NEVER commit
+.env
+*.env
+android/app/google-services.json
+ios/Runner/GoogleService-Info.plist
+lib/firebase_options.dart
+**/serviceAccount*.json
+
+# misc
+*.log
+.DS_Store

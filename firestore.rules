@@ -1,0 +1,33 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() { return request.auth != null; }
+    function isAdmin() {
+      return isSignedIn()
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // Public content: readable when published; writable by admins only.
+    match /destinations/{id} {
+      allow read: if resource.data.status == 'published' || isAdmin();
+      allow write: if isAdmin();
+      match /segments/{sid} {
+        allow read: if true;
+        allow write: if isAdmin();
+      }
+    }
+    match /offlineBundles/{townId} { allow read: if true; allow write: if isAdmin(); }
+    match /tours/{id}            { allow read: if true; allow write: if isAdmin(); }
+    match /guides/{id}           { allow read: if true; allow write: if isAdmin(); }
+
+    // Each user owns their document; role is never client-writable.
+    match /users/{uid} {
+      allow read: if isSignedIn() && request.auth.uid == uid;
+      allow create: if isSignedIn() && request.auth.uid == uid
+                    && !( 'role' in request.resource.data );
+      allow update: if isSignedIn() && request.auth.uid == uid
+                    && request.resource.data.role == resource.data.role;
+    }
+  }
+}
