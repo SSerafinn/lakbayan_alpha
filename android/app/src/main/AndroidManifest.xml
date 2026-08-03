@@ -1,4 +1,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Firebase, map tiles, and audio streaming all need this in every build
+         type. The Flutter template only declares it for debug/profile, which
+         would leave release builds unable to reach the network at all. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+
     <application
         android:label="lakbayan"
         android:name="${applicationName}"

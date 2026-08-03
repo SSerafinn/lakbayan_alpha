@@ -4,4 +4,10 @@
          to allow setting breakpoints, to provide hot reload, etc.
     -->
     <uses-permission android:name="android.permission.INTERNET"/>
+
+    <!-- The Firebase emulators speak plain HTTP. Android blocks cleartext by
+         default since API 28, which makes emulator connections fail with an
+         opaque timeout rather than a useful error. Debug build type ONLY —
+         this never reaches a release APK. -->
+    <application android:usesCleartextTraffic="true" />
 </manifest>

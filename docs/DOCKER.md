@@ -115,8 +115,36 @@ app is running:
 container and from a phone on your Wi-Fi. That does mean they listen on your LAN
 while running — fine on a dev machine, but don't run them on untrusted Wi-Fi.
 
-Wiring `useFirestoreEmulator` / `useAuthEmulator` into the app is Phase 1 work; see
-`PLAN.md`. Keep the host in a `--dart-define` rather than hardcoding it.
+This is wired up. Run against the emulators with:
+
+```bash
+flutter run --dart-define-from-file=config/dev.json
+```
+
+On a physical device, add your PC's LAN IP — the app cannot discover it:
+
+```bash
+flutter run --dart-define-from-file=config/dev.json --dart-define=FIREBASE_EMULATOR_HOST=192.168.1.42
+```
+
+Without those defines the app still boots, but skips Firebase entirely and logs
+why. `AppConfig.useFirebaseEmulators` is a `const`, so the emulator branch is
+tree-shaken out of release builds — a shipped app cannot be pointed at a laptop.
+
+### Known startup noise until `flutterfire configure` is run
+
+Every launch logs an unhandled `PlatformException`:
+
+```
+java.lang.IllegalStateException: FirebaseApp name [DEFAULT] already exists!
+```
+
+**This is benign and the app works** — `bootstrapFirebase` catches it and adopts
+the existing app, which is why `Firebase emulators: ...` prints right after. The
+cause is running with placeholder options and no `google-services.json`: Android's
+`FirebaseInitProvider` and our explicit `initializeApp` race to create `[DEFAULT]`.
+It disappears once Phase 1 runs `flutterfire configure` and a real
+`google-services.json` lets native auto-init succeed. Don't chase it before then.
 
 ## Do not mix host and container builds carelessly
 
