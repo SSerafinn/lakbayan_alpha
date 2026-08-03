@@ -6,51 +6,48 @@ version: 0.1.0+1
 environment:
   sdk: ">=3.4.0 <4.0.0"
 
-# NOTE: versions are starting constraints; run `flutter pub get` (or `flutter pub upgrade`)
-# and adjust as needed. Confirm the open decisions in docs/DECISIONS.md first.
 dependencies:
+  audio_service: ^0.18.19
+  cached_network_image: ^3.4.1
+  cloud_firestore: ^6.7.1
+  cloud_functions: ^6.3.5
+  connectivity_plus: ^7.3.1
+  firebase_analytics: ^12.4.5
+  firebase_auth: ^6.5.6
+  firebase_core: ^4.12.1
+  firebase_crashlytics: ^5.2.6
+  firebase_storage: ^13.4.5
   flutter:
     sdk: flutter
-  # state & navigation
-  flutter_riverpod: ^2.5.1
-  riverpod_annotation: ^2.3.5
-  go_router: ^14.2.0
-  # models
-  freezed_annotation: ^2.4.4
+  flutter_map: ^8.3.1
+  flutter_riverpod: ">=3.0.0 <4.0.0"
+  flutter_tts: ^4.2.5
+  freezed_annotation: ^3.1.0
+  go_router: ^17.3.0
+  google_sign_in: ^7.2.0
+  hive_ce: ^2.19.3
+  hive_ce_flutter: ^2.3.4
+  # Held at ^4.9.0: json_serializable + riverpod_lint's analyzer pins can't
+  # co-resolve with 4.12.x on Dart 3.11.4. Raise once the SDK is upgraded.
   json_annotation: ^4.9.0
-  # firebase
-  firebase_core: ^3.3.0
-  firebase_auth: ^5.1.4
-  cloud_firestore: ^5.2.1
-  firebase_storage: ^12.1.3
-  cloud_functions: ^5.0.4
-  firebase_analytics: ^11.2.1
-  firebase_crashlytics: ^4.0.4
-  google_sign_in: ^6.2.1
-  # local cache
-  hive: ^2.2.3
-  hive_flutter: ^1.1.0
-  # maps
-  flutter_map: ^7.0.2
-  latlong2: ^0.9.1
-  # audio
-  just_audio: ^0.9.40
-  audio_service: ^0.18.15
-  flutter_tts: ^4.0.2
-  # media
-  cached_network_image: ^3.4.0
+  just_audio: ^0.10.6
+  latlong2: ^0.10.1
+  path_provider: ^2.1.6
+  # Capped below 4.0.5, which requires Dart >=3.12 (this project is on 3.11.4).
+  riverpod_annotation: ">=4.0.0 <4.0.5"
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  build_runner: ^2.4.11
-  freezed: ^2.5.7
-  json_serializable: ^6.8.0
-  riverpod_generator: ^2.4.0
-  hive_generator: ^2.0.1
-  flutter_lints: ^4.0.0
-  custom_lint: ^0.6.4
-  riverpod_lint: ^2.3.13
+  build_runner: ^2.4.0
+  custom_lint: ">=0.8.0 <0.9.0"
+  flutter_lints: ^6.0.0
+  freezed: ^3.0.0
+  hive_ce_generator: ^1.9.0
+  json_serializable: ^6.9.0
+  riverpod_generator: ">=4.0.0 <5.0.0"
+  # Capped below 3.1.6, which requires Dart >=3.12 (this project is on 3.11.4).
+  riverpod_lint: ">=3.0.0 <3.1.6"
 
 flutter:
   uses-material-design: true

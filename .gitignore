@@ -18,6 +18,9 @@ build/
 !.vscode/settings.json
 !.vscode/extensions.json
 
+# Claude Code machine-local overrides (shared config lives in settings.json)
+.claude/settings.local.json
+
 # Secrets / config — NEVER commit
 .env
 *.env
