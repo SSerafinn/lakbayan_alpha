@@ -10,8 +10,8 @@ replaces them**. Android-first, Flutter + Firebase.
 ## Stack
 - **Client:** Flutter (Dart) · Riverpod · go_router · freezed
 - **Backend:** Firebase (Auth, Firestore, Storage, Cloud Functions)
-- **Local cache:** Hive (+ Firestore offline persistence)
-- **Maps:** flutter_map + MapLibre/OSM (offline tiles) — Mapbox is the paid alt
+- **Local cache:** hive_ce (+ Firestore offline persistence)
+- **Maps:** flutter_map + raster OSM tiles — Mapbox is the paid alt
 - **Audio:** just_audio + audio_service · flutter_tts for narration
 - **AR:** ARCore Augmented Images (Android, native channel) — stretch, isolated
 
@@ -50,5 +50,6 @@ Firestore collections: `destinations` (+ `segments` sub), `offlineBundles`, `tou
 Work through `PLAN.md` phase by phase. Use `/implement-next` to pick up the next task.
 
 ## Open decisions / current defaults (see docs/DECISIONS.md)
-State=Riverpod · Local=Hive · Maps=flutter_map+OSM · Auth=Google+email (v1).
+State=Riverpod 3 · Local=hive_ce · Maps=flutter_map+raster OSM · Auth=Google+email (v1).
 These are defaults, not final — confirm with the team before large commitments.
+D-01 and D-03 were forced during scaffold setup; see the note in `docs/DECISIONS.md`.
