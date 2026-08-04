@@ -33,6 +33,17 @@ enum FirebaseBootstrapStatus {
 /// Failures are logged and reported as a status; booting to the sign-in screen
 /// with broken auth is far more diagnosable than a blank window.
 Future<FirebaseBootstrapStatus> bootstrapFirebase() async {
+  // Print the *effective* compile-time config on every boot. These are
+  // --dart-define values, so they are baked in at build time: a hot reload or
+  // hot restart will not pick up an edit to config/dev.json, and running
+  // without --dart-define-from-file silently yields defaults. Both failure
+  // modes look identical at runtime, hence this line.
+  debugPrint(
+    "Lakbayan config — emulators: ${AppConfig.useFirebaseEmulators}, "
+    "host: ${AppConfig.emulatorHost}, "
+    "googleWebClientId: ${AppConfig.googleWebClientId.isEmpty ? "MISSING" : "set"}",
+  );
+
   if (!AppConfig.useFirebaseEmulators) {
     try {
       await _initializeApp(DefaultFirebaseOptions.currentPlatform);
