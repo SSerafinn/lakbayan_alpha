@@ -64,6 +64,81 @@ silent timeouts against the emulators, check that file first.
 Also check the host: an Android emulator reaches your machine at `10.0.2.2`, not
 `localhost`. A physical device needs your PC's LAN IP. See `docs/DOCKER.md`.
 
+## Running on a physical Android phone
+
+Better than the emulator for this app — real GPS for the map work, real
+performance, and no virtualization overhead on a laptop that struggles with it.
+
+**On the phone:** Settings → About phone → tap **Build number** seven times to
+unlock Developer options, then Developer options → enable **USB debugging**.
+Plug in over USB and accept the "Allow USB debugging?" prompt (tick *Always
+allow*). Confirm the laptop sees it:
+
+```bash
+flutter devices
+```
+
+**The catch: `10.0.2.2` does not work on a physical device.** That address is the
+Android *emulator's* alias for the host loopback. A real phone is a separate
+machine on your Wi-Fi and needs your PC's LAN IP.
+
+That is what `config/local.json` is for — a gitignored, per-developer copy of
+`config/dev.json` carrying your own IP. Find yours:
+
+```bash
+ipconfig
+```
+
+Take the IPv4 address of the **Wi-Fi** adapter (not WSL, not VirtualBox — those
+are virtual adapters the phone cannot reach), put it in
+`config/local.json` as `FIREBASE_EMULATOR_HOST`, then:
+
+```bash
+flutter run --dart-define-from-file=config/local.json
+```
+
+Check the boot log line — it prints the resolved config:
+
+```
+Lakbayan config — emulators: true, host: 192.168.x.x, ...
+```
+
+**The phone and the laptop must be on the same Wi-Fi network.** Many campus and
+public networks enable client isolation, which blocks device-to-device traffic
+entirely; a phone hotspot that the laptop joins is the usual workaround.
+
+### Windows Firewall will block this
+
+This is the most common failure, and it looks like a hang rather than an error:
+the app boots but every Firebase call times out. Windows blocks inbound
+connections to the emulator ports from other machines by default.
+
+Open an **Administrator** PowerShell and allow them:
+
+```powershell
+New-NetFirewallRule -DisplayName "Firebase Emulators (LAN)" -Direction Inbound -Protocol TCP -LocalPort 4000,5001,8080,9099,9199 -Action Allow -Profile Private
+```
+
+`-Profile Private` limits this to networks you have marked as private. If your
+Wi-Fi is set to Public, either change it to Private or the rule will not apply.
+
+To verify from the phone before debugging further, open
+`http://<your-ip>:4000` in the phone's browser — the Emulator Suite UI should
+load. If it does not, the problem is the network or firewall, not the app.
+
+### Wireless debugging (Android 11+)
+
+Same USB steps, then Developer options → **Wireless debugging** → *Pair device
+with pairing code*, and on the laptop:
+
+```bash
+adb pair <phone-ip>:<pairing-port>
+```
+
+```bash
+adb connect <phone-ip>:<debug-port>
+```
+
 ## `flutter run` picks the wrong device
 
 ```bash
