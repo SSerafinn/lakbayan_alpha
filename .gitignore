@@ -24,10 +24,23 @@ build/
 # Secrets / config — NEVER commit
 .env
 *.env
-android/app/google-services.json
 ios/Runner/GoogleService-Info.plist
-lib/firebase_options.dart
 **/serviceAccount*.json
+
+# NOT ignored, deliberately: android/app/google-services.json and
+# lib/firebase_options.dart for the DEV project (project-lakbayan).
+#
+# These are not secrets. Firebase Android and Web API keys are public
+# identifiers — every shipped APK contains them, and anyone can extract them in
+# minutes. Access is controlled by firestore.rules, storage.rules and App Check,
+# not by keeping the key hidden. Google documents this explicitly.
+#
+# They must be committed because the `com.google.gms.google-services` Gradle
+# plugin reads google-services.json at BUILD time: without it, CI and every
+# teammate fail with "File google-services.json is missing".
+#
+# A production Firebase project is a different matter — keep its config out of
+# the repo and inject it in CI. See docs/DECISIONS.md D-08.
 
 # Docker / local backend
 # Emulator state is per-developer scratch. To share a seed, export it

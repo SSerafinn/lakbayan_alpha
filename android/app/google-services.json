@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "3422515105",
+    "project_id": "project-lakbayan",
+    "storage_bucket": "project-lakbayan.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:3422515105:android:bf948131f4052ca8c225e0",
+        "android_client_info": {
+          "package_name": "ph.gov.cagayan.lakbayan"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC_ND5X6SaQ47LgqP07AaPNrMJ1Zq1PrLs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

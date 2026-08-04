@@ -10,8 +10,19 @@ import "package:firebase_core/firebase_core.dart";
 /// The project ID must match the `--project` flag the emulators run with; see
 /// the `emulators` service command in `docker-compose.yml`.
 ///
-/// Real builds use `lib/firebase_options.dart` from `flutterfire configure`,
-/// which is gitignored. See `docs/DOCKER.md`.
+/// A real project (`project-lakbayan`) now exists in
+/// `lib/firebase_options.dart`, so why keep these?
+///
+/// **Safety.** `bootstrapFirebase` swallows emulator connection failures so the
+/// app still boots. If emulator mode initialized with the *real* project
+/// options and the emulator connection then failed, the app would silently fall
+/// through to the production backend while the developer believed they were on
+/// localhost — writing test data into the real Firestore.
+///
+/// A `demo-` project has no backend at all. Firebase refuses to contact one, so
+/// that failure mode is impossible by construction rather than by care.
+/// The id must match the `--project` flag on the `emulators` service in
+/// `docker-compose.yml`.
 const FirebaseOptions demoFirebaseOptions = FirebaseOptions(
   apiKey: "demo-api-key",
   appId: "1:000000000000:android:0000000000000000",

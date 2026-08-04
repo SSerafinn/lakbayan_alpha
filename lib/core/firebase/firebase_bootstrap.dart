@@ -4,6 +4,7 @@ import "package:firebase_core/firebase_core.dart";
 import "package:firebase_storage/firebase_storage.dart";
 import "package:flutter/foundation.dart";
 
+import "../../firebase_options.dart";
 import "../config/app_config.dart";
 import "demo_firebase_options.dart";
 
@@ -14,9 +15,6 @@ enum FirebaseBootstrapStatus {
 
   /// Firebase is up and pointing at a real project.
   live,
-
-  /// Firebase was skipped: no emulator defines and no generated options.
-  notConfigured,
 
   /// Initialization was attempted and failed — most often the emulator suite
   /// is not running. The app still boots; anything touching Firebase will fail.
@@ -36,16 +34,15 @@ enum FirebaseBootstrapStatus {
 /// with broken auth is far more diagnosable than a blank window.
 Future<FirebaseBootstrapStatus> bootstrapFirebase() async {
   if (!AppConfig.useFirebaseEmulators) {
-    // TODO(phase-1): after `flutterfire configure`, import the generated
-    // lib/firebase_options.dart and initialize with
-    // DefaultFirebaseOptions.currentPlatform, returning `live`.
-    debugPrint(
-      "Firebase not initialized: no emulator defines and no generated "
-      "firebase_options.dart. Run with "
-      "--dart-define-from-file=config/dev.json, or run `flutterfire "
-      "configure`. See docs/DOCKER.md.",
-    );
-    return FirebaseBootstrapStatus.notConfigured;
+    try {
+      await _initializeApp(DefaultFirebaseOptions.currentPlatform);
+      debugPrint("Firebase: LIVE project — writes hit the real backend.");
+      return FirebaseBootstrapStatus.live;
+    } catch (e, st) {
+      debugPrint("Firebase live init failed: $e");
+      debugPrintStack(stackTrace: st);
+      return FirebaseBootstrapStatus.unavailable;
+    }
   }
 
   try {

@@ -14,5 +14,25 @@
     "logging": { "port": 4500, "host": "0.0.0.0" },
     "ui": { "enabled": true, "port": 4000, "host": "0.0.0.0" },
     "singleProjectMode": true
+  },
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "project-lakbayan",
+          "appId": "1:3422515105:android:bf948131f4052ca8c225e0",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "project-lakbayan",
+          "configurations": {
+            "android": "1:3422515105:android:bf948131f4052ca8c225e0",
+            "web": "1:3422515105:web:58805326239b43adc225e0"
+          }
+        }
+      }
+    }
   }
 }
