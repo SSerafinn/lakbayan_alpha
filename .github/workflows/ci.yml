@@ -1,7 +1,17 @@
 name: CI
 on:
+  # Only the long-lived branches on push. Feature branches are covered by the
+  # pull_request trigger — without this scoping every commit on a branch with an
+  # open PR would build twice.
   push:
+    branches: [main, staging]
   pull_request:
+    branches: [main, staging]
+
+# A new push supersedes the previous run on the same branch.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   # Flutter app: static analysis, tests, and a debug APK.

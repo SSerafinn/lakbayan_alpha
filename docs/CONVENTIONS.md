@@ -19,8 +19,13 @@ lib/
 - **Codegen:** run `/gen` after touching models/providers/Hive adapters.
 
 ## Git & CI
-- Conventional Commits; small, focused PRs.
-- CI must pass: `flutter analyze`, `flutter test`, `flutter build apk --debug`.
+Branching, commit format, PR rules and release tagging live in one place —
+**the Git workflow section of `README.md`**. Summary: `main` ← `staging` ←
+`feat/*`, never commit directly to the first two, squash into `staging`.
+
+CI must pass: `flutter analyze`, `dart run custom_lint`, `flutter test`,
+`flutter build apk --debug`, and the rules tests in `test_rules/`.
+Note `flutter analyze` does **not** run custom_lint plugins — both are required.
 
 ## Firebase
 - Separate dev/prod projects; Android flavors; Emulator Suite for local dev.

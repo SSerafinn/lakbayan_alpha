@@ -202,6 +202,104 @@ is exported on clean shutdown, so your test users survive.
 5. **Google Sign-In fails on web** — needs `GOOGLE_WEB_CLIENT_ID`; Android reads it
    from `google-services.json` instead. Android is the platform that matters here.
 
+## Git workflow
+
+### Branches
+
+```
+main            protected · release-ready · only ever receives PRs from staging
+ └─ staging     integration · where feature branches land and are tested together
+     └─ feat/…  your work · one branch per task, short-lived
+```
+
+**Never commit directly to `main` or `staging`.** Branch from `staging`, PR back
+into `staging`. `staging` → `main` is a separate PR, made when a milestone is
+ready to cut.
+
+```bash
+git switch staging && git pull
+```
+
+```bash
+git switch -c feat/destination-detail
+```
+
+### Branch names
+
+`<type>/<short-kebab-description>`, using the same types as our commits:
+
+| Prefix | For |
+|---|---|
+| `feat/` | new functionality — `feat/audio-player` |
+| `fix/` | bug fixes — `fix/offline-tile-cache` |
+| `chore/` | tooling, deps, config — `chore/bump-flutter` |
+| `docs/` | documentation only — `docs/data-model-tours` |
+| `refactor/` | no behaviour change — `refactor/extract-repo` |
+
+Keep them short-lived. A branch open for two weeks is a merge conflict waiting to
+happen — especially across `lib/core/theme/`, which everything imports.
+
+### Commits
+
+[Conventional Commits](https://www.conventionalcommits.org/), scoped to the feature:
+
+```
+feat(auth): add guest mode to the sign-in screen
+fix(maps): stop tile requests when the bundle is stale
+docs(data-model): record the tours schema
+```
+
+Explain **why** in the body, not just what — the diff already shows what. If you
+changed an approach or rejected an obvious alternative, that belongs here; it is
+the context the next person needs and the hardest to reconstruct later.
+
+`/commit` writes one for staged changes.
+
+### Before you open a PR
+
+All four must pass. CI runs them anyway, but locally is faster than a red build:
+
+```bash
+flutter analyze && dart run custom_lint && flutter test
+```
+
+```bash
+cd test_rules && npm test
+```
+
+Re-run `dart run build_runner build` if you touched a model or provider —
+generated files are gitignored, so a stale build only fails for the reviewer.
+
+### Pull requests
+
+- Open against **`staging`** (GitHub will default to `main` — change it).
+- One task per PR. A reviewable PR is a few hundred lines; a 2,000-line PR gets
+  rubber-stamped, which defeats the point.
+- Fill in the template: what changed, why, and how you verified it.
+- **@SSerafinn approves and merges.** Do not merge your own PR.
+- **Squash merge** into `staging` so one feature is one commit and `staging`
+  stays readable. `staging` → `main` uses a **merge commit**, preserving the
+  individual features in release history.
+- Delete the branch after merge.
+
+### Things that must never be committed
+
+`.gitignore` covers these, but know why:
+
+- `config/local.json` — your LAN IP and any paid tokens
+- `.env`, `**/serviceAccount*.json` — real credentials
+- A **production** Firebase config — the committed one is dev-only, see D-08
+- `*.g.dart`, `*.freezed.dart` — generated; committing them creates conflicts on
+  every merge for no benefit
+
+### Releases
+
+`PLAN.md` defines three milestones. When `staging` → `main` lands one, tag it:
+
+```bash
+git tag -a v0.1.0-m1 -m "M1 Alpha: auth, schema, app shell" && git push --tags
+```
+
 ## Layout
 
 ```

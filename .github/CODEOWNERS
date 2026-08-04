@@ -1,0 +1,13 @@
+# Every PR requests a review from the owner automatically.
+* @SSerafinn
+
+# Files where a mistake is expensive and silent. Called out so they are never
+# skimmed: security rules govern who can read unpublished content, the data
+# model is the FE-BE contract, and CI/Docker changes affect all three machines.
+/firestore.rules      @SSerafinn
+/storage.rules        @SSerafinn
+/firestore.indexes.json @SSerafinn
+/docs/DATA_MODEL.md   @SSerafinn
+/docs/DECISIONS.md    @SSerafinn
+/.github/             @SSerafinn
+/docker-compose.yml   @SSerafinn
