@@ -4,21 +4,29 @@ Change collection shapes only alongside `firestore.rules`, `firestore.indexes.js
 and a `schemaVersion` bump. Use the `add-collection` skill.
 
 ```
-destinations/{id}                                              // schemaVersion 1
+destinations/{id}                                              // schemaVersion 2
   name          string    required
+  slug          string    required   // auto from name; used in deep links
   town          string    required   // municipality, e.g. "Peñablanca"
   category      string    required   // enum below
-  description   string    required   // one or two sentences; card + detail intro
+  description   string    required   // card + detail intro, max 140 chars
   history       string?              // long-form; detail screen only
   coords        map       required   // { lat: number, lng: number }
   images        string[]             // Storage paths, first is the card image
-  popular       bool      default false
+  popular       bool      default false   // "Popular Places" rail
   featured      bool      default false   // drives the FEATURED badge
-  nearby        string[]             // destination ids, for "Nearby stops"
+  nearbyEligible bool     default true    // may appear in others' "Nearby"
+  offlineEligible bool    default true    // include in town offline bundles
+  isMuseum      bool      default false   // gates the AR tab in the CMS
   hasAR         bool      default false   // drives the AR badge
+  tags          string[]             // free-form, e.g. ["caves","river"]
+  practical     map?                 // all optional free text, see below
   status        string    required   // draft | published
   schemaVersion number    required
   createdAt, updatedAt                // serverTimestamp
+  updatedBy     string?              // uid of the last editor, for the CMS list
+
+  practical: { entryFee?, openHours?, bestSeason?, accessibility? }  // strings
 
 destinations/{id}/segments/{sid}                               // audio guide stops
   title         string    required
@@ -52,16 +60,29 @@ field.** A trusted Cloud Function sets it. Rules never read a `role` document, s
 admin checks cost no extra read and `firestore.rules` / `storage.rules` stay
 consistent. Writing a `role` field from a client is rejected outright.
 
-Enums: `category` = church | nature | heritage | museum | food.
+Enums: `category` = church | nature | heritage | museum | food | landmark.
 
-**schemaVersion 1** (destinations, segments, users). Bump it here and in
-`Destination.schemaVersion` together with any shape change, so a client reading a
+**schemaVersion 2** (destinations). Bump it here and in
+`destinationSchemaVersion` together with any shape change, so a client reading a
 cached document written by an older build can tell.
 
-> **Known gap.** The design system's destination card renders an "Open now" badge,
-> but nothing in this schema carries opening hours. Either add an `hours` field
-> when the content track defines its shape, or drop the badge. Right now
-> `DestinationCard.status` is caller-supplied and no query can populate it.
+### Changes in v2 (2026-08-04)
+
+Driven by the admin wireframe's Destination Editor, which needed fields the
+scaffold schema never had. Added: `slug`, `tags`, `practical`, `offlineEligible`,
+`isMuseum`, `updatedBy`, and `landmark` as a category.
+
+Two deliberate calls:
+
+- **`nearby: string[]` became `nearbyEligible: bool`.** The wireframe offers a
+  toggle — "Eligible for Nearby Places" — not a curated list. Nearby is computed
+  by distance from `coords`, so a hand-maintained array of ids would be a second
+  mechanism that immediately drifts from the first.
+- **`practical.openHours` is free text**, not structured hours. It closes the
+  "Open now" gap enough to display, but *cannot* be computed against — a real
+  open/closed badge needs structured per-day hours, which is a content-model
+  decision nobody has made. Until then the app should render the string, not a
+  live status.
 Storage paths: `/destinations/{id}/images/{n}.jpg`, `/destinations/{id}/audio/{segmentId}.mp3`,
 `/ar/{destId}/markers/{n}.jpg`, `/tiles/{townId}/pack.mbtiles`.
 

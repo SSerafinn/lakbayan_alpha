@@ -8,7 +8,7 @@ part "destination.g.dart";
 /// Current shape of `destinations` and `segments`. Bump alongside
 /// `docs/DATA_MODEL.md` whenever the schema changes, so a client reading a
 /// document cached by an older build can detect the mismatch.
-const destinationSchemaVersion = 1;
+const destinationSchemaVersion = 2;
 
 /// What kind of place this is. Drives the filter chips on Explore.
 ///
@@ -22,6 +22,7 @@ enum DestinationCategory {
   heritage,
   museum,
   food,
+  landmark,
   @JsonValue("unknown")
   unknown;
 
@@ -31,6 +32,7 @@ enum DestinationCategory {
         heritage => "Heritage",
         museum => "Museums",
         food => "Food",
+        landmark => "Landmarks",
         unknown => "Other",
       };
 }
@@ -55,20 +57,36 @@ abstract class Destination with _$Destination {
     required DestinationCategory category,
     required String description,
     required GeoPoint2 coords,
+
+    /// Auto-derived from [name] in the CMS. Used in deep links, so changing it
+    /// breaks any link already shared.
+    @Default("") String slug,
     String? history,
     @Default(<String>[]) List<String> images,
     @Default(false) bool popular,
     @Default(false) bool featured,
 
-    /// Ids of related destinations, for "Nearby stops" on the detail screen.
-    @Default(<String>[]) List<String> nearby,
+    /// May be surfaced in another destination's "Nearby stops". Nearby itself
+    /// is computed by distance from [coords] — this only gates inclusion.
+    @Default(true) bool nearbyEligible,
+
+    /// Include in the town's offline bundle.
+    @Default(true) bool offlineEligible,
+
+    /// Museum sites unlock the AR tab in the CMS.
+    @Default(false) bool isMuseum,
     @Default(false) bool hasAR,
+    @Default(<String>[]) List<String> tags,
+    PracticalInfo? practical,
     @JsonKey(unknownEnumValue: DestinationStatus.unknown)
     @Default(DestinationStatus.draft)
     DestinationStatus status,
     @Default(destinationSchemaVersion) int schemaVersion,
     @TimestampConverter() DateTime? createdAt,
     @TimestampConverter() DateTime? updatedAt,
+
+    /// uid of the last editor. Shown in the CMS list; not used by the app.
+    String? updatedBy,
   }) = _Destination;
 
   const Destination._();
@@ -110,6 +128,26 @@ abstract class Segment with _$Segment {
   bool get isPlayable =>
       (audioUrl != null && audioUrl!.isNotEmpty) ||
       (ttsText != null && ttsText!.isNotEmpty);
+}
+
+/// Visitor-facing practical details. Every field is optional free text set by
+/// an editor.
+///
+/// [openHours] is deliberately a **string**, not structured hours. It is enough
+/// to display, but nothing can compute an open/closed state from it — a live
+/// "Open now" badge needs per-day structured hours, which is a content-model
+/// decision that has not been made. Render the text; do not infer status.
+@freezed
+abstract class PracticalInfo with _$PracticalInfo {
+  const factory PracticalInfo({
+    String? entryFee,
+    String? openHours,
+    String? bestSeason,
+    String? accessibility,
+  }) = _PracticalInfo;
+
+  factory PracticalInfo.fromJson(Map<String, dynamic> json) =>
+      _$PracticalInfoFromJson(json);
 }
 
 /// Firestore's `GeoPoint` is awkward to construct in tests and pulls the SDK

@@ -4,6 +4,8 @@ import { AuthProvider } from "./auth/AuthProvider";
 import { useAuth } from "./auth/auth-context";
 import { LoginPage, NotAuthorised } from "./auth/LoginPage";
 import { DashboardPage } from "./pages/DashboardPage";
+import { DestinationsListPage } from "./pages/DestinationsListPage";
+import { DestinationEditorPage } from "./pages/DestinationEditorPage";
 import { PlaceholderPage } from "./pages/PlaceholderPage";
 import { useEmulators } from "./lib/firebase";
 
@@ -67,9 +69,10 @@ export default function App() {
           <Shell>
             <Routes>
               <Route path="/" element={<DashboardPage />} />
+              <Route path="/destinations" element={<DestinationsListPage />} />
               <Route
-                path="/destinations"
-                element={<PlaceholderPage title="Destinations" phase="CMS-1" />}
+                path="/destinations/:id"
+                element={<DestinationEditorPage />}
               />
               <Route
                 path="/tours"
