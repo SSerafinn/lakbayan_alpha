@@ -1,4 +1,4 @@
-// Security rules tests.
+﻿// Security rules tests.
 //
 // firestore.rules is code, and these are the cases that are easy to get wrong
 // and expensive to get wrong. Run against the emulator:
@@ -18,6 +18,7 @@ import {
 import { readFileSync } from "node:fs";
 import {
   doc,
+  deleteDoc,
   getDoc,
   setDoc,
   collection,
@@ -27,6 +28,19 @@ import {
 } from "firebase/firestore";
 
 let env;
+
+// Fixtures share the emulator with the CMS and the app, so they are namespaced
+// and deleted afterwards. An earlier version left `published-one` behind â€” a
+// published document with no category or coords â€” which the app could not
+// decode, and one bad row was enough to blank the whole Explore tab.
+//
+// `env.clearFirestore()` would be simpler and is wrong: it would wipe the
+// content you just created in the CMS.
+const FIXTURES = [
+  "destinations/rulestest-published",
+  "destinations/rulestest-draft",
+  "users/rulestest-ana",
+];
 
 before(async () => {
   env = await initializeTestEnvironment({
@@ -42,38 +56,66 @@ before(async () => {
   // are not a test of the rules.
   await env.withSecurityRulesDisabled(async (ctx) => {
     const db = ctx.firestore();
-    await setDoc(doc(db, "destinations/published-one"), {
-      name: "Callao Cave",
-      town: "Peñablanca",
+
+    // Complete documents, matching docs/DATA_MODEL.md. Partial fixtures used to
+    // be enough for rules, but they are read by the app too â€” and the app is
+    // entitled to assume a published document is well-formed.
+    await setDoc(doc(db, "destinations/rulestest-published"), {
+      name: "Rules Test â€” Published",
+      slug: "rules-test-published",
+      town: "PeÃ±ablanca",
+      category: "nature",
+      description: "Fixture for the security rules tests.",
+      coords: { lat: 17.7, lng: 121.8 },
+      images: [],
       status: "published",
+      schemaVersion: 2,
     });
-    await setDoc(doc(db, "destinations/draft-one"), {
-      name: "Unannounced Site",
+    await setDoc(doc(db, "destinations/rulestest-draft"), {
+      name: "Rules Test â€” Draft",
+      slug: "rules-test-draft",
       town: "Gattaran",
+      category: "heritage",
+      description: "Fixture for the security rules tests.",
+      coords: { lat: 18.1, lng: 121.6 },
+      images: [],
       status: "draft",
+      schemaVersion: 2,
     });
-    await setDoc(doc(db, "destinations/draft-one/segments/s1"), {
+    await setDoc(doc(db, "destinations/rulestest-draft/segments/s1"), {
       title: "Unreleased narration",
       order: 1,
     });
-    await setDoc(doc(db, "destinations/published-one/segments/s1"), {
+    await setDoc(doc(db, "destinations/rulestest-published/segments/s1"), {
       title: "History",
       order: 1,
     });
   });
 });
 
-after(async () => env?.cleanup());
+after(async () => {
+  // Remove the fixtures before tearing down, so a dev running `npm test`
+  // does not find test rows in the CMS afterwards.
+  await env?.withSecurityRulesDisabled(async (ctx) => {
+    const db = ctx.firestore();
+    await deleteDoc(doc(db, "destinations/rulestest-draft/segments/s1"));
+    await deleteDoc(doc(db, "destinations/rulestest-published/segments/s1"));
+    for (const path of FIXTURES) {
+      await deleteDoc(doc(db, path));
+    }
+  });
+  await env?.cleanup();
+});
 
 describe("destinations", () => {
   it("lets anyone read a published destination", async () => {
     const db = env.unauthenticatedContext().firestore();
-    await assertSucceeds(getDoc(doc(db, "destinations/published-one")));
+    await assertSucceeds(getDoc(doc(db, "destinations/rulestest-published")));
   });
 
   it("hides a draft destination from the public", async () => {
     const db = env.unauthenticatedContext().firestore();
-    await assertFails(getDoc(doc(db, "destinations/draft-one")));
+    await assertFails(getDoc(doc(db, "destinations/rulestest-draft")));
   });
 
   it("allows a query constrained to published documents", async () => {
@@ -95,7 +137,7 @@ describe("destinations", () => {
   it("refuses writes from a signed-in non-admin", async () => {
     const db = env.authenticatedContext("traveller").firestore();
     await assertFails(
-      setDoc(doc(db, "destinations/published-one"), { name: "Vandalised" })
+      setDoc(doc(db, "destinations/rulestest-published"), { name: "Vandalised" })
     );
   });
 
@@ -104,7 +146,7 @@ describe("destinations", () => {
       .authenticatedContext("boss", { admin: true })
       .firestore();
     await assertSucceeds(
-      setDoc(doc(db, "destinations/published-one"), {
+      setDoc(doc(db, "destinations/rulestest-published"), {
         name: "Callao Cave",
         status: "published",
       })
@@ -116,7 +158,7 @@ describe("segments inherit the parent's visibility", () => {
   it("exposes segments of a published destination", async () => {
     const db = env.unauthenticatedContext().firestore();
     await assertSucceeds(
-      getDoc(doc(db, "destinations/published-one/segments/s1"))
+      getDoc(doc(db, "destinations/rulestest-published/segments/s1"))
     );
   });
 
@@ -125,36 +167,36 @@ describe("segments inherit the parent's visibility", () => {
     // unreleased narration scripts were world-readable.
     const db = env.unauthenticatedContext().firestore();
     await assertFails(
-      getDoc(doc(db, "destinations/draft-one/segments/s1"))
+      getDoc(doc(db, "destinations/rulestest-draft/segments/s1"))
     );
   });
 });
 
 describe("users", () => {
   it("lets a user read their own document", async () => {
-    const db = env.authenticatedContext("ana").firestore();
-    await assertSucceeds(getDoc(doc(db, "users/ana")));
+    const db = env.authenticatedContext("rulestest-ana").firestore();
+    await assertSucceeds(getDoc(doc(db, "users/rulestest-ana")));
   });
 
   it("stops a user reading someone else's document", async () => {
-    const db = env.authenticatedContext("ana").firestore();
-    await assertFails(getDoc(doc(db, "users/ben")));
+    const db = env.authenticatedContext("rulestest-ana").firestore();
+    await assertFails(getDoc(doc(db, "users/rulestest-ben")));
   });
 
   it("refuses a client-written role field", async () => {
     // Admin is a custom claim. A client that can grant itself `role: admin`
     // would defeat every isAdmin() check in the file.
-    const db = env.authenticatedContext("ana").firestore();
+    const db = env.authenticatedContext("rulestest-ana").firestore();
     await assertFails(
-      setDoc(doc(db, "users/ana"), { uid: "ana", role: "admin" })
+      setDoc(doc(db, "users/rulestest-ana"), { uid: "rulestest-ana", role: "admin" })
     );
   });
 
   it("allows a normal profile create", async () => {
-    const db = env.authenticatedContext("ana").firestore();
+    const db = env.authenticatedContext("rulestest-ana").firestore();
     await assertSucceeds(
-      setDoc(doc(db, "users/ana"), {
-        uid: "ana",
+      setDoc(doc(db, "users/rulestest-ana"), {
+        uid: "rulestest-ana",
         email: "ana@example.com",
         savedTourIds: [],
         downloadedTownIds: [],
@@ -169,3 +211,4 @@ describe("guides", () => {
     await assertFails(getDoc(doc(db, "guides/g1")));
   });
 });
+

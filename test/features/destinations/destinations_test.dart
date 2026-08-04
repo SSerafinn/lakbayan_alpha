@@ -116,6 +116,54 @@ void main() {
     });
   });
 
+  group("malformed documents", () {
+    test("a bad row is skipped instead of failing the whole list", () {
+      // Regression: a seeding script left a published document with no
+      // `category` or `coords`. Because the snapshot was mapped eagerly, that
+      // single row threw and Explore rendered empty — the user's own content
+      // was fine and simply never appeared.
+      final decoded = <Destination>[];
+      for (final raw in [
+        {
+          "id": "good",
+          "name": "Callao Cave",
+          "town": "Peñablanca",
+          "category": "nature",
+          "description": "Seven chambers.",
+          "coords": {"lat": 17.7, "lng": 121.8},
+          "status": "published",
+        },
+        // Missing category, description and coords — all required.
+        {"id": "bad", "name": "Half-written", "status": "published"},
+      ]) {
+        try {
+          decoded.add(Destination.fromJson(raw));
+        } catch (_) {
+          // The repository's _decodeAll does exactly this, with a log.
+        }
+      }
+
+      expect(decoded, hasLength(1));
+      expect(decoded.single.name, "Callao Cave");
+    });
+
+    test("an unrecognised category falls back rather than throwing", () {
+      // A newer client may write a category this build has never heard of.
+      final d = Destination.fromJson({
+        "id": "x",
+        "name": "Somewhere New",
+        "town": "Aparri",
+        "category": "waterfall",
+        "description": "Written by a newer client.",
+        "coords": {"lat": 18.3, "lng": 121.6},
+        "status": "published",
+      });
+
+      expect(d.category, DestinationCategory.unknown);
+      expect(d.category.label, "Other");
+    });
+  });
+
   group("Destination detail", () {
     testWidgets("renders the destination and its audio segments",
         (tester) async {
