@@ -57,6 +57,10 @@ enum AuthFailure {
   tooManyRequests,
   networkUnavailable,
   cancelled,
+
+  /// Web build has no OAuth client ID. Its own case rather than [unknown]
+  /// because it is a setup mistake with an exact fix, not a runtime failure.
+  googleWebNotConfigured,
   unknown;
 
   /// Deliberately vague for [invalidCredentials]: saying which of the email or
@@ -70,6 +74,9 @@ enum AuthFailure {
         tooManyRequests => "Too many attempts. Wait a moment and try again.",
         networkUnavailable => "You're offline. Connect and try again.",
         cancelled => "Sign-in was cancelled.",
+        googleWebNotConfigured =>
+          "Google Sign-In isn't set up for web. Pass GOOGLE_WEB_CLIENT_ID — "
+              "see config/dev.json.",
         unknown => "Something went wrong. Try again.",
       };
 }

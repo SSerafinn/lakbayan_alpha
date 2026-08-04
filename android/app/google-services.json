@@ -12,7 +12,20 @@
           "package_name": "ph.gov.cagayan.lakbayan"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "3422515105-bt9l39j9qns0ccp68qa4hanuor5l1ui6.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "ph.gov.cagayan.lakbayan",
+            "certificate_hash": "2a9753ee8b892ee67f5dc15afee31562709a88e3"
+          }
+        },
+        {
+          "client_id": "3422515105-al13s5gsesot2hlt0vs6nc0c2uqs0h3h.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyC_ND5X6SaQ47LgqP07AaPNrMJ1Zq1PrLs"
@@ -20,7 +33,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "3422515105-al13s5gsesot2hlt0vs6nc0c2uqs0h3h.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

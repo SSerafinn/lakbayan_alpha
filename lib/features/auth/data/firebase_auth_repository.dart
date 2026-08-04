@@ -2,6 +2,7 @@ import "package:firebase_auth/firebase_auth.dart" as fb;
 import "package:flutter/foundation.dart";
 import "package:google_sign_in/google_sign_in.dart";
 
+import "../../../core/config/app_config.dart";
 import "../domain/app_user.dart";
 import "../domain/auth_repository.dart";
 
@@ -53,7 +54,18 @@ class FirebaseAuthRepository implements AuthRepository {
   @override
   Future<AppUser> signInWithGoogle() => _guard(() async {
         final google = GoogleSignIn.instance;
-        await google.initialize();
+
+        // Web needs the OAuth client ID handed to it; Android reads it from
+        // google-services.json and rejects an explicit one. Passing it
+        // unconditionally breaks Android, so branch on the platform.
+        if (kIsWeb) {
+          if (AppConfig.googleWebClientId.isEmpty) {
+            throw const AuthException(AuthFailure.googleWebNotConfigured);
+          }
+          await google.initialize(clientId: AppConfig.googleWebClientId);
+        } else {
+          await google.initialize();
+        }
 
         final GoogleSignInAccount account;
         try {

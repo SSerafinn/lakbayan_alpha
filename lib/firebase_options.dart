@@ -66,4 +66,5 @@ class DefaultFirebaseOptions {
     projectId: 'project-lakbayan',
     storageBucket: 'project-lakbayan.firebasestorage.app',
   );
+
 }

@@ -26,6 +26,18 @@ abstract final class AppConfig {
   static const int storageEmulatorPort =
       int.fromEnvironment("FIREBASE_STORAGE_EMULATOR_PORT", defaultValue: 9199);
 
+  /// OAuth web client ID for Google Sign-In.
+  ///
+  /// Web only. On Android the client ID comes out of `google-services.json`,
+  /// but there is no equivalent on web, so `google_sign_in_web` asserts unless
+  /// it is passed explicitly. Not a secret — it is public by design and appears
+  /// in the page source of every site using Google Sign-In.
+  ///
+  /// Find it in the Firebase console under
+  /// Authentication → Sign-in method → Google → Web SDK configuration.
+  static const String googleWebClientId =
+      String.fromEnvironment("GOOGLE_WEB_CLIENT_ID");
+
   /// Where the Emulator Suite is reachable from *this* device.
   ///
   /// An Android emulator cannot see the host's `localhost` — 10.0.2.2 is its
