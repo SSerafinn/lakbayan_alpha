@@ -202,6 +202,23 @@ is exported on clean shutdown, so your test users survive.
 5. **Google Sign-In fails on web** — needs `GOOGLE_WEB_CLIENT_ID`; Android reads it
    from `google-services.json` instead. Android is the platform that matters here.
 
+## Becoming an admin
+
+Every content write in `firestore.rules` requires the `admin` custom claim. Grant
+it to yourself after signing in through the app once:
+
+```bash
+cd scripts && npm install
+```
+
+```bash
+node grant-admin.mjs you@example.com
+```
+
+That targets the **emulator** by default. Sign out and back in afterwards —
+custom claims are baked into the ID token and do not appear until it is reissued.
+For a real project, `--live` with `GOOGLE_APPLICATION_CREDENTIALS` set.
+
 ## Git workflow
 
 ### Branches

@@ -52,6 +52,33 @@ and every teammate fail with `File google-services.json is missing`.
 A **production** project is different — keep its config out of the repo and inject
 it in CI from a secret.
 
+## D-09 · Admin CMS is in scope; timeline extends to 15 weeks (2026-08-04)
+
+**Accepted.** Build the Admin CMS as wireframed — all 11 screens — and extend the
+plan from 12 to 15 weeks rather than cutting scope.
+
+The CMS was missing from `PLAN.md` entirely, despite being required by three
+existing documents: `ARCHITECTURE.md` describes it, D-04 fixes its stack, and the
+MVP Definition of Done in `CONVENTIONS.md` says *"admin can publish a destination"*.
+The admin wireframes specify Login, Dashboard, Destinations list, Destination
+Editor, Audio Guide segments, AR Content, Offline Bundles, Tours, Local Guides,
+Users + roles, and Settings.
+
+It is also a hard dependency, not a parallel nicety: every content write in
+`firestore.rules` requires the `admin` claim, so mobile Phase 2's DoD — "browse
+real destinations end-to-end" — cannot be met until the CMS can publish.
+
+Cut order if the schedule slips: AR, then CMS Settings, then itineraries. Never
+CMS-1.
+
+### Bootstrapping the admin claim
+
+`isAdmin()` reads `request.auth.token.admin`, and until now **nothing set it** —
+no account could write content, including the project owner. `scripts/grant-admin.mjs`
+fills that gap: emulator by default, `--live` with a service account for a real
+project. CMS-3 replaces it with a callable Cloud Function once the Users screen
+exists, so promoting a teammate no longer needs a service account key.
+
 ## Forced during scaffold setup (2026-08-03)
 
 - **D-01 is now Riverpod 3, not 2.** On Dart 3.11.4 no `riverpod_lint` release
