@@ -44,7 +44,10 @@ Firestore collections: `destinations` (+ `segments` sub), `offlineBundles`, `tou
 `firestore.indexes.json`, and a `schemaVersion` bump. Use the `add-collection` skill.
 
 ## Guardrails
-- **Never commit secrets** (API keys, `google-services.json`, service accounts). Use `.env` / `--dart-define`.
+- **Never commit real secrets** (service accounts, paid API tokens). Config goes
+  through `--dart-define-from-file`: `config/dev.json` is shared and committed,
+  `config/local.json` is per-developer and gitignored. Note the dev Firebase
+  config *is* committed on purpose — see D-08; those keys are public identifiers.
 - **Offline-first is non-negotiable** — every read path must work from cache.
 - **Keep AR isolated** — it's a stretch module built last; the app must run fully without it.
 - **Security rules are code** — review every change; test with the emulator suite.

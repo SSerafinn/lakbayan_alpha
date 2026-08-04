@@ -5,12 +5,22 @@ import "package:lakbayan/core/firebase/firebase_bootstrap.dart";
 
 void main() {
   group("AppConfig", () {
-    test("emulators are off unless explicitly compiled in", () {
-      // The suite runs without --dart-define, which is the same state a
-      // release build ships in. If this ever fails, a build could be pointed
-      // at a developer's machine.
-      expect(AppConfig.useFirebaseEmulators, isFalse);
-    });
+    test(
+      "emulators are off unless explicitly compiled in",
+      () {
+        // The suite normally runs without --dart-define, which is the same
+        // state a release build ships in. If this ever fails on a plain
+        // `flutter test`, a shipped build could be pointed at a developer's
+        // machine.
+        expect(AppConfig.useFirebaseEmulators, isFalse);
+      },
+      // Running `flutter test --dart-define-from-file=config/dev.json` turns
+      // the flag on legitimately. Skip rather than fail, so that command does
+      // not look like a broken test suite.
+      skip: AppConfig.useFirebaseEmulators
+          ? "Run with emulator defines; this asserts the release default."
+          : null,
+    );
 
     test("ports default to the docker-compose published ports", () {
       expect(AppConfig.authEmulatorPort, 9099);
