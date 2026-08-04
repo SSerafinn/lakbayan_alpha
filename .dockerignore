@@ -12,6 +12,11 @@ android/app/build
 **/*.freezed.dart
 *.log
 .env
+
+# Sibling apps and Node tooling — the Flutter toolchain image needs none of it.
+cms
+test_rules
+scripts/node_modules
 **/google-services.json
 **/serviceAccount*.json
 lib/firebase_options.dart

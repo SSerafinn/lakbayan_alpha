@@ -1,58 +1,144 @@
 # Lakbayan — Build Plan (executable)
 
-Work top-to-bottom. Tick tasks as they land. Each phase ends at a **milestone**.
-Follow `docs/CONVENTIONS.md`; use the Skills in `.claude/skills/`. Run `flutter analyze`
-and `flutter test` before committing; commit with `/commit`.
+Two tracks run in parallel:
+
+- **Track A — Mobile app** (this repo). Flutter, Android-first.
+- **Track B — Admin CMS** (separate repo, React — see `docs/DECISIONS.md` D-04).
+
+Work top-to-bottom within a track. Tick tasks as they land. Follow
+`docs/CONVENTIONS.md`; use the Skills in `.claude/skills/`. Run `flutter analyze`,
+`dart run custom_lint` and `flutter test` before committing; commit with `/commit`.
 
 > Tip for Claude Code: run `/implement-next` to pick up the first unchecked task.
 
+> **Timeline is 15 weeks, not 12.** The original plan had no CMS tasks, yet the MVP
+> Definition of Done requires "admin can publish a destination" and the admin
+> wireframes specify 11 screens. See D-09.
+
+---
+
+# Track A — Mobile app
+
 ## Phase 1 · Weeks 1–2 — Foundation  → Milestone **M1 (Alpha)**
 - [x] Confirm the open decisions in `docs/DECISIONS.md`; adjust `pubspec.yaml` if changed.
-      *(D-01→Riverpod 3 and D-03→hive_ce forced; D-06 confirmed; D-07 added.)*
+      *(D-01→Riverpod 3 and D-03→hive_ce forced; D-06 confirmed; D-07, D-08, D-09 added.)*
 - [x] `flutter pub get` + `/gen`; app boots to a placeholder home screen.
-- [ ] **Firebase: dev/prod projects, `flutterfire configure`, enable Auth (Google + email).**
-      *Needs a human with console access — see the note below.*
+- [x] Firebase: dev project, `flutterfire configure`, enable Auth (Google + email).
+      *Prod project still outstanding — see Phase 5.*
 - [x] Implement `features/auth` (splash, sign-in, Google + email) using Firebase Auth.
-      *Email/password verified against the emulator. Google is written but
-      unverifiable until `flutterfire configure` + SHA-1 registration.*
+      *Guest browsing included per wireframe 1b / D-07.*
 - [x] Define base Firestore schema + `firestore.rules`
       *(`users` + `destinations` + `segments`: models, rules, indexes,
-      `docs/DATA_MODEL.md`. 13 rules tests pass against the emulator —
-      `cd test_rules && npm test`.)*
+      `docs/DATA_MODEL.md`. 13 rules tests — `cd test_rules && npm test`.)*
 - [x] Wire go_router with routes; set up the theme from `lib/core/theme`.
-      *Not a hard auth gate — wireframe 1b requires guest browsing. See D-07.*
-- [ ] CI green (`analyze`, `test`, build APK).
-      *Workflow written and each step verified locally, but CI has **never run** —
-      there is no git remote yet.*
-- **DoD:** a user can sign in and reach an (empty) home screen; schema + rules deployed to the emulator.
+- [x] Bootstrap the `admin` custom claim (`scripts/grant-admin.mjs`).
+      *Nothing could write content before this: every content rule gates on
+      `request.auth.token.admin`, and nothing set it.*
+- [ ] CI green (`analyze`, `custom_lint`, `test`, rules tests, build APK).
+- **DoD:** a user can sign in and reach an (empty) home screen; schema + rules on the emulator.
 
-> **Blocked on you:** `flutterfire configure` needs a Google account and the Firebase
-> console, so it can't be automated. Until it runs, the app targets the `demo-lakbayan`
-> emulator project and Google Sign-In cannot work — obtaining a Google ID token needs
-> a real project with this app's SHA-1 registered. Email/password is unaffected.
-
-## Phase 2 · Weeks 3–5 — Core content
-- [ ] `/add-collection destinations` finalized (+ `segments` subcollection, storage paths).
-- [ ] `features/destinations`: Explore/Home, Search/Browse, Destination Detail.
-- [ ] Back-end: destinations + segments CRUD; Cloud Storage image upload; publish workflow.
-- [ ] Seed a few real Cagayan destinations for demoing (content track in parallel).
+## Phase 2 · Weeks 3–6 — Core content
+- [ ] `features/destinations`: Explore/Home, Search/Browse, Destination Detail
+      *(wireframes 1c and 1d).*
+- [ ] Wire the design system components to real data — `DestinationCard`,
+      `LakbayanListRow`, filter chips.
+- [ ] Local-first read path: Firestore offline persistence + Hive; every query
+      filters on `status == published` or the rules deny it wholesale.
+- [ ] Seed real Cagayan destinations **via the CMS** once CMS-1 lands
+      *(content track in parallel).*
 - **DoD:** browse real destinations end-to-end from Firestore, images loading.
+- **Depends on CMS-1** — content writes are admin-only, so there is nothing to
+  browse until the CMS can publish.
 
-## Phase 3 · Weeks 6–8 — Core value  → Milestone **M2 (Beta)**
-- [ ] `features/maps`: map view (flutter_map), pins, tap-to-detail, pre-set routes.
-- [ ] `features/audio`: just_audio player + `flutter_tts` fallback; segment list UI.
-- [ ] `features/offline`: `generateOfflineBundle(townId)` function; per-town download manager; offline tile packs; cache assets in Hive. (See `docs/ARCHITECTURE.md` → offline.)
-- [ ] `features/itineraries`: create-your-own-tour + saved tours.
+## Phase 3 · Weeks 7–10 — Core value  → Milestone **M2 (Beta)**
+- [ ] `features/maps`: map view (flutter_map), pins, tap-to-detail, pre-set routes
+      *(wireframe 1d).*
+- [ ] `features/audio`: just_audio player + `flutter_tts` fallback; segment list UI
+      *(wireframe 1e).*
+- [ ] `features/offline`: `generateOfflineBundle(townId)` function; per-town download
+      manager; offline tile packs; cache assets in Hive *(wireframe 1f;
+      `docs/ARCHITECTURE.md` → offline).*
+- [ ] `features/itineraries`: create-your-own-tour + saved tours *(wireframe 1g).*
+- [ ] `features/profile` + global loading/empty/offline states *(wireframe 1h).*
 - **DoD:** download a town → maps + audio guides work fully offline.
+- **Biggest risk in the project.** Offline bundles alone are a Cloud Function
+  manifest, a download manager, Hive tracking, version invalidation and mbtiles
+  serving. The `.mbtiles` package choice is still unresolved (D-02).
 
-## Phase 4 · Weeks 9–10 — AR pilot *(stretch — only if on schedule)*
+## Phase 4 · Weeks 11–12 — AR pilot *(stretch — only if on schedule)*
 - [ ] `features/ar`: ARCore Augmented Images native channel behind a Dart interface.
-- [ ] One pilot museum exhibit; graceful fallback to Destination Detail when AR unsupported.
-- [ ] AR content model + admin fields.
+- [ ] One pilot museum exhibit; graceful fallback to Destination Detail when unsupported.
 - **DoD:** one exhibit recognized and overlaid on a test device (or documented if cut).
 
-## Phase 5 · Weeks 11–12 — Ship  → Milestone **M3 (MVP RC)**
+## Phase 5 · Weeks 13–15 — Ship  → Milestone **M3 (MVP RC)**
+- [ ] Create the **production** Firebase project; keep its config out of the repo (D-08).
 - [ ] Integration pass; empty/error/loading states everywhere.
-- [ ] Harden `firestore.rules`; wire Analytics + Crashlytics.
+- [ ] Harden `firestore.rules`; extend the rules test suite; wire Analytics + Crashlytics.
+- [ ] Release signing config + release SHA-1 registered for Google Sign-In.
 - [ ] QA, bug-fix, demo build; tag a release candidate.
 - **DoD:** MVP release candidate runs on Android; core KPIs reporting; demo ready.
+
+---
+
+# Track B — Admin CMS
+
+Separate repo, React (D-04). Eleven screens per the admin wireframes. Reuses
+`tokens.json` from the design system — it is platform-agnostic W3C design tokens,
+so the same ramps and type scale become CSS custom properties.
+
+Firestore rules, indexes and `docs/DATA_MODEL.md` stay owned by **this** repo. The
+CMS consumes that contract; it does not redefine it.
+
+## CMS-0 · Week 3 — Scaffold
+- [x] `cms/` — React + TypeScript + Vite, Firebase SDK. *(Monorepo, not a
+      separate repo — D-10.)*
+- [x] `design/tokens.json` committed as the shared source of truth;
+      `cms/scripts/gen-tokens.mjs` generates CSS custom properties from it so the
+      palette is derived rather than retyped.
+- [x] Admin login + role gating *(screen 1)*. Non-admins get a distinct
+      "not an administrator" state — they signed in fine, they are just not staff.
+- [x] Point at the Firebase emulators in dev, same demo project as the app.
+- [x] App shell with the seven-section sidebar; dashboard with live counts *(screen 2)*.
+- [ ] Firebase Hosting target + deploy.
+
+## CMS-1 · Weeks 4–6 — Destinations  → **unblocks mobile Phase 2**
+- [ ] Dashboard *(screen 2)*.
+- [ ] Destinations list — the table pattern reused by every later list *(screen 3)*.
+- [ ] Destination Editor: Details tab + Location tab with map picker *(screen 4)*.
+- [ ] Cloud Storage image upload to `/destinations/{id}/images/{n}.jpg`.
+- [ ] Publish / unpublish workflow writing `status`.
+- **DoD:** a real Cagayan destination can be created, illustrated and published,
+  and appears in the mobile app.
+
+## CMS-2 · Weeks 7–9 — Content depth
+- [ ] Audio Guide segments editor: ordering, audio upload, TTS text *(screen 5)*.
+- [ ] Tours: stop picker, cover image, featured flag *(screen 8)*.
+- [ ] Local Guides directory *(screen 9)*.
+
+## CMS-3 · Weeks 10–12 — Operations
+- [ ] Offline Bundles: trigger `generateOfflineBundle`, show version and status *(screen 7)*.
+- [ ] Users + Admin team & roles *(screen 10)*. Replace `scripts/grant-admin.mjs`
+      with a callable Cloud Function so promotion no longer needs a service account.
+- [ ] AR Content editor: marker upload, exhibit binding *(screen 6)*.
+      *Cut with Phase 4 if AR is dropped.*
+
+## CMS-4 · Weeks 13–15 — Settings and ship
+- [ ] Settings: taxonomy, app settings, policies *(screen 11)*.
+- [ ] Global states — loading, empty, error, saving/conflict *(screen 1i)*.
+- [ ] Deploy to Firebase Hosting; restrict access to admins.
+- **DoD:** the province can maintain content without a developer.
+
+---
+
+## Cross-track dependencies
+
+| Needed by | Depends on | Why |
+|---|---|---|
+| Mobile Phase 2 DoD | **CMS-1** | Content writes are admin-only; nothing to browse without it |
+| CMS-0 login | `scripts/grant-admin.mjs` | The first admin has to come from somewhere |
+| CMS-3 bundles | Mobile Phase 3 function | `generateOfflineBundle` lives in this repo |
+| Both | `docs/DATA_MODEL.md` | One schema, owned here, consumed there |
+
+**If the schedule slips, cut in this order:** AR (Phase 4 + screen 6), then CMS-4
+Settings, then itineraries. Do **not** cut CMS-1 — the MVP DoD depends on it and
+there is no content without it.

@@ -7,7 +7,7 @@ These were open; the scaffold defaults to the left. Confirm with the team before
 | D-01 | State management | **Riverpod 3** | Bloc |
 | D-02 | Maps SDK | **flutter_map + raster OSM tiles** (free) | Mapbox (paid, easy offline) |
 | D-03 | Local cache DB | **hive_ce** | Isar (complex queries) |
-| D-04 | Admin app stack | **React** (separate repo) | Flutter Web |
+| D-04 | Admin app stack | **React** — *in `cms/`, not a separate repo; see D-10* | Flutter Web |
 | D-05 | AR implementation | **native channel to ARCore** | ar_flutter_plugin |
 | D-06 | Social auth (v1) | **Google + email** — *confirmed, see below* | add Facebook/Twitter later |
 
@@ -51,6 +51,60 @@ and every teammate fail with `File google-services.json is missing`.
 
 A **production** project is different — keep its config out of the repo and inject
 it in CI from a secret.
+
+## D-10 · Monorepo — the CMS lives in `cms/`, not a separate repo (2026-08-04)
+
+**Accepted. This reverses D-04's "separate repo"**; the React choice stands.
+
+D-04 was made before the schema tooling existed. Three things now cross the app
+boundary and would be split by a repo boundary:
+
+- **The schema.** A change to `destinations` touches `docs/DATA_MODEL.md`,
+  `firestore.rules`, `firestore.indexes.json`, the Dart model *and* the CMS
+  editor form. That is one logical change. Two repos make it two PRs that must
+  land in order — and the `/add-collection` skill exists precisely to keep those
+  files moving together.
+- **Design tokens.** `design/tokens.json` is consumed by both. Two copies drift,
+  and `docs/DESIGN_SYSTEM.md` already states that if they diverge one is wrong.
+- **Local infrastructure.** The emulator suite, the rules tests and
+  `scripts/grant-admin.mjs` are shared. Duplicating Docker and ports across two
+  repos is friction for three developers with no upside.
+
+Layout: Flutter stays at the root (no disruptive move), CMS in `cms/`, shared
+infrastructure at the root. Deployment stays independent — the CMS ships to
+Firebase Hosting, the app to Play.
+
+`design/tokens.json` is now committed here and is the single source of truth.
+`cms/scripts/gen-tokens.mjs` generates CSS custom properties from it, so the
+CMS palette is derived rather than retyped. The Flutter theme still transcribes
+it by hand — that remains a drift risk worth automating later.
+
+## D-09 · Admin CMS is in scope; timeline extends to 15 weeks (2026-08-04)
+
+**Accepted.** Build the Admin CMS as wireframed — all 11 screens — and extend the
+plan from 12 to 15 weeks rather than cutting scope.
+
+The CMS was missing from `PLAN.md` entirely, despite being required by three
+existing documents: `ARCHITECTURE.md` describes it, D-04 fixes its stack, and the
+MVP Definition of Done in `CONVENTIONS.md` says *"admin can publish a destination"*.
+The admin wireframes specify Login, Dashboard, Destinations list, Destination
+Editor, Audio Guide segments, AR Content, Offline Bundles, Tours, Local Guides,
+Users + roles, and Settings.
+
+It is also a hard dependency, not a parallel nicety: every content write in
+`firestore.rules` requires the `admin` claim, so mobile Phase 2's DoD — "browse
+real destinations end-to-end" — cannot be met until the CMS can publish.
+
+Cut order if the schedule slips: AR, then CMS Settings, then itineraries. Never
+CMS-1.
+
+### Bootstrapping the admin claim
+
+`isAdmin()` reads `request.auth.token.admin`, and until now **nothing set it** —
+no account could write content, including the project owner. `scripts/grant-admin.mjs`
+fills that gap: emulator by default, `--live` with a service account for a real
+project. CMS-3 replaces it with a callable Cloud Function once the Users screen
+exists, so promoting a teammate no longer needs a service account key.
 
 ## Forced during scaffold setup (2026-08-03)
 

@@ -1,0 +1,29 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Generated from design/tokens.json by scripts/gen-tokens.mjs, which runs before
+# dev and build. Committing it would let a stale copy diverge from the source —
+# the same reason *.g.dart is ignored on the Flutter side.
+src/styles/tokens.css
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
