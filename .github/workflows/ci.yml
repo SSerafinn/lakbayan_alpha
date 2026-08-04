@@ -59,6 +59,31 @@ jobs:
           path: build/app/outputs/flutter-apk/app-debug.apk
           if-no-files-found: error
 
+  # Admin CMS (cms/). Independent of the Flutter job — different toolchain,
+  # different deploy target — but the same schema contract.
+  cms:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: cms
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: cms/package-lock.json
+
+      - run: npm install
+
+      # `build` regenerates tokens.css from design/tokens.json first, so a token
+      # change that breaks the generator fails here rather than in someone's
+      # browser.
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run build
+
   # firestore.rules is code and is reviewed like code. It is evaluated by the
   # emulator rather than by Dart, so it gets its own job.
   rules:

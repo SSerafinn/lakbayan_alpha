@@ -42,9 +42,11 @@ ios/Runner/GoogleService-Info.plist
 # A production Firebase project is a different matter — keep its config out of
 # the repo and inject it in CI. See docs/DECISIONS.md D-08.
 
-# Security rules test harness (Node, separate from the Flutter suite)
+# Node side-projects: rules tests and operational scripts
 test_rules/node_modules/
 test_rules/package-lock.json
+scripts/node_modules/
+scripts/package-lock.json
 
 # Per-developer run config (LAN IP for testing on a physical device).
 # config/dev.json is shared and committed; this one is yours.

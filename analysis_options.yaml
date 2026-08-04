@@ -8,6 +8,11 @@ analyzer:
   exclude:
     - "**/*.g.dart"
     - "**/*.freezed.dart"
+    # Sibling apps and Node tooling in the monorepo — nothing Dart lives here,
+    # and node_modules would slow every analyze run to a crawl.
+    - "cms/**"
+    - "test_rules/**"
+    - "scripts/**"
 
 linter:
   rules:
