@@ -21,6 +21,7 @@ replaces them**. Android-first, Flutter + Firebase.
 - Run app: `flutter run` (**host only** — never in Docker; see `docs/DOCKER.md`)
 - Analyze / test: `flutter analyze` · `dart run custom_lint` · `flutter test`
 - Firebase emulators: `docker compose up emulators` (UI at localhost:4000)
+- Security rules tests: `cd test_rules && npm install && npm test` (emulators must be up)
 - Same checks in the pinned container: `docker compose run --rm toolchain <cmd>`
 
 `flutter analyze` does **not** run custom_lint plugins — riverpod_lint rules only

@@ -35,6 +35,23 @@ navigation). Wireframes win on structure; the design system wins on styling.
 First application: bottom navigation is *Explore · Map · Itineraries · Profile* per
 the wireframes, not the specimen's *Trips · Saved*. See `docs/DESIGN_SYSTEM.md`.
 
+## D-08 · Commit the dev Firebase config (2026-08-04)
+
+**Accepted.** `android/app/google-services.json` and `lib/firebase_options.dart`
+for the **dev** project (`project-lakbayan`) are committed.
+
+They are not secrets. Firebase Android and Web API keys are public identifiers —
+every shipped APK contains them and anyone can extract them in minutes. Access is
+controlled by `firestore.rules`, `storage.rules` and App Check, not by hiding the
+key.
+
+Committing them is also load-bearing: the `com.google.gms.google-services` Gradle
+plugin reads `google-services.json` at **build** time, so with it gitignored, CI
+and every teammate fail with `File google-services.json is missing`.
+
+A **production** project is different — keep its config out of the repo and inject
+it in CI from a secret.
+
 ## Forced during scaffold setup (2026-08-03)
 
 - **D-01 is now Riverpod 3, not 2.** On Dart 3.11.4 no `riverpod_lint` release

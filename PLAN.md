@@ -15,12 +15,15 @@ and `flutter test` before committing; commit with `/commit`.
 - [x] Implement `features/auth` (splash, sign-in, Google + email) using Firebase Auth.
       *Email/password verified against the emulator. Google is written but
       unverifiable until `flutterfire configure` + SHA-1 registration.*
-- [ ] Define base Firestore schema + `firestore.rules`
-      *(`users` done — model, rules, `docs/DATA_MODEL.md`. `destinations` outstanding;
-      use `/add-collection`.)*
+- [x] Define base Firestore schema + `firestore.rules`
+      *(`users` + `destinations` + `segments`: models, rules, indexes,
+      `docs/DATA_MODEL.md`. 13 rules tests pass against the emulator —
+      `cd test_rules && npm test`.)*
 - [x] Wire go_router with routes; set up the theme from `lib/core/theme`.
       *Not a hard auth gate — wireframe 1b requires guest browsing. See D-07.*
 - [ ] CI green (`analyze`, `test`, build APK).
+      *Workflow written and each step verified locally, but CI has **never run** —
+      there is no git remote yet.*
 - **DoD:** a user can sign in and reach an (empty) home screen; schema + rules deployed to the emulator.
 
 > **Blocked on you:** `flutterfire configure` needs a Google account and the Firebase
