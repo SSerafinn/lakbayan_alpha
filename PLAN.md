@@ -34,21 +34,24 @@ Work top-to-bottom within a track. Tick tasks as they land. Follow
 - [x] Bootstrap the `admin` custom claim (`scripts/grant-admin.mjs`).
       *Nothing could write content before this: every content rule gates on
       `request.auth.token.admin`, and nothing set it.*
-- [ ] CI green (`analyze`, `custom_lint`, `test`, rules tests, build APK).
+- [x] CI green (`analyze`, `custom_lint`, `test`, rules tests, build APK).
+      *Three jobs — `app`, `cms`, `rules` — all passing on GitHub Actions.*
 - **DoD:** a user can sign in and reach an (empty) home screen; schema + rules on the emulator.
+- **Phase 1 complete.**
 
 ## Phase 2 · Weeks 3–6 — Core content
-- [ ] `features/destinations`: Explore/Home, Search/Browse, Destination Detail
+- [x] `features/destinations`: Explore/Home, Search/Browse, Destination Detail
       *(wireframes 1c and 1d).*
-- [ ] Wire the design system components to real data — `DestinationCard`,
-      `LakbayanListRow`, filter chips.
-- [ ] Local-first read path: Firestore offline persistence + Hive; every query
-      filters on `status == published` or the rules deny it wholesale.
-- [ ] Seed real Cagayan destinations **via the CMS** once CMS-1 lands
-      *(content track in parallel).*
+- [x] Wire the design system components to real data — `LakbayanListRow`,
+      badges, filter chips, `StorageImage` for Storage-path photos.
+- [x] Firestore offline persistence enabled explicitly, unbounded cache; every
+      query filters on `status == published` or the rules deny it wholesale.
+- [x] Seed real Cagayan destinations **via the CMS** *(CMS-1 landed; content
+      verified flowing end to end).*
+- [ ] Nearby Places by distance — needs location permission; deferred to the
+      Phase 3 maps work. Explore currently shows Featured in that slot.
+- [ ] Hive caching of assets *(Phase 3, with offline bundles).*
 - **DoD:** browse real destinations end-to-end from Firestore, images loading.
-- **Depends on CMS-1** — content writes are admin-only, so there is nothing to
-  browse until the CMS can publish.
 
 ## Phase 3 · Weeks 7–10 — Core value  → Milestone **M2 (Beta)**
 - [ ] `features/maps`: map view (flutter_map), pins, tap-to-detail, pre-set routes

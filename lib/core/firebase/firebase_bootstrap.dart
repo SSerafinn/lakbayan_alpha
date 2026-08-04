@@ -47,6 +47,7 @@ Future<FirebaseBootstrapStatus> bootstrapFirebase() async {
   if (!AppConfig.useFirebaseEmulators) {
     try {
       await _initializeApp(DefaultFirebaseOptions.currentPlatform);
+      _enableOfflinePersistence();
       debugPrint("Firebase: LIVE project — writes hit the real backend.");
       return FirebaseBootstrapStatus.live;
     } catch (e, st) {
@@ -59,6 +60,7 @@ Future<FirebaseBootstrapStatus> bootstrapFirebase() async {
   try {
     await _initializeApp(demoFirebaseOptions);
     await _connectEmulators();
+    _enableOfflinePersistence();
     return FirebaseBootstrapStatus.emulators;
   } catch (e, st) {
     debugPrint(
@@ -69,6 +71,23 @@ Future<FirebaseBootstrapStatus> bootstrapFirebase() async {
     debugPrintStack(stackTrace: st);
     return FirebaseBootstrapStatus.unavailable;
   }
+}
+
+/// Turns on Firestore's local cache, with no size cap.
+///
+/// Set explicitly rather than left to the default, because offline-first is a
+/// hard guardrail here and the default is not the same everywhere: mobile
+/// enables persistence, web does not. This is what lets every read path serve
+/// from cache when there is no signal — the whole point of an app used on the
+/// road in Cagayan.
+///
+/// Unbounded because a downloaded town's destinations must not be evicted to
+/// make room; Phase 3's offline bundles depend on that.
+void _enableOfflinePersistence() {
+  FirebaseFirestore.instance.settings = const Settings(
+    persistenceEnabled: true,
+    cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
+  );
 }
 
 /// Creates the default [FirebaseApp], tolerating one already existing.
