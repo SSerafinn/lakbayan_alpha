@@ -7,6 +7,8 @@ import "../../../core/theme/app_dimens.dart";
 import "../../../core/theme/app_typography.dart";
 import "../../../core/theme/lakbayan_colors.dart";
 import "../../auth/domain/auth_providers.dart";
+import "../../destinations/presentation/browse_screen.dart";
+import "../../destinations/presentation/explore_screen.dart";
 
 /// The four-tab shell from wireframe 1a: *Explore · Map · Itineraries · Profile*,
 /// present on every screen except Splash, Auth, Player and AR View.
@@ -57,9 +59,14 @@ class _HomeShellState extends ConsumerState<HomeShell> {
           ),
         ],
       ),
-      body: _index == 3
-          ? _ProfileTab(isGuest: isGuest)
-          : _EmptyTab(title: _titles[_index]),
+      body: switch (_index) {
+        0 => const ExploreScreen(),
+        1 => const BrowseScreen(),
+        3 => _ProfileTab(isGuest: isGuest),
+        // Itineraries land in Phase 3; the full-screen map replaces the Browse
+        // landing behind the ◈ toggle at the same time.
+        _ => _EmptyTab(title: _titles[_index]),
+      },
     );
   }
 }

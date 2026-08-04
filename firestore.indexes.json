@@ -1,6 +1,15 @@
 {
   "indexes": [
     {
+      "__comment": "Browse: all published, alphabetical. Equality on status plus an orderBy on a different field needs its own composite - the single-field indexes Firestore creates automatically are not enough.",
+      "collectionGroup": "destinations",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "name", "order": "ASCENDING" }
+      ]
+    },
+    {
       "__comment": "Browse by category. Every public query must filter on status, because firestore.rules gates reads on it - an unfiltered query is denied wholesale rather than partially.",
       "collectionGroup": "destinations",
       "queryScope": "COLLECTION",
