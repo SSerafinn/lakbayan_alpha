@@ -4,17 +4,39 @@
     "allow": [
       "Bash(flutter *)",
       "Bash(dart *)",
+      "Bash(npm run *)",
+      "Bash(npm test*)",
+      "Bash(npm install*)",
       "Bash(git status*)",
       "Bash(git diff*)",
       "Bash(git add*)",
-      "Bash(firebase emulators:*)"
+      "Bash(git log*)",
+      "Bash(git fetch*)",
+      "Bash(firebase emulators:*)",
+      "Bash(docker compose ps*)",
+      "Bash(docker compose logs*)",
+      "Bash(gh pr view*)",
+      "Bash(gh pr list*)",
+      "Bash(gh pr status*)",
+      "Bash(gh pr diff*)",
+      "Bash(gh run list*)",
+      "Bash(gh run view*)",
+      "Bash(gh auth status*)",
+      "Bash(gh repo view*)"
     ],
     "ask": [
       "Bash(git push*)",
-      "Bash(firebase deploy*)"
+      "Bash(firebase deploy*)",
+      "Bash(gh pr create*)",
+      "Bash(gh pr merge*)",
+      "Bash(gh pr close*)",
+      "Bash(gh release*)",
+      "Bash(gh repo delete*)",
+      "Bash(gh api*)"
     ],
     "deny": [
       "Read(.env)",
+      "Read(config/local.json)",
       "Read(**/serviceAccount*.json)"
     ]
   }
