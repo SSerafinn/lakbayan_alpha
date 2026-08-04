@@ -90,11 +90,16 @@ Firestore rules, indexes and `docs/DATA_MODEL.md` stay owned by **this** repo. T
 CMS consumes that contract; it does not redefine it.
 
 ## CMS-0 · Week 3 — Scaffold
-- [ ] Repo, React + TypeScript + Vite, Firebase SDK, hosting target.
-- [ ] Port `tokens.json` to CSS custom properties; base components.
-- [ ] Admin login + role gating *(screen 1)*. Non-admins are rejected at the door —
-      the `admin` custom claim is the only gate, granted by `scripts/grant-admin.mjs`.
-- [ ] Point at the Firebase emulators in dev, same as the app.
+- [x] `cms/` — React + TypeScript + Vite, Firebase SDK. *(Monorepo, not a
+      separate repo — D-10.)*
+- [x] `design/tokens.json` committed as the shared source of truth;
+      `cms/scripts/gen-tokens.mjs` generates CSS custom properties from it so the
+      palette is derived rather than retyped.
+- [x] Admin login + role gating *(screen 1)*. Non-admins get a distinct
+      "not an administrator" state — they signed in fine, they are just not staff.
+- [x] Point at the Firebase emulators in dev, same demo project as the app.
+- [x] App shell with the seven-section sidebar; dashboard with live counts *(screen 2)*.
+- [ ] Firebase Hosting target + deploy.
 
 ## CMS-1 · Weeks 4–6 — Destinations  → **unblocks mobile Phase 2**
 - [ ] Dashboard *(screen 2)*.

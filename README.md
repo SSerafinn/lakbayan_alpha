@@ -319,15 +319,25 @@ git tag -a v0.1.0-m1 -m "M1 Alpha: auth, schema, app shell" && git push --tags
 
 ## Layout
 
+This is a **monorepo**: the Flutter app at the root, the admin CMS in `cms/`, and
+the things they share — schema, rules, design tokens, emulators — at the root
+where neither owns them. See `docs/DECISIONS.md` D-10.
+
 ```
 lib/core/        theme, router, models, services shared across features
 lib/features/    one folder per feature (data/domain/presentation)
+cms/             admin CMS — React + Vite (see cms/README.md)
+design/          tokens.json — single source of truth for BOTH apps' styling
 config/          run configuration — dev.json shared, local.json yours
-docker/          images for the Firebase emulators and the build toolchain
+scripts/         operational scripts, e.g. granting the admin claim
 test_rules/      security-rules tests (Node — the emulator evaluates them, not Dart)
+docker/          images for the Firebase emulators and the build toolchain
 docs/            architecture, data model, conventions, decisions, docker, troubleshooting
 .claude/         skills, commands, agents and settings for Claude Code
 ```
+
+`firestore.rules`, `firestore.indexes.json` and `docs/DATA_MODEL.md` are owned at
+the root and consumed by both apps. Change them together — use `/add-collection`.
 
 Read `docs/DESIGN_SYSTEM.md` before touching UI, and `docs/DATA_MODEL.md` before
 touching Firestore. `docs/DECISIONS.md` records why things are the way they are.
