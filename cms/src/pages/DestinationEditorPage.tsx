@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { Link, useBlocker, useNavigate, useParams } from "react-router-dom";
+import { CAGAYAN_TOWNS } from "../types/towns";
 import {
   createDestination,
   deleteImage,
@@ -15,8 +16,10 @@ import {
   MAX_DESCRIPTION,
   emptyDestination,
   publishBlockers,
+  readiness,
   slugify,
   validate,
+  type ReadinessItem,
   type Category,
   type Destination,
 } from "../types/destination";
@@ -38,8 +41,12 @@ export function DestinationEditorPage() {
   const isNew = id === "new";
   const navigate = useNavigate();
 
-  const [draft, setDraft] = useState<Draft | null>(isNew ? emptyDestination() : null);
-  const [saved, setSaved] = useState<Draft | null>(isNew ? emptyDestination() : null);
+  const [draft, setDraft] = useState<Draft | null>(
+    isNew ? emptyDestination() : null,
+  );
+  const [saved, setSaved] = useState<Draft | null>(
+    isNew ? emptyDestination() : null,
+  );
   const [tab, setTab] = useState<Tab>("details");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -64,14 +71,22 @@ export function DestinationEditorPage() {
     [draft, saved],
   );
 
-  // Warn on a browser-level navigation away. React Router navigation is
-  // handled by the in-page banner instead.
+  // Closing the tab or reloading.
   useEffect(() => {
     if (!dirty) return;
     const onBeforeUnload = (e: BeforeUnloadEvent) => e.preventDefault();
     window.addEventListener("beforeunload", onBeforeUnload);
     return () => window.removeEventListener("beforeunload", onBeforeUnload);
   }, [dirty]);
+
+  // In-app navigation — clicking a sidebar link, the breadcrumb, or the back
+  // button. `beforeunload` does not fire for any of these, so without this a
+  // click on "Tours" silently threw away every edit. Far more likely than
+  // closing the tab, and it was the worst thing about this screen.
+  const blocker = useBlocker(
+    ({ currentLocation, nextLocation }) =>
+      dirty && currentLocation.pathname !== nextLocation.pathname,
+  );
 
   if (error) return <p className="error-note">{error}</p>;
   if (!draft) return <div className="boot">Loading…</div>;
@@ -80,6 +95,7 @@ export function DestinationEditorPage() {
     setDraft((d) => (d ? { ...d, [key]: value } : d));
 
   const errors = validate(draft);
+  const checklist = readiness(draft);
   const blockers = publishBlockers(draft);
 
   async function save(nextStatus?: "draft" | "published") {
@@ -100,7 +116,9 @@ export function DestinationEditorPage() {
     setError(null);
     try {
       if (await isSlugTaken(next.slug, isNew ? undefined : id)) {
-        setError(`The slug "${next.slug}" is already used by another destination.`);
+        setError(
+          `The slug "${next.slug}" is already used by another destination.`,
+        );
         setTab("details");
         return;
       }
@@ -139,9 +157,26 @@ export function DestinationEditorPage() {
         </span>
       </header>
 
-      {dirty && (
+      {blocker.state === "blocked" && (
+        <div className="warn-bar block">
+          <strong>You have unsaved changes.</strong> Leave this page and they
+          will be lost.
+          <span className="spacer" />
+          <button className="btn-quiet" onClick={() => blocker.reset()}>
+            Stay
+          </button>
+          <button
+            className="btn-secondary sm"
+            onClick={() => blocker.proceed()}
+          >
+            Discard and leave
+          </button>
+        </div>
+      )}
+
+      {dirty && blocker.state !== "blocked" && (
         <div className="warn-bar">
-          <strong>Unsaved changes.</strong> Leaving this page will discard them.
+          <strong>Unsaved changes.</strong>
           <span className="spacer" />
           <button
             className="btn-quiet"
@@ -207,6 +242,10 @@ export function DestinationEditorPage() {
         />
       )}
 
+      {draft.status !== "published" && (
+        <ReadinessPanel items={checklist} onJump={setTab} />
+      )}
+
       <div className="savebar">
         <span className="hint">
           {dirty ? "Unsaved changes" : "All changes saved"}
@@ -231,8 +270,9 @@ export function DestinationEditorPage() {
         )}
         <button
           className="btn-primary"
-          disabled={busy || (draft.status !== "published" && blockers.length > 0)}
-          title={blockers[0]}
+          disabled={
+            busy || (draft.status !== "published" && blockers.length > 0)
+          }
           onClick={() => void save("published")}
         >
           {draft.status === "published" ? "Save" : "Publish"}
@@ -260,184 +300,228 @@ function DetailsTab({
   const [tagInput, setTagInput] = useState("");
 
   return (
-    <div className="fgrid">
-      <Field label="Name" required error={errors.name}>
-        <input
-          value={draft.name}
-          onChange={(e) => onNameChange(e.target.value)}
-        />
-      </Field>
+    <>
+      {/* The list the town field's `list="towns"` refers to. Without this the
+          attribute silently does nothing — which is how "Peñablanca" and
+          "Penablanca" end up as two towns, and later two offline bundles. */}
+      <datalist id="towns">
+        {CAGAYAN_TOWNS.map((t) => (
+          <option key={t} value={t} />
+        ))}
+      </datalist>
 
-      <Field
-        label="Slug"
-        required
-        error={errors.slug}
-        hint={
-          slugEdited
-            ? "Used in deep links — changing it breaks links already shared."
-            : "Auto-generated from the name."
-        }
-      >
-        <input
-          value={draft.slug}
-          onChange={(e) => {
-            onSlugEdited();
-            set("slug", slugify(e.target.value));
-          }}
-        />
-      </Field>
+      <Section title="Identity" hint="How this place is named and filed.">
+        <Field label="Name" required error={errors.name}>
+          <input
+            value={draft.name}
+            onChange={(e) => onNameChange(e.target.value)}
+          />
+        </Field>
 
-      <Field label="Town / municipality" required error={errors.town}>
-        <input
-          value={draft.town}
-          onChange={(e) => set("town", e.target.value)}
-          list="towns"
-          placeholder="e.g. Peñablanca"
-        />
-      </Field>
-
-      <Field label="Category" required>
-        <select
-          value={draft.category}
-          onChange={(e) => set("category", e.target.value as Category)}
+        <Field
+          label="Slug"
+          required
+          error={errors.slug}
+          hint={
+            slugEdited
+              ? "Used in deep links — changing it breaks links already shared."
+              : "Auto-generated from the name."
+          }
         >
-          {CATEGORIES.map((c) => (
-            <option key={c} value={c}>
-              {CATEGORY_LABELS[c]}
-            </option>
-          ))}
-        </select>
-      </Field>
-
-      <Field
-        label="Short description"
-        required
-        error={errors.description}
-        hint={`Shown on cards · ${draft.description.length} / ${MAX_DESCRIPTION}`}
-        wide
-      >
-        <textarea
-          rows={2}
-          maxLength={MAX_DESCRIPTION}
-          value={draft.description}
-          onChange={(e) => set("description", e.target.value)}
-        />
-      </Field>
-
-      <Field label="History / long content" wide>
-        <textarea
-          rows={7}
-          value={draft.history ?? ""}
-          onChange={(e) => set("history", e.target.value)}
-          placeholder="Long-form background shown on the detail screen."
-        />
-      </Field>
-
-      <Field label="Visibility & placement">
-        <div className="toggles">
-          <Toggle
-            label="Show in Popular Places"
-            on={draft.popular}
-            onChange={(v) => set("popular", v)}
-          />
-          <Toggle
-            label="Featured"
-            on={draft.featured}
-            onChange={(v) => set("featured", v)}
-          />
-          <Toggle
-            label="Eligible for Nearby Places"
-            on={draft.nearbyEligible}
-            onChange={(v) => set("nearbyEligible", v)}
-          />
-          <Toggle
-            label="Include in offline bundles"
-            on={draft.offlineEligible}
-            onChange={(v) => set("offlineEligible", v)}
-          />
-          <Toggle
-            label="Museum site (enables AR)"
-            on={draft.isMuseum}
-            onChange={(v) => set("isMuseum", v)}
-          />
-        </div>
-      </Field>
-
-      <Field label="Practical info" hint="All optional, shown as written.">
-        <div className="pair-grid">
           <input
-            placeholder="Entry fee"
-            value={draft.practical?.entryFee ?? ""}
-            onChange={(e) =>
-              set("practical", { ...draft.practical, entryFee: e.target.value })
-            }
-          />
-          <input
-            placeholder="Open hours"
-            value={draft.practical?.openHours ?? ""}
-            onChange={(e) =>
-              set("practical", { ...draft.practical, openHours: e.target.value })
-            }
-          />
-          <input
-            placeholder="Best season"
-            value={draft.practical?.bestSeason ?? ""}
-            onChange={(e) =>
-              set("practical", {
-                ...draft.practical,
-                bestSeason: e.target.value,
-              })
-            }
-          />
-          <input
-            placeholder="Accessibility"
-            value={draft.practical?.accessibility ?? ""}
-            onChange={(e) =>
-              set("practical", {
-                ...draft.practical,
-                accessibility: e.target.value,
-              })
-            }
-          />
-        </div>
-      </Field>
-
-      <Field label="Tags" wide>
-        <div className="tag-row">
-          {draft.tags.map((t) => (
-            <span key={t} className="badge">
-              {t}
-              <button
-                className="tag-x"
-                aria-label={`Remove ${t}`}
-                onClick={() =>
-                  set(
-                    "tags",
-                    draft.tags.filter((x) => x !== t),
-                  )
-                }
-              >
-                ×
-              </button>
-            </span>
-          ))}
-          <input
-            className="tag-input"
-            placeholder="add tag + Enter"
-            value={tagInput}
-            onChange={(e) => setTagInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key !== "Enter") return;
-              e.preventDefault();
-              const t = tagInput.trim().toLowerCase();
-              if (t && !draft.tags.includes(t)) set("tags", [...draft.tags, t]);
-              setTagInput("");
+            value={draft.slug}
+            onChange={(e) => {
+              onSlugEdited();
+              set("slug", slugify(e.target.value));
             }}
           />
-        </div>
-      </Field>
-    </div>
+        </Field>
+
+        <Field
+          label="Town / municipality"
+          required
+          error={errors.town}
+          hint="Start typing — Cagayan's municipalities are suggested."
+        >
+          <input
+            value={draft.town}
+            onChange={(e) => set("town", e.target.value)}
+            list="towns"
+            placeholder="e.g. Peñablanca"
+          />
+        </Field>
+
+        <Field label="Category" required>
+          <select
+            value={draft.category}
+            onChange={(e) => set("category", e.target.value as Category)}
+          >
+            {CATEGORIES.map((c) => (
+              <option key={c} value={c}>
+                {CATEGORY_LABELS[c]}
+              </option>
+            ))}
+          </select>
+        </Field>
+      </Section>
+
+      <Section
+        title="Content"
+        hint="What a visitor reads on the card and the detail screen."
+      >
+        <Field
+          label="Short description"
+          required
+          error={errors.description}
+          hint={`Shown on cards · ${draft.description.length} / ${MAX_DESCRIPTION}`}
+          wide
+        >
+          <textarea
+            rows={2}
+            maxLength={MAX_DESCRIPTION}
+            value={draft.description}
+            onChange={(e) => set("description", e.target.value)}
+          />
+        </Field>
+
+        <Field label="History / long content" wide>
+          <textarea
+            rows={7}
+            value={draft.history ?? ""}
+            onChange={(e) => set("history", e.target.value)}
+            placeholder="Long-form background shown on the detail screen."
+          />
+        </Field>
+      </Section>
+
+      <Section
+        title="Placement"
+        hint="Where this appears in the app once published."
+      >
+        <Field label="Visibility">
+          <div className="toggles">
+            <Toggle
+              label="Show in Popular Places"
+              on={draft.popular}
+              onChange={(v) => set("popular", v)}
+            />
+            <Toggle
+              label="Featured"
+              on={draft.featured}
+              onChange={(v) => set("featured", v)}
+            />
+            <Toggle
+              label="Eligible for Nearby Places"
+              on={draft.nearbyEligible}
+              onChange={(v) => set("nearbyEligible", v)}
+            />
+            <Toggle
+              label="Include in offline bundles"
+              on={draft.offlineEligible}
+              onChange={(v) => set("offlineEligible", v)}
+            />
+            <Toggle
+              label="Museum site (enables AR)"
+              on={draft.isMuseum}
+              onChange={(v) => set("isMuseum", v)}
+            />
+          </div>
+        </Field>
+      </Section>
+
+      <Section
+        title="Visitor information"
+        hint="Optional, but it is what turns a listing into something useful on the ground."
+      >
+        <Field label="Practical info" hint="All optional, shown as written.">
+          <div className="pair-grid">
+            <input
+              placeholder="Entry fee"
+              value={draft.practical?.entryFee ?? ""}
+              onChange={(e) =>
+                set("practical", {
+                  ...draft.practical,
+                  entryFee: e.target.value,
+                })
+              }
+            />
+            <input
+              placeholder="Open hours"
+              value={draft.practical?.openHours ?? ""}
+              onChange={(e) =>
+                set("practical", {
+                  ...draft.practical,
+                  openHours: e.target.value,
+                })
+              }
+            />
+            <input
+              placeholder="Best season"
+              value={draft.practical?.bestSeason ?? ""}
+              onChange={(e) =>
+                set("practical", {
+                  ...draft.practical,
+                  bestSeason: e.target.value,
+                })
+              }
+            />
+            <input
+              placeholder="Accessibility"
+              value={draft.practical?.accessibility ?? ""}
+              onChange={(e) =>
+                set("practical", {
+                  ...draft.practical,
+                  accessibility: e.target.value,
+                })
+              }
+            />
+          </div>
+        </Field>
+
+        <Field label="Tags" wide>
+          <div className="tag-row">
+            {draft.tags.map((t) => (
+              <span key={t} className="badge">
+                {t}
+                <button
+                  className="tag-x"
+                  aria-label={`Remove ${t}`}
+                  onClick={() =>
+                    set(
+                      "tags",
+                      draft.tags.filter((x) => x !== t),
+                    )
+                  }
+                >
+                  ×
+                </button>
+              </span>
+            ))}
+            <input
+              className="tag-input"
+              placeholder="add tag, then Enter or comma"
+              value={tagInput}
+              onChange={(e) => setTagInput(e.target.value)}
+              // Commit on Enter, comma, or blur. Enter-only loses a tag whenever
+              // someone types it and clicks away, which is most of the time.
+              onKeyDown={(e) => {
+                if (e.key !== "Enter" && e.key !== ",") return;
+                e.preventDefault();
+                commitTag();
+              }}
+              onBlur={commitTag}
+            />
+          </div>
+        </Field>
+      </Section>
+    </>
   );
+
+  function commitTag() {
+    const t = tagInput.trim().toLowerCase().replace(/,$/, "");
+    if (t && !draft.tags.includes(t)) set("tags", [...draft.tags, t]);
+    setTagInput("");
+  }
 }
 
 function LocationTab({
@@ -612,6 +696,71 @@ function MediaTab({
         </ul>
       )}
     </div>
+  );
+}
+
+/**
+ * What is still missing before this can go live.
+ *
+ * Replaces a `title` tooltip on a disabled Publish button — which required
+ * hovering a disabled control to discover why it was disabled. Each unmet item
+ * jumps to the tab that fixes it.
+ */
+function ReadinessPanel({
+  items,
+  onJump,
+}: {
+  items: ReadinessItem[];
+  onJump: (tab: Tab) => void;
+}) {
+  const missing = items.filter((i) => !i.ok);
+
+  if (missing.length === 0) {
+    return (
+      <div className="readiness ok">
+        <strong>Ready to publish.</strong> Everything required is filled in.
+      </div>
+    );
+  }
+
+  return (
+    <div className="readiness">
+      <strong>
+        {missing.length} thing{missing.length === 1 ? "" : "s"} left before this
+        can be published
+      </strong>
+      <ul>
+        {missing.map((i) => (
+          <li key={i.label}>
+            <button className="link-button" onClick={() => onJump(i.tab)}>
+              {i.label}
+            </button>
+            {i.why && <span className="hint"> — {i.why}</span>}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+/** Groups related fields so Details reads as sections, not a wall of inputs. */
+function Section({
+  title,
+  hint,
+  children,
+}: {
+  title: string;
+  hint?: string;
+  children: ReactNode;
+}) {
+  return (
+    <section className="fsection">
+      <header>
+        <h2>{title}</h2>
+        {hint && <p className="hint">{hint}</p>}
+      </header>
+      <div className="fgrid">{children}</div>
+    </section>
   );
 }
 
