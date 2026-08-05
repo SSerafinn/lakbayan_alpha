@@ -614,6 +614,36 @@ table.data td a:hover {
   min-width: 140px;
 }
 
+.geo-results {
+  list-style: none;
+  margin: var(--lk-space-2) 0 0;
+  padding: 0;
+  border: 1px solid var(--lk-line);
+  border-radius: var(--lk-radius-md);
+  overflow: hidden;
+  background: var(--lk-surface);
+}
+.geo-results li + li {
+  border-top: 1px solid var(--lk-line);
+}
+.geo-result {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  align-items: flex-start;
+  text-align: left;
+  padding: var(--lk-space-3) var(--lk-space-4);
+  background: none;
+  border: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+.geo-result:hover {
+  background: var(--lk-green-50);
+}
+
 .map-preview {
   width: 100%;
   height: 320px;

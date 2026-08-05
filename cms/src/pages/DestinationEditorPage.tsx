@@ -10,6 +10,7 @@ import {
   uploadImage,
 } from "../lib/destinations";
 import { ImageThumb } from "../components/ImageThumb";
+import { formatCoord, searchPlaces, type GeocodeResult } from "../lib/geocode";
 import {
   CATEGORIES,
   CATEGORY_LABELS,
@@ -524,6 +525,97 @@ function DetailsTab({
   }
 }
 
+/**
+ * Search for a place by name and drop the pin on it.
+ *
+ * Typing latitude to six decimal places is not a task for a tourism officer.
+ * This is the fast path; the numeric fields below remain the source of truth
+ * and the fallback for anywhere the geocoder does not know — which in rural
+ * Cagayan is plenty of places.
+ */
+function PlaceSearch({ onPick }: { onPick: (r: GeocodeResult) => void }) {
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<GeocodeResult[] | null>(null);
+  const [searching, setSearching] = useState(false);
+  const [picked, setPicked] = useState<string | null>(null);
+
+  useEffect(() => {
+    const q = query.trim();
+    if (q.length < 3) {
+      setResults(null);
+      return;
+    }
+
+    // Debounced, and every superseded keystroke aborts its request. Nominatim's
+    // usage policy caps this at one request per second; firing per keystroke
+    // would breach it and get the whole province rate-limited.
+    const controller = new AbortController();
+    setSearching(true);
+    const timer = setTimeout(async () => {
+      const found = await searchPlaces(q, controller.signal);
+      if (!controller.signal.aborted) {
+        setResults(found);
+        setSearching(false);
+      }
+    }, 600);
+
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [query]);
+
+  return (
+    <Field
+      label="Find a place"
+      wide
+      hint="Search by name, then pick a result to set the coordinates."
+    >
+      <input
+        value={query}
+        onChange={(e) => {
+          setQuery(e.target.value);
+          setPicked(null);
+        }}
+        placeholder="e.g. Callao Cave, Peñablanca"
+      />
+
+      {searching && <p className="hint">Searching…</p>}
+
+      {picked && <p className="hint">Pin set to {picked}</p>}
+
+      {!searching && results?.length === 0 && (
+        <p className="hint">
+          Nothing found. Rural sites are often missing from OpenStreetMap — set
+          the coordinates by hand below.
+        </p>
+      )}
+
+      {!picked && results && results.length > 0 && (
+        <ul className="geo-results">
+          {results.map((r) => (
+            <li key={`${r.lat},${r.lng}`}>
+              <button
+                className="geo-result"
+                onClick={() => {
+                  onPick(r);
+                  setPicked(r.label);
+                  setResults(null);
+                }}
+              >
+                <span>{r.label}</span>
+                <span className="hint">
+                  {formatCoord(r.lat)}, {formatCoord(r.lng)}
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Field>
+  );
+}
+
 function LocationTab({
   draft,
   set,
@@ -537,6 +629,8 @@ function LocationTab({
 
   return (
     <div className="fgrid">
+      <PlaceSearch onPick={(r) => set("coords", { lat: r.lat, lng: r.lng })} />
+
       <Field label="Latitude" required>
         <input
           type="number"
@@ -561,7 +655,7 @@ function LocationTab({
       <Field
         label="Preview"
         wide
-        hint="Confirms the pin lands where you expect. A click-to-place picker arrives with the maps work in Phase 3."
+        hint="Confirms the pin lands where you expect."
       >
         <iframe
           title="Location preview"
