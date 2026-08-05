@@ -1,4 +1,5 @@
 import "package:cloud_firestore/cloud_firestore.dart";
+import "package:flutter/foundation.dart";
 
 import "../../../core/models/destination.dart";
 
@@ -54,7 +55,7 @@ class DestinationRepository {
   }
 
   Stream<Destination?> watchById(String id) => _col.doc(id).snapshots().map(
-        (snap) => snap.exists ? _toDestination(snap) : null,
+        (snap) => snap.exists ? _tryParse(snap) : null,
       );
 
   /// Audio guide stops, in player order.
@@ -67,14 +68,61 @@ class DestinationRepository {
       .orderBy("order")
       .snapshots()
       .map(
-        (snap) => snap.docs
-            .map((d) => Segment.fromJson({...d.data(), "id": d.id}))
-            .toList(),
+        (snap) => _decodeAll(
+          snap.docs,
+          (data, id) => Segment.fromJson({...data, "id": id}),
+          label: "segment",
+        ),
       );
 
   List<Destination> _toList(QuerySnapshot<Map<String, dynamic>> snap) =>
-      snap.docs.map(_toDestination).toList();
+      _decodeAll(
+        snap.docs,
+        (data, id) => Destination.fromJson({...data, "id": id}),
+        label: "destination",
+      );
 
-  Destination _toDestination(DocumentSnapshot<Map<String, dynamic>> snap) =>
-      Destination.fromJson({...?snap.data(), "id": snap.id});
+  /// Decodes what it can and **drops** what it cannot.
+  ///
+  /// One malformed document must not blank out a whole screen. That is not
+  /// hypothetical: a document written by a newer client, a half-finished
+  /// migration, or a seeding script that only set the fields it cared about
+  /// will all fail to parse, and mapping the snapshot eagerly turns a single
+  /// bad row into an empty Explore tab with no explanation.
+  ///
+  /// Skipping is the lesser evil — the rest of the province still renders.
+  /// The failure is logged loudly because silently vanishing content is its own
+  /// kind of bug.
+  // TODO(phase-5): report these to Crashlytics — in the field nobody reads logs.
+  List<T> _decodeAll<T>(
+    List<QueryDocumentSnapshot<Map<String, dynamic>>> docs,
+    T Function(Map<String, dynamic> data, String id) decode, {
+    required String label,
+  }) {
+    final out = <T>[];
+    for (final doc in docs) {
+      try {
+        out.add(decode(doc.data(), doc.id));
+      } catch (e) {
+        debugPrint(
+          "Skipping malformed $label '${doc.id}': $e\n"
+          "The document is missing a required field or has an unexpected type. "
+          "Check it against docs/DATA_MODEL.md.",
+        );
+      }
+    }
+    return out;
+  }
+
+  /// Single-document variant. A document that cannot be decoded is reported as
+  /// absent, so the detail screen shows its "no longer available" state rather
+  /// than an exception.
+  Destination? _tryParse(DocumentSnapshot<Map<String, dynamic>> snap) {
+    try {
+      return Destination.fromJson({...?snap.data(), "id": snap.id});
+    } catch (e) {
+      debugPrint("Skipping malformed destination '${snap.id}': $e");
+      return null;
+    }
+  }
 }
