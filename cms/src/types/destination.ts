@@ -67,7 +67,7 @@ export type Destination = {
 export const MAX_DESCRIPTION = 140;
 
 /** Cagayan's approximate centre — where a new destination's pin starts. */
-export const CAGAYAN_CENTRE = { lat: 17.6132, lng: 121.7270 };
+export const CAGAYAN_CENTRE = { lat: 17.6132, lng: 121.727 };
 
 /**
  * URL-safe slug from a name.
@@ -123,14 +123,61 @@ export function validate(d: Omit<Destination, "id">): Record<string, string> {
   return errors;
 }
 
+export type ReadinessItem = {
+  label: string;
+  ok: boolean;
+  /** Which tab to send the editor to when this is the thing that is missing. */
+  tab: "details" | "location" | "media";
+  /** Shown when `ok` is false. */
+  why?: string;
+};
+
+/**
+ * Everything required to publish, as a checklist.
+ *
+ * Single source for both the checklist UI and [publishBlockers], so the button
+ * can never be disabled for a reason the checklist does not show — which is
+ * exactly what a `title` tooltip on a disabled button used to do.
+ */
+export function readiness(d: Omit<Destination, "id">): ReadinessItem[] {
+  const desc = d.description.trim();
+  return [
+    { label: "Name", ok: d.name.trim() !== "", tab: "details" },
+    { label: "Slug", ok: d.slug.trim() !== "", tab: "details" },
+    { label: "Town", ok: d.town.trim() !== "", tab: "details" },
+    {
+      label: "Description",
+      ok: desc !== "" && desc.length <= MAX_DESCRIPTION,
+      tab: "details",
+      why:
+        desc === ""
+          ? "Needed for the card."
+          : `Over ${MAX_DESCRIPTION} characters.`,
+    },
+    {
+      label: "Location",
+      ok:
+        Number.isFinite(d.coords.lat) &&
+        Number.isFinite(d.coords.lng) &&
+        !(d.coords.lat === 0 && d.coords.lng === 0),
+      tab: "location",
+      why: "Set the coordinates.",
+    },
+    {
+      label: "At least one photo",
+      ok: d.images.length > 0,
+      tab: "media",
+      why: "The card has no fallback image.",
+    },
+  ];
+}
+
 /**
  * Extra requirements to go live. Kept separate from [validate] so a draft can
  * be saved incomplete — an editor should be able to stop halfway.
  */
 export function publishBlockers(d: Omit<Destination, "id">): string[] {
-  const blockers = Object.values(validate(d));
-  if (d.images.length === 0) {
-    blockers.push("Add at least one photo — the card has no fallback image.");
-  }
-  return blockers;
+  return readiness(d)
+    .filter((r) => !r.ok)
+    .map((r) => (r.why ? `${r.label} — ${r.why}` : `${r.label} is required.`));
 }
