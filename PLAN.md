@@ -105,11 +105,17 @@ CMS consumes that contract; it does not redefine it.
 - [ ] Firebase Hosting target + deploy.
 
 ## CMS-1 · Weeks 4–6 — Destinations  → **unblocks mobile Phase 2**
-- [ ] Dashboard *(screen 2)*.
-- [ ] Destinations list — the table pattern reused by every later list *(screen 3)*.
-- [ ] Destination Editor: Details tab + Location tab with map picker *(screen 4)*.
-- [ ] Cloud Storage image upload to `/destinations/{id}/images/{n}.jpg`.
-- [ ] Publish / unpublish workflow writing `status`.
+- [ ] Dashboard *(screen 2)* — activity feed and quick actions. The live counts
+      shipped with CMS-0; this box is the rest of the screen.
+- [x] Destinations list — the table pattern reused by every later list *(screen 3)*.
+      *(Search, status filter, bulk publish/unpublish.)*
+- [x] Destination Editor: Details, Location and Media tabs *(screen 4)*.
+      *No interactive map picker: the Location tab searches OpenStreetMap by
+      name, accepts manual coordinates, and renders a read-only preview to
+      confirm the pin. Click-to-place lands with the Phase 3 maps work.*
+- [x] Cloud Storage image upload to `/destinations/{id}/images/`.
+      *(Filenames are `{timestamp}.{ext}`, not `{n}.jpg` — no renumbering on delete.)*
+- [x] Publish / unpublish workflow writing `status`, gated on `publishBlockers`.
 - **DoD:** a real Cagayan destination can be created, illustrated and published,
   and appears in the mobile app.
 
