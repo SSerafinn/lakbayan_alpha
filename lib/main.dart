@@ -8,7 +8,8 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   // Never throws — see bootstrapFirebase. The app still boots to the
   // placeholder home screen when Firebase is unconfigured.
+  // Also turns on Firestore offline persistence — see _enableOfflinePersistence.
   await bootstrapFirebase();
-  // TODO(phase-1): init Hive and enable Firestore offline persistence.
+  // TODO(phase-3): init Hive for downloaded assets and offline bundle tracking.
   runApp(const ProviderScope(child: LakbayanApp()));
 }

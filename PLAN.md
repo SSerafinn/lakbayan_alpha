@@ -3,7 +3,7 @@
 Two tracks run in parallel:
 
 - **Track A — Mobile app** (this repo). Flutter, Android-first.
-- **Track B — Admin CMS** (separate repo, React — see `docs/DECISIONS.md` D-04).
+- **Track B — Admin CMS** (`cms/`, React — see `docs/DECISIONS.md` D-04 and D-10).
 
 Work top-to-bottom within a track. Tick tasks as they land. Follow
 `docs/CONVENTIONS.md`; use the Skills in `.claude/skills/`. Run `flutter analyze`,
@@ -34,21 +34,24 @@ Work top-to-bottom within a track. Tick tasks as they land. Follow
 - [x] Bootstrap the `admin` custom claim (`scripts/grant-admin.mjs`).
       *Nothing could write content before this: every content rule gates on
       `request.auth.token.admin`, and nothing set it.*
-- [ ] CI green (`analyze`, `custom_lint`, `test`, rules tests, build APK).
+- [x] CI green (`analyze`, `custom_lint`, `test`, rules tests, build APK).
+      *Three jobs — `app`, `cms`, `rules` — all passing on GitHub Actions.*
 - **DoD:** a user can sign in and reach an (empty) home screen; schema + rules on the emulator.
+- **Phase 1 complete.**
 
 ## Phase 2 · Weeks 3–6 — Core content
-- [ ] `features/destinations`: Explore/Home, Search/Browse, Destination Detail
+- [x] `features/destinations`: Explore/Home, Search/Browse, Destination Detail
       *(wireframes 1c and 1d).*
-- [ ] Wire the design system components to real data — `DestinationCard`,
-      `LakbayanListRow`, filter chips.
-- [ ] Local-first read path: Firestore offline persistence + Hive; every query
-      filters on `status == published` or the rules deny it wholesale.
-- [ ] Seed real Cagayan destinations **via the CMS** once CMS-1 lands
-      *(content track in parallel).*
+- [x] Wire the design system components to real data — `LakbayanListRow`,
+      badges, filter chips, `StorageImage` for Storage-path photos.
+- [x] Firestore offline persistence enabled explicitly, unbounded cache; every
+      query filters on `status == published` or the rules deny it wholesale.
+- [x] Seed real Cagayan destinations **via the CMS** *(CMS-1 landed; content
+      verified flowing end to end).*
+- [ ] Nearby Places by distance — needs location permission; deferred to the
+      Phase 3 maps work. Explore currently shows Featured in that slot.
+- [ ] Hive caching of assets *(Phase 3, with offline bundles).*
 - **DoD:** browse real destinations end-to-end from Firestore, images loading.
-- **Depends on CMS-1** — content writes are admin-only, so there is nothing to
-  browse until the CMS can publish.
 
 ## Phase 3 · Weeks 7–10 — Core value  → Milestone **M2 (Beta)**
 - [ ] `features/maps`: map view (flutter_map), pins, tap-to-detail, pre-set routes
@@ -82,7 +85,9 @@ Work top-to-bottom within a track. Tick tasks as they land. Follow
 
 # Track B — Admin CMS
 
-Separate repo, React (D-04). Eleven screens per the admin wireframes. Reuses
+Lives in `cms/` in this repo, React (D-04 for the stack, D-10 for the monorepo —
+the schema and design tokens are shared, and a repo boundary would split changes
+that must land atomically). Eleven screens per the admin wireframes. Reuses
 `tokens.json` from the design system — it is platform-agnostic W3C design tokens,
 so the same ramps and type scale become CSS custom properties.
 
@@ -102,11 +107,17 @@ CMS consumes that contract; it does not redefine it.
 - [ ] Firebase Hosting target + deploy.
 
 ## CMS-1 · Weeks 4–6 — Destinations  → **unblocks mobile Phase 2**
-- [ ] Dashboard *(screen 2)*.
-- [ ] Destinations list — the table pattern reused by every later list *(screen 3)*.
-- [ ] Destination Editor: Details tab + Location tab with map picker *(screen 4)*.
-- [ ] Cloud Storage image upload to `/destinations/{id}/images/{n}.jpg`.
-- [ ] Publish / unpublish workflow writing `status`.
+- [ ] Dashboard *(screen 2)* — activity feed and quick actions. The live counts
+      shipped with CMS-0; this box is the rest of the screen.
+- [x] Destinations list — the table pattern reused by every later list *(screen 3)*.
+      *(Search, status filter, bulk publish/unpublish.)*
+- [x] Destination Editor: Details, Location and Media tabs *(screen 4)*.
+      *No interactive map picker: the Location tab searches OpenStreetMap by
+      name, accepts manual coordinates, and renders a read-only preview to
+      confirm the pin. Click-to-place lands with the Phase 3 maps work.*
+- [x] Cloud Storage image upload to `/destinations/{id}/images/`.
+      *(Filenames are `{timestamp}.{ext}`, not `{n}.jpg` — no renumbering on delete.)*
+- [x] Publish / unpublish workflow writing `status`, gated on `publishBlockers`.
 - **DoD:** a real Cagayan destination can be created, illustrated and published,
   and appears in the mobile app.
 

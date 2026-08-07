@@ -6,6 +6,7 @@ import "../../features/auth/domain/auth_providers.dart";
 import "../../features/auth/presentation/sign_in_screen.dart";
 import "../../features/auth/presentation/splash_screen.dart";
 import "../../features/design_system/presentation/design_system_gallery.dart";
+import "../../features/destinations/presentation/destination_detail_screen.dart";
 import "../../features/explore/presentation/home_shell.dart";
 
 abstract final class Routes {
@@ -13,6 +14,10 @@ abstract final class Routes {
   static const signIn = "/sign-in";
   static const home = "/";
   static const designSystem = "/design-system";
+
+  /// Destination Detail. Pushed, not replaced — wireframe 1d opens it as a
+  /// sheet over whatever is beneath.
+  static String destination(String id) => "/destination/$id";
 }
 
 /// The app router, with the auth redirect.
@@ -58,6 +63,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: Routes.home,
         builder: (context, state) => const HomeShell(),
+      ),
+      GoRoute(
+        path: "/destination/:id",
+        builder: (context, state) =>
+            DestinationDetailScreen(id: state.pathParameters["id"]!),
       ),
       // Debug-only: the living design system specimen. Excluded from release so
       // it cannot be reached in a shipped build.

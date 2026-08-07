@@ -15,6 +15,12 @@
         "--dart-define-from-file=config/dev.json"
       ],
       "port": 8088
+    },
+    {
+      "name": "lakbayan-cms",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "cms", "run", "dev"],
+      "port": 5173
     }
   ]
 }
