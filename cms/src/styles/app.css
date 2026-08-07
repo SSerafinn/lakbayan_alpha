@@ -185,23 +185,14 @@ h2 {
   font-size: var(--lk-text-body-size);
 }
 
+/* lucide-react SVG, inheriting the variant's colour. Nothing else needed —
+   an earlier version drew a filled circle with a text glyph knocked out via
+   ::first-letter, which does not apply to a grid container, so every alert
+   rendered as a solid dot with an invisible character. */
 .alert-icon {
   flex: none;
-  width: 20px;
-  height: 20px;
   margin-top: 1px;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  font-size: 12px;
-  font-weight: 700;
-  line-height: 1;
-  background: currentColor;
-}
-/* The glyph is knocked out of the filled circle, so it inherits the alert's
-   own tint rather than needing a colour per variant. */
-.alert-icon::first-letter {
-  color: var(--lk-surface);
+  color: currentColor;
 }
 
 .alert-body {
@@ -293,6 +284,9 @@ h2 {
 }
 
 .sidebar nav a {
+  display: flex;
+  align-items: center;
+  gap: var(--lk-space-3);
   padding: var(--lk-space-2) var(--lk-space-3);
   border-radius: var(--lk-radius-md);
   color: var(--lk-text-body);
@@ -302,6 +296,13 @@ h2 {
 .sidebar nav a:hover {
   background: var(--lk-green-50);
   color: var(--lk-text-on-light-green);
+}
+/* NavLink adds .active on the matching route — the current section should be
+   obvious without reading the URL. */
+.sidebar nav a.active {
+  background: var(--lk-primary-container);
+  color: var(--lk-on-primary-container);
+  font-weight: 600;
 }
 
 .sidebar-foot {
