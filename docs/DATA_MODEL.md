@@ -83,7 +83,8 @@ Two deliberate calls:
   open/closed badge needs structured per-day hours, which is a content-model
   decision nobody has made. Until then the app should render the string, not a
   live status.
-Storage paths: `/destinations/{id}/images/{n}.jpg`, `/destinations/{id}/audio/{segmentId}.mp3`,
+Storage paths: `/destinations/{id}/images/{timestamp}.{ext}`,
+`/destinations/{id}/audio/{segmentId}.mp3`,
 `/ar/{destId}/markers/{n}.jpg`, `/tiles/{townId}/pack.mbtiles`.
 
 Denormalize for offline read patterns (a bundle carries what a town needs).
