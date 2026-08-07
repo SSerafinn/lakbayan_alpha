@@ -80,35 +80,55 @@ export function ToastProvider({ children }: { children: ReactNode }) {
           confirmation that a save happened. */}
       <div className="toasts" role="region" aria-live="polite">
         {items.map((t) => (
-          <ToastItem key={t.id} toast={t} onDismiss={() => dismiss(t.id)} />
+          // `dismiss` rather than an inline arrow: a new function identity each
+          // render would restart the auto-dismiss timer on every keystroke, so
+          // a toast raised while typing would never go away.
+          <ToastItem key={t.id} toast={t} onDismiss={dismiss} />
         ))}
       </div>
     </ToastContext.Provider>
   );
 }
 
+/** Must match the toast-out animation in app.css. */
+const EXIT_MS = 160;
+
 function ToastItem({
   toast,
   onDismiss,
 }: {
   toast: Toast;
-  onDismiss: () => void;
+  onDismiss: (id: number) => void;
 }) {
   const Icon = ICONS[toast.variant];
+  const [leaving, setLeaving] = useState(false);
+
+  // Two stages, because a toast removed from the DOM the instant its timer
+  // fires cannot animate out — it just vanishes. Mark it leaving, let the
+  // animation play, then unmount.
+  useEffect(() => {
+    const timer = setTimeout(() => setLeaving(true), TTL[toast.variant]);
+    return () => clearTimeout(timer);
+  }, [toast.variant]);
 
   useEffect(() => {
-    const timer = setTimeout(onDismiss, TTL[toast.variant]);
+    if (!leaving) return;
+    const timer = setTimeout(() => onDismiss(toast.id), EXIT_MS);
     return () => clearTimeout(timer);
-  }, [onDismiss, toast.variant]);
+  }, [leaving, onDismiss, toast.id]);
 
   return (
-    <div className={`toast toast-${toast.variant}`}>
+    <div className={`toast toast-${toast.variant}${leaving ? " leaving" : ""}`}>
       <Icon className="toast-icon" size={18} aria-hidden="true" />
       <div className="toast-body">
         <p className="toast-title">{toast.title}</p>
         {toast.description && <p className="toast-desc">{toast.description}</p>}
       </div>
-      <button className="toast-x" onClick={onDismiss} aria-label="Dismiss">
+      <button
+        className="toast-x"
+        onClick={() => setLeaving(true)}
+        aria-label="Dismiss"
+      >
         <X size={14} aria-hidden="true" />
       </button>
     </div>

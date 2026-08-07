@@ -249,12 +249,16 @@ h2 {
    Transient confirmations, bottom-right. Persistent state belongs in the
    savebar and decisions in a dialog — see the note in Toast.tsx. */
 
+/* Top-right, not bottom-right: the savebar is sticky along the bottom edge, so
+   a toast there covered Save and Publish — the controls you reach for right
+   after the action that raised it. */
 .toasts {
   position: fixed;
+  top: var(--lk-space-6);
   right: var(--lk-space-6);
-  bottom: var(--lk-space-6);
   z-index: 50;
   display: flex;
+  /* Reversed so the newest sits at the top of the stack, nearest the corner. */
   flex-direction: column-reverse;
   gap: var(--lk-space-2);
   pointer-events: none;
@@ -334,15 +338,33 @@ h2 {
   color: var(--lk-text-heading);
 }
 
+/* Enters from above and leaves the same way, now that the stack is anchored to
+   the top. The exit mirrors the entrance so a toast appears to retract rather
+   than blink out. */
 @keyframes toast-in {
   from {
     opacity: 0;
-    transform: translateY(6px);
+    transform: translateY(-6px) scale(0.98);
   }
 }
-/* Respect a reduced-motion preference — the slide adds nothing essential. */
+@keyframes toast-out {
+  to {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.98);
+  }
+}
+
+.toast.leaving {
+  /* `forwards` holds the end state for the ~160ms before React unmounts it,
+     otherwise it snaps back to full opacity for a frame. */
+  animation: toast-out 160ms ease-in forwards;
+}
+
+/* Respect a reduced-motion preference — the movement adds nothing essential.
+   The toast still appears and disappears, just without the slide. */
 @media (prefers-reduced-motion: reduce) {
-  .toast {
+  .toast,
+  .toast.leaving {
     animation: none;
   }
 }
