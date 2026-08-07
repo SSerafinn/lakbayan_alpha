@@ -11,6 +11,7 @@ import {
 } from "../lib/destinations";
 import { Alert } from "../components/Alert";
 import { Dialog } from "../components/Dialog";
+import { useToast } from "../components/toast-context";
 import { ImageThumb } from "../components/ImageThumb";
 import { formatCoord, searchPlaces, type GeocodeResult } from "../lib/geocode";
 import {
@@ -22,7 +23,6 @@ import {
   readiness,
   slugify,
   validate,
-  type ReadinessItem,
   type Category,
   type Destination,
 } from "../types/destination";
@@ -54,13 +54,14 @@ export function DestinationEditorPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [slugEdited, setSlugEdited] = useState(!isNew);
+  const toast = useToast();
 
   // Mirrors of state the Ctrl+S handler needs. Refs rather than dependencies so
   // the listener registers once instead of on every keystroke, and still sees
   // current values rather than a stale closure.
   const dirtyRef = useRef(false);
   const busyRef = useRef(false);
-  const saveRef = useRef<(() => Promise<void>) | null>(null);
+  const saveRef = useRef<(() => Promise<unknown>) | null>(null);
 
   useEffect(() => {
     if (isNew || !id) return;
@@ -130,42 +131,82 @@ export function DestinationEditorPage() {
   /** Is anything on this tab still unmet? Drives the dot on the tab label. */
   const unmetIn = (t: Tab) => checklist.some((i) => !i.ok && i.tab === t);
 
-  async function save(nextStatus?: "draft" | "published") {
-    if (!draft) return;
-    const next = nextStatus ? { ...draft, status: nextStatus } : draft;
-
-    if (Object.keys(validate(next)).length > 0) {
-      setTab("details");
-      setError("Fix the highlighted fields first.");
+  /** Publish, or explain why it cannot be published yet. */
+  function onPublish() {
+    const first = checklist.find((i) => !i.ok);
+    if (draft && draft.status !== "published" && first) {
+      setTab(first.tab);
+      toast.toast({
+        variant: "warning",
+        title: `Not ready to publish — ${blockers.length} thing${blockers.length === 1 ? "" : "s"} left`,
+        description: `${first.label}${first.why ? ` — ${first.why}` : ""}`,
+      });
       return;
     }
-    if (nextStatus === "published" && publishBlockers(next).length > 0) {
-      setError(publishBlockers(next)[0]);
-      return;
+    void save("published");
+  }
+
+  /** Returns the document id on success, null if it did not save. */
+  async function save(
+    nextStatus?: "draft" | "published",
+  ): Promise<string | null> {
+    if (!draft) return null;
+    const next = nextStatus ? { ...draft, status: nextStatus } : draft;
+
+    const invalid = validate(next);
+    if (Object.keys(invalid).length > 0) {
+      setTab("details");
+      toast.error(
+        "Fix the highlighted fields first",
+        Object.values(invalid)[0],
+      );
+      return null;
     }
 
     setBusy(true);
-    setError(null);
     try {
       if (await isSlugTaken(next.slug, isNew ? undefined : id)) {
-        setError(
-          `The slug "${next.slug}" is already used by another destination.`,
-        );
         setTab("details");
-        return;
+        toast.error(
+          "That slug is already taken",
+          `"${next.slug}" belongs to another destination. Slugs appear in deep links, so they have to be unique.`,
+        );
+        return null;
       }
 
+      let savedId: string;
       if (isNew) {
-        const newId = await createDestination(next);
+        savedId = await createDestination(next);
         setSaved(next);
-        navigate(`/destinations/${newId}`, { replace: true });
+        navigate(`/destinations/${savedId}`, { replace: true });
       } else {
-        await updateDestination(id!, next);
+        savedId = id!;
+        await updateDestination(savedId, next);
         setDraft(next);
         setSaved(next);
       }
+
+      // The page looks identical after a save — same fields, same values — so
+      // without this there is nothing to distinguish "saved" from "nothing
+      // happened", which is exactly what made a new draft feel like a
+      // duplicate form.
+      toast.success(
+        nextStatus === "published"
+          ? "Published"
+          : isNew
+            ? "Draft created"
+            : "Saved",
+        nextStatus === "published"
+          ? "It is now visible in the app."
+          : "Only you can see it until it is published.",
+      );
+      return savedId;
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      toast.error(
+        "That didn't save",
+        err instanceof Error ? err.message : String(err),
+      );
+      return null;
     } finally {
       setBusy(false);
     }
@@ -220,29 +261,11 @@ export function DestinationEditorPage() {
         lose them.
       </Dialog>
 
-      {dirty && blocker.state !== "blocked" && (
-        <Alert
-          variant="info"
-          title="Unsaved changes"
-          actions={
-            <button
-              className="btn-quiet"
-              onClick={() => setDraft(saved)}
-              disabled={busy}
-            >
-              Discard
-            </button>
-          }
-        >
-          Ctrl+S saves.
-        </Alert>
-      )}
-
-      {error && (
-        <Alert variant="destructive" title="That didn't save">
-          {error}
-        </Alert>
-      )}
+      {/* Unsaved state, save failures and publish blockers used to be three
+          banners stacked above the form, pushing it down the page and staying
+          long after they stopped being useful. They now live where they
+          belong: state in the savebar, events in a toast, decisions in the
+          dialog above. */}
 
       <div className="editor-card">
         <nav className="tabs">
@@ -297,21 +320,29 @@ export function DestinationEditorPage() {
               draft={draft}
               destinationId={isNew ? null : id!}
               set={set}
-              onError={setError}
+              onSaveFirst={() => save("draft")}
             />
           )}
         </div>
       </div>
 
-      {draft.status !== "published" && (
-        <ReadinessPanel items={checklist} onJump={setTab} />
-      )}
-
       <div className="savebar">
-        <span className="hint">
-          {dirty ? "Unsaved changes" : "All changes saved"}
+        <span className={dirty ? "save-state dirty" : "save-state"}>
+          {dirty ? "Unsaved changes · Ctrl+S" : "All changes saved"}
         </span>
+        {dirty && (
+          <button
+            className="btn-quiet"
+            onClick={() => setDraft(saved)}
+            disabled={busy}
+          >
+            Discard
+          </button>
+        )}
         <span className="spacer" />
+        {draft.status !== "published" && blockers.length > 0 && (
+          <span className="hint">{blockers.length} left before publishing</span>
+        )}
         {draft.status === "published" ? (
           <button
             className="btn-quiet"
@@ -329,13 +360,11 @@ export function DestinationEditorPage() {
             Save as draft
           </button>
         )}
-        <button
-          className="btn-primary"
-          disabled={
-            busy || (draft.status !== "published" && blockers.length > 0)
-          }
-          onClick={() => void save("published")}
-        >
+        {/* Deliberately NOT disabled when there are blockers. A disabled
+            button cannot explain itself, cannot be focused, and gives no
+            feedback when clicked — so people click it, nothing happens, and
+            they are stuck. Clicking now says what is missing and jumps there. */}
+        <button className="btn-primary" disabled={busy} onClick={onPublish}>
           {draft.status === "published" ? "Save" : "Publish"}
         </button>
       </div>
@@ -742,42 +771,58 @@ function MediaTab({
   draft,
   destinationId,
   set,
-  onError,
+  onSaveFirst,
 }: {
   draft: Draft;
   destinationId: string | null;
   set: <K extends keyof Draft>(k: K, v: Draft[K]) => void;
-  onError: (m: string) => void;
+  /** Creates the draft document and resolves to its id, or null if it failed. */
+  onSaveFirst: () => Promise<string | null>;
 }) {
   const fileInput = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
-
-  // Uploads are keyed by document id, so a brand-new destination has nowhere to
-  // put them yet. Saving first is the simplest honest answer.
-  if (!destinationId) {
-    return (
-      <div className="empty">
-        <p>Save the destination once before adding photos.</p>
-        <p className="hint">
-          Images are stored under /destinations/&lt;id&gt;/images/, which needs
-          the id to exist.
-        </p>
-      </div>
-    );
-  }
+  const toast = useToast();
 
   async function onPick(files: FileList | null) {
     if (!files?.length) return;
     setUploading(true);
     try {
+      // Uploads are keyed by document id, so a brand-new destination has
+      // nowhere to put them. Rather than blocking with "save it first" — a
+      // wall in front of the thing editors usually reach for first — create
+      // the draft silently and carry on.
+      const target = destinationId ?? (await onSaveFirst());
+      if (!target) return; // The save failed and already reported why.
+
       const paths: string[] = [];
+      let skipped = 0;
       for (const file of Array.from(files)) {
-        if (!file.type.startsWith("image/")) continue;
-        paths.push(await uploadImage(destinationId!, file));
+        if (!file.type.startsWith("image/")) {
+          skipped++;
+          continue;
+        }
+        paths.push(await uploadImage(target, file));
       }
-      set("images", [...draft.images, ...paths]);
+
+      if (paths.length > 0) {
+        set("images", [...draft.images, ...paths]);
+        toast.success(
+          `${paths.length} photo${paths.length === 1 ? "" : "s"} added`,
+          "Save to keep them.",
+        );
+      }
+      if (skipped > 0) {
+        toast.toast({
+          variant: "warning",
+          title: `${skipped} file${skipped === 1 ? "" : "s"} skipped`,
+          description: "Only images can be uploaded.",
+        });
+      }
     } catch (err) {
-      onError(err instanceof Error ? err.message : String(err));
+      toast.error(
+        "Upload failed",
+        err instanceof Error ? err.message : String(err),
+      );
     } finally {
       setUploading(false);
       if (fileInput.current) fileInput.current.value = "";
@@ -850,49 +895,6 @@ function MediaTab({
         </ul>
       )}
     </div>
-  );
-}
-
-/**
- * What is still missing before this can go live.
- *
- * Replaces a `title` tooltip on a disabled Publish button — which required
- * hovering a disabled control to discover why it was disabled. Each unmet item
- * jumps to the tab that fixes it.
- */
-function ReadinessPanel({
-  items,
-  onJump,
-}: {
-  items: ReadinessItem[];
-  onJump: (tab: Tab) => void;
-}) {
-  const missing = items.filter((i) => !i.ok);
-
-  if (missing.length === 0) {
-    return (
-      <Alert variant="success" title="Ready to publish">
-        Everything required is filled in.
-      </Alert>
-    );
-  }
-
-  return (
-    <Alert
-      variant="info"
-      title={`${missing.length} thing${missing.length === 1 ? "" : "s"} left before this can be published`}
-    >
-      <ul>
-        {missing.map((i) => (
-          <li key={i.label}>
-            <button className="link-button" onClick={() => onJump(i.tab)}>
-              {i.label}
-            </button>
-            {i.why && <> — {i.why}</>}
-          </li>
-        ))}
-      </ul>
-    </Alert>
   );
 }
 

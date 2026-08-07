@@ -245,6 +245,108 @@ h2 {
   border-color: var(--lk-error);
 }
 
+/* ---- toasts --------------------------------------------------------------
+   Transient confirmations, bottom-right. Persistent state belongs in the
+   savebar and decisions in a dialog — see the note in Toast.tsx. */
+
+.toasts {
+  position: fixed;
+  right: var(--lk-space-6);
+  bottom: var(--lk-space-6);
+  z-index: 50;
+  display: flex;
+  flex-direction: column-reverse;
+  gap: var(--lk-space-2);
+  pointer-events: none;
+}
+
+.toast {
+  pointer-events: auto;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--lk-space-3);
+  width: min(380px, calc(100vw - var(--lk-space-8)));
+  padding: var(--lk-space-3) var(--lk-space-4);
+  border: 1px solid var(--lk-line);
+  border-left-width: 3px;
+  border-radius: var(--lk-radius-md);
+  background: var(--lk-surface);
+  box-shadow: var(--lk-shadow-raised);
+  animation: toast-in 160ms ease-out;
+}
+
+/* Surface stays white and only the left edge and icon carry the variant.
+   A full colour wash reads as an error even when it says "Saved". */
+.toast-success {
+  border-left-color: var(--lk-success);
+}
+.toast-success .toast-icon {
+  color: var(--lk-success);
+}
+.toast-info {
+  border-left-color: var(--lk-info);
+}
+.toast-info .toast-icon {
+  color: var(--lk-info);
+}
+.toast-warning {
+  border-left-color: var(--lk-warning);
+}
+.toast-warning .toast-icon {
+  color: var(--lk-gold-700);
+}
+.toast-destructive {
+  border-left-color: var(--lk-error);
+}
+.toast-destructive .toast-icon {
+  color: var(--lk-error);
+}
+
+.toast-icon {
+  flex: none;
+  margin-top: 2px;
+}
+.toast-body {
+  flex: 1;
+  min-width: 0;
+}
+.toast-title {
+  margin: 0;
+  font-weight: 600;
+  color: var(--lk-text-heading);
+}
+.toast-desc {
+  margin: 2px 0 0;
+  font-size: var(--lk-text-caption-size);
+  color: var(--lk-text-secondary);
+}
+.toast-x {
+  flex: none;
+  background: none;
+  border: none;
+  padding: 2px;
+  cursor: pointer;
+  color: var(--lk-text-secondary);
+  border-radius: var(--lk-radius-sm);
+}
+.toast-x:hover {
+  background: var(--lk-background);
+  color: var(--lk-text-heading);
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+/* Respect a reduced-motion preference — the slide adds nothing essential. */
+@media (prefers-reduced-motion: reduce) {
+  .toast {
+    animation: none;
+  }
+}
+
 /* ---- dialog --------------------------------------------------------------
    Native <dialog>, so focus trapping, Escape, inertness and top-layer
    stacking come from the platform rather than from us getting them wrong. */
@@ -804,6 +906,18 @@ table.data td a:hover {
   display: flex;
   align-items: center;
   gap: var(--lk-space-2);
+}
+
+/* Persistent save state lives here rather than in a banner above the form —
+   it is a condition, not an event, and it belongs beside the buttons that
+   resolve it. */
+.save-state {
+  font-size: var(--lk-text-caption-size);
+  color: var(--lk-text-secondary);
+}
+.save-state.dirty {
+  color: var(--lk-gold-700);
+  font-weight: 600;
 }
 
 .savebar {

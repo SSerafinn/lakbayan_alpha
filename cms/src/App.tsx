@@ -14,6 +14,7 @@ import { DestinationsListPage } from "./pages/DestinationsListPage";
 import { DestinationEditorPage } from "./pages/DestinationEditorPage";
 import { PlaceholderPage } from "./pages/PlaceholderPage";
 import { useEmulators } from "./lib/firebase";
+import { ToastProvider } from "./components/Toast";
 import {
   LayoutDashboard,
   MapPin,
@@ -143,8 +144,10 @@ const router = createBrowserRouter([
 
 export default function App() {
   return (
-    <AuthProvider>
-      <RouterProvider router={router} />
-    </AuthProvider>
+    <ToastProvider>
+      <AuthProvider>
+        <RouterProvider router={router} />
+      </AuthProvider>
+    </ToastProvider>
   );
 }
