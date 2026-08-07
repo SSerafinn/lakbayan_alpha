@@ -9,6 +9,7 @@ import {
   updateDestination,
   uploadImage,
 } from "../lib/destinations";
+import { Alert } from "../components/Alert";
 import { ImageThumb } from "../components/ImageThumb";
 import { formatCoord, searchPlaces, type GeocodeResult } from "../lib/geocode";
 import {
@@ -53,6 +54,13 @@ export function DestinationEditorPage() {
   const [error, setError] = useState<string | null>(null);
   const [slugEdited, setSlugEdited] = useState(!isNew);
 
+  // Mirrors of state the Ctrl+S handler needs. Refs rather than dependencies so
+  // the listener registers once instead of on every keystroke, and still sees
+  // current values rather than a stale closure.
+  const dirtyRef = useRef(false);
+  const busyRef = useRef(false);
+  const saveRef = useRef<(() => Promise<void>) | null>(null);
+
   useEffect(() => {
     if (isNew || !id) return;
     void (async () => {
@@ -89,7 +97,26 @@ export function DestinationEditorPage() {
       dirty && currentLocation.pathname !== nextLocation.pathname,
   );
 
-  if (error) return <p className="error-note">{error}</p>;
+  // Ctrl/Cmd+S. Long-form history text plus a photo upload is a lot to lose,
+  // and reaching for the mouse to save is the kind of friction that makes
+  // people save less often.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.ctrlKey || e.metaKey) || e.key !== "s") return;
+      e.preventDefault();
+      if (dirtyRef.current && !busyRef.current) void saveRef.current?.();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  if (error && !draft) {
+    return (
+      <Alert variant="destructive" title="Cannot open this destination">
+        {error}
+      </Alert>
+    );
+  }
   if (!draft) return <div className="boot">Loading…</div>;
 
   const set = <K extends keyof Draft>(key: K, value: Draft[K]) =>
@@ -98,6 +125,9 @@ export function DestinationEditorPage() {
   const errors = validate(draft);
   const checklist = readiness(draft);
   const blockers = publishBlockers(draft);
+
+  /** Is anything on this tab still unmet? Drives the dot on the tab label. */
+  const unmetIn = (t: Tab) => checklist.some((i) => !i.ok && i.tab === t);
 
   async function save(nextStatus?: "draft" | "published") {
     if (!draft) return;
@@ -140,6 +170,10 @@ export function DestinationEditorPage() {
     }
   }
 
+  dirtyRef.current = dirty;
+  busyRef.current = busy;
+  saveRef.current = () => save();
+
   return (
     <section className="page editor">
       <header className="page-head row">
@@ -159,89 +193,109 @@ export function DestinationEditorPage() {
       </header>
 
       {blocker.state === "blocked" && (
-        <div className="warn-bar block">
-          <strong>You have unsaved changes.</strong> Leave this page and they
-          will be lost.
-          <span className="spacer" />
-          <button className="btn-quiet" onClick={() => blocker.reset()}>
-            Stay
-          </button>
-          <button
-            className="btn-secondary sm"
-            onClick={() => blocker.proceed()}
-          >
-            Discard and leave
-          </button>
-        </div>
+        <Alert
+          variant="warning"
+          title="You have unsaved changes"
+          actions={
+            <>
+              <button className="btn-quiet" onClick={() => blocker.reset()}>
+                Stay
+              </button>
+              <button
+                className="btn-secondary sm"
+                onClick={() => blocker.proceed()}
+              >
+                Discard and leave
+              </button>
+            </>
+          }
+        >
+          Leave this page and they will be lost.
+        </Alert>
       )}
 
       {dirty && blocker.state !== "blocked" && (
-        <div className="warn-bar">
-          <strong>Unsaved changes.</strong>
-          <span className="spacer" />
+        <Alert
+          variant="info"
+          title="Unsaved changes"
+          actions={
+            <button
+              className="btn-quiet"
+              onClick={() => setDraft(saved)}
+              disabled={busy}
+            >
+              Discard
+            </button>
+          }
+        >
+          Ctrl+S saves.
+        </Alert>
+      )}
+
+      {error && (
+        <Alert variant="destructive" title="That didn't save">
+          {error}
+        </Alert>
+      )}
+
+      <div className="editor-card">
+        <nav className="tabs">
           <button
-            className="btn-quiet"
-            onClick={() => setDraft(saved)}
-            disabled={busy}
+            className={tab === "details" ? "tab on" : "tab"}
+            onClick={() => setTab("details")}
           >
-            Discard
+            Details
+            {unmetIn("details") && <span className="tab-dot" />}
           </button>
+          <button
+            className={tab === "location" ? "tab on" : "tab"}
+            onClick={() => setTab("location")}
+          >
+            Location
+            {unmetIn("location") && <span className="tab-dot" />}
+          </button>
+          <button
+            className={tab === "media" ? "tab on" : "tab"}
+            onClick={() => setTab("media")}
+          >
+            Media <span className="hint">{draft.images.length}</span>
+            {unmetIn("media") && <span className="tab-dot" />}
+          </button>
+          <button className="tab" disabled title="Arrives in CMS-2">
+            Audio Guide
+          </button>
+          <button className="tab" disabled title="Arrives in CMS-3">
+            AR
+          </button>
+        </nav>
+
+        <div className="editor-panel">
+          {tab === "details" && (
+            <DetailsTab
+              draft={draft}
+              errors={errors}
+              set={set}
+              slugEdited={slugEdited}
+              onNameChange={(name) => {
+                set("name", name);
+                if (!slugEdited) set("slug", slugify(name));
+              }}
+              onSlugEdited={() => setSlugEdited(true)}
+            />
+          )}
+
+          {tab === "location" && <LocationTab draft={draft} set={set} />}
+
+          {tab === "media" && (
+            <MediaTab
+              draft={draft}
+              destinationId={isNew ? null : id!}
+              set={set}
+              onError={setError}
+            />
+          )}
         </div>
-      )}
-
-      {error && <p className="error-note">{error}</p>}
-
-      <nav className="tabs">
-        <button
-          className={tab === "details" ? "tab on" : "tab"}
-          onClick={() => setTab("details")}
-        >
-          Details
-        </button>
-        <button
-          className={tab === "location" ? "tab on" : "tab"}
-          onClick={() => setTab("location")}
-        >
-          Location
-        </button>
-        <button
-          className={tab === "media" ? "tab on" : "tab"}
-          onClick={() => setTab("media")}
-        >
-          Media <span className="hint">{draft.images.length}</span>
-        </button>
-        <button className="tab" disabled title="Arrives in CMS-2">
-          Audio Guide
-        </button>
-        <button className="tab" disabled title="Arrives in CMS-3">
-          AR
-        </button>
-      </nav>
-
-      {tab === "details" && (
-        <DetailsTab
-          draft={draft}
-          errors={errors}
-          set={set}
-          slugEdited={slugEdited}
-          onNameChange={(name) => {
-            set("name", name);
-            if (!slugEdited) set("slug", slugify(name));
-          }}
-          onSlugEdited={() => setSlugEdited(true)}
-        />
-      )}
-
-      {tab === "location" && <LocationTab draft={draft} set={set} />}
-
-      {tab === "media" && (
-        <MediaTab
-          draft={draft}
-          destinationId={isNew ? null : id!}
-          set={set}
-          onError={setError}
-        />
-      )}
+      </div>
 
       {draft.status !== "published" && (
         <ReadinessPanel items={checklist} onJump={setTab} />
@@ -811,29 +865,28 @@ function ReadinessPanel({
 
   if (missing.length === 0) {
     return (
-      <div className="readiness ok">
-        <strong>Ready to publish.</strong> Everything required is filled in.
-      </div>
+      <Alert variant="success" title="Ready to publish">
+        Everything required is filled in.
+      </Alert>
     );
   }
 
   return (
-    <div className="readiness">
-      <strong>
-        {missing.length} thing{missing.length === 1 ? "" : "s"} left before this
-        can be published
-      </strong>
+    <Alert
+      variant="info"
+      title={`${missing.length} thing${missing.length === 1 ? "" : "s"} left before this can be published`}
+    >
       <ul>
         {missing.map((i) => (
           <li key={i.label}>
             <button className="link-button" onClick={() => onJump(i.tab)}>
               {i.label}
             </button>
-            {i.why && <span className="hint"> — {i.why}</span>}
+            {i.why && <> — {i.why}</>}
           </li>
         ))}
       </ul>
-    </div>
+    </Alert>
   );
 }
 

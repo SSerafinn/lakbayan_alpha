@@ -1,6 +1,12 @@
 import { useEffect, useState } from "react";
-import { collection, getCountFromServer, query, where } from "firebase/firestore";
+import {
+  collection,
+  getCountFromServer,
+  query,
+  where,
+} from "firebase/firestore";
 import { db } from "../lib/firebase";
+import { Alert } from "../components/Alert";
 
 type Counts = { published: number; draft: number } | null;
 
@@ -23,8 +29,12 @@ export function DashboardPage() {
         // Aggregation queries, so an empty CMS does not download the whole
         // collection just to show two numbers.
         const [published, draft] = await Promise.all([
-          getCountFromServer(query(destinations, where("status", "==", "published"))),
-          getCountFromServer(query(destinations, where("status", "==", "draft"))),
+          getCountFromServer(
+            query(destinations, where("status", "==", "published")),
+          ),
+          getCountFromServer(
+            query(destinations, where("status", "==", "draft")),
+          ),
         ]);
         if (cancelled) return;
         setCounts({
@@ -52,9 +62,9 @@ export function DashboardPage() {
       </header>
 
       {error && (
-        <p className="error-note">
-          Could not read destinations: {error}. Is the emulator running?
-        </p>
+        <Alert variant="destructive" title="Could not read destinations">
+          {error}. Is the emulator running?
+        </Alert>
       )}
 
       <div className="stat-row">
