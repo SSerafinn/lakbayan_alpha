@@ -41,8 +41,29 @@ type Tab = "details" | "location" | "media";
  */
 export function DestinationEditorPage() {
   const { id } = useParams<{ id: string }>();
-  const isNew = id === "new";
   const navigate = useNavigate();
+
+  /**
+   * The document created during this visit, before the route param catches up.
+   *
+   * Without it, `id` stays "new" until the navigation lands — and if that
+   * navigation is cancelled or delayed, the next save tries to *create* again
+   * and fails on the duplicate slug, having already written a document.
+   */
+  const createdIdRef = useRef<string | null>(null);
+
+  /**
+   * Set while we navigate to a freshly-created document.
+   *
+   * Our own post-save navigation would otherwise trip the unsaved-changes
+   * guard: `setSaved` has not been flushed when the blocker predicate runs, so
+   * it still sees the draft as dirty and asks whether to discard changes that
+   * were just written.
+   */
+  const bypassBlockerRef = useRef(false);
+
+  const docId = createdIdRef.current ?? id;
+  const isNew = id === "new" && createdIdRef.current === null;
 
   const [draft, setDraft] = useState<Draft | null>(
     isNew ? emptyDestination() : null,
@@ -63,8 +84,11 @@ export function DestinationEditorPage() {
   const busyRef = useRef(false);
   const saveRef = useRef<(() => Promise<unknown>) | null>(null);
 
+  // Keyed on the route param alone, not on `isNew`. `isNew` now flips to false
+  // the moment a document is created, which is *before* the route updates —
+  // depending on it here would fire a load for the literal id "new".
   useEffect(() => {
-    if (isNew || !id) return;
+    if (!id || id === "new") return;
     void (async () => {
       const found = await getDestination(id);
       if (!found) {
@@ -75,7 +99,7 @@ export function DestinationEditorPage() {
       setDraft(rest);
       setSaved(rest);
     })();
-  }, [id, isNew]);
+  }, [id]);
 
   const dirty = useMemo(
     () => JSON.stringify(draft) !== JSON.stringify(saved),
@@ -96,8 +120,15 @@ export function DestinationEditorPage() {
   // closing the tab, and it was the worst thing about this screen.
   const blocker = useBlocker(
     ({ currentLocation, nextLocation }) =>
-      dirty && currentLocation.pathname !== nextLocation.pathname,
+      !bypassBlockerRef.current &&
+      dirty &&
+      currentLocation.pathname !== nextLocation.pathname,
   );
+
+  // Clear the bypass once the route has settled on the new document.
+  useEffect(() => {
+    bypassBlockerRef.current = false;
+  }, [id]);
 
   // Ctrl/Cmd+S. Long-form history text plus a photo upload is a lot to lose,
   // and reaching for the mouse to save is the kind of friction that makes
@@ -165,7 +196,9 @@ export function DestinationEditorPage() {
 
     setBusy(true);
     try {
-      if (await isSlugTaken(next.slug, isNew ? undefined : id)) {
+      // Exclude this document from the uniqueness check once it exists —
+      // otherwise its own slug reads as taken.
+      if (await isSlugTaken(next.slug, isNew ? undefined : docId)) {
         setTab("details");
         toast.error(
           "That slug is already taken",
@@ -177,10 +210,15 @@ export function DestinationEditorPage() {
       let savedId: string;
       if (isNew) {
         savedId = await createDestination(next);
+        // Record it before navigating: from here on this is an update, even if
+        // the navigation is delayed, cancelled, or the user stays put.
+        createdIdRef.current = savedId;
+        setDraft(next);
         setSaved(next);
+        bypassBlockerRef.current = true;
         navigate(`/destinations/${savedId}`, { replace: true });
       } else {
-        savedId = id!;
+        savedId = docId!;
         await updateDestination(savedId, next);
         setDraft(next);
         setSaved(next);
@@ -318,7 +356,7 @@ export function DestinationEditorPage() {
           {tab === "media" && (
             <MediaTab
               draft={draft}
-              destinationId={isNew ? null : id!}
+              destinationId={isNew ? null : docId!}
               set={set}
               onSaveFirst={() => save("draft")}
             />
