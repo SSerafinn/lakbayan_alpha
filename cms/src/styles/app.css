@@ -169,13 +169,259 @@ h2 {
   border-width: 1.5px;
 }
 
-.error-note {
-  margin: 0;
+/* ---- alerts --------------------------------------------------------------
+   One shape for every status message, after warn-bar, error-note and the
+   readiness panel each invented their own. Structure follows shadcn's Alert:
+   icon rail, title, description, optional trailing actions. */
+
+.alert {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--lk-space-3);
   padding: var(--lk-space-3) var(--lk-space-4);
+  margin-bottom: var(--lk-space-4);
+  border: 1px solid transparent;
   border-radius: var(--lk-radius-md);
-  background: #fbe6e6;
-  color: #b02f2f;
   font-size: var(--lk-text-body-size);
+}
+
+/* lucide-react SVG, inheriting the variant's colour. Nothing else needed —
+   an earlier version drew a filled circle with a text glyph knocked out via
+   ::first-letter, which does not apply to a grid container, so every alert
+   rendered as a solid dot with an invisible character. */
+.alert-icon {
+  flex: none;
+  margin-top: 1px;
+  color: currentColor;
+}
+
+.alert-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--lk-space-1);
+}
+.alert-title {
+  margin: 0;
+  font-weight: 600;
+}
+.alert-desc {
+  color: inherit;
+  opacity: 0.9;
+}
+.alert-desc ul {
+  margin: var(--lk-space-1) 0 0;
+  padding-left: var(--lk-space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--lk-space-1);
+}
+.alert-actions {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--lk-space-2);
+}
+
+.alert-info {
+  background: var(--lk-info-container);
+  color: var(--lk-on-info-container);
+  border-color: var(--lk-blue-300);
+}
+.alert-warning {
+  background: var(--lk-warning-container);
+  color: var(--lk-on-warning-container);
+  border-color: var(--lk-gold-300);
+}
+.alert-success {
+  background: var(--lk-success-container);
+  color: var(--lk-on-success-container);
+  border-color: var(--lk-green-300);
+}
+.alert-destructive {
+  background: var(--lk-error-container);
+  color: var(--lk-on-error-container);
+  border-color: var(--lk-error);
+}
+
+/* ---- toasts --------------------------------------------------------------
+   Transient confirmations, bottom-right. Persistent state belongs in the
+   savebar and decisions in a dialog — see the note in Toast.tsx. */
+
+/* Top-right, not bottom-right: the savebar is sticky along the bottom edge, so
+   a toast there covered Save and Publish — the controls you reach for right
+   after the action that raised it. */
+.toasts {
+  position: fixed;
+  top: var(--lk-space-6);
+  right: var(--lk-space-6);
+  z-index: 50;
+  display: flex;
+  /* Reversed so the newest sits at the top of the stack, nearest the corner. */
+  flex-direction: column-reverse;
+  gap: var(--lk-space-2);
+  pointer-events: none;
+}
+
+.toast {
+  pointer-events: auto;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--lk-space-3);
+  width: min(380px, calc(100vw - var(--lk-space-8)));
+  padding: var(--lk-space-3) var(--lk-space-4);
+  border: 1px solid var(--lk-line);
+  border-left-width: 3px;
+  border-radius: var(--lk-radius-md);
+  background: var(--lk-surface);
+  box-shadow: var(--lk-shadow-raised);
+  animation: toast-in 160ms ease-out;
+}
+
+/* Surface stays white and only the left edge and icon carry the variant.
+   A full colour wash reads as an error even when it says "Saved". */
+.toast-success {
+  border-left-color: var(--lk-success);
+}
+.toast-success .toast-icon {
+  color: var(--lk-success);
+}
+.toast-info {
+  border-left-color: var(--lk-info);
+}
+.toast-info .toast-icon {
+  color: var(--lk-info);
+}
+.toast-warning {
+  border-left-color: var(--lk-warning);
+}
+.toast-warning .toast-icon {
+  color: var(--lk-gold-700);
+}
+.toast-destructive {
+  border-left-color: var(--lk-error);
+}
+.toast-destructive .toast-icon {
+  color: var(--lk-error);
+}
+
+.toast-icon {
+  flex: none;
+  margin-top: 2px;
+}
+.toast-body {
+  flex: 1;
+  min-width: 0;
+}
+.toast-title {
+  margin: 0;
+  font-weight: 600;
+  color: var(--lk-text-heading);
+}
+.toast-desc {
+  margin: 2px 0 0;
+  font-size: var(--lk-text-caption-size);
+  color: var(--lk-text-secondary);
+}
+.toast-x {
+  flex: none;
+  background: none;
+  border: none;
+  padding: 2px;
+  cursor: pointer;
+  color: var(--lk-text-secondary);
+  border-radius: var(--lk-radius-sm);
+}
+.toast-x:hover {
+  background: var(--lk-background);
+  color: var(--lk-text-heading);
+}
+
+/* Enters from above and leaves the same way, now that the stack is anchored to
+   the top. The exit mirrors the entrance so a toast appears to retract rather
+   than blink out. */
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.98);
+  }
+}
+@keyframes toast-out {
+  to {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.98);
+  }
+}
+
+.toast.leaving {
+  /* `forwards` holds the end state for the ~160ms before React unmounts it,
+     otherwise it snaps back to full opacity for a frame. */
+  animation: toast-out 160ms ease-in forwards;
+}
+
+/* Respect a reduced-motion preference — the movement adds nothing essential.
+   The toast still appears and disappears, just without the slide. */
+@media (prefers-reduced-motion: reduce) {
+  .toast,
+  .toast.leaving {
+    animation: none;
+  }
+}
+
+/* ---- dialog --------------------------------------------------------------
+   Native <dialog>, so focus trapping, Escape, inertness and top-layer
+   stacking come from the platform rather than from us getting them wrong. */
+
+.dialog {
+  width: min(440px, calc(100vw - var(--lk-space-8)));
+  padding: var(--lk-space-6);
+  border: 1px solid var(--lk-line);
+  border-radius: var(--lk-radius-lg);
+  background: var(--lk-surface);
+  color: var(--lk-text-body);
+  box-shadow: var(--lk-shadow-raised);
+}
+.dialog::backdrop {
+  background: rgb(30 39 51 / 0.45);
+}
+
+.dialog-head {
+  display: flex;
+  align-items: center;
+  gap: var(--lk-space-3);
+  margin-bottom: var(--lk-space-3);
+}
+.dialog-head h2 {
+  font-size: var(--lk-text-h3-size);
+  font-weight: var(--lk-text-h3-weight);
+}
+/* Only the icon carries the variant's colour. Tinting the whole surface would
+   make a routine confirmation look like a failure. */
+.dialog-info .dialog-icon {
+  color: var(--lk-info);
+}
+.dialog-warning .dialog-icon {
+  color: var(--lk-warning);
+}
+.dialog-success .dialog-icon {
+  color: var(--lk-success);
+}
+.dialog-destructive .dialog-icon {
+  color: var(--lk-error);
+}
+
+.dialog-body {
+  color: var(--lk-text-body);
+  font-size: var(--lk-text-body-size);
+  line-height: var(--lk-text-body-height);
+}
+
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--lk-space-2);
+  margin-top: var(--lk-space-6);
 }
 
 /* ---- shell --------------------------------------------------------------- */
@@ -217,6 +463,9 @@ h2 {
 }
 
 .sidebar nav a {
+  display: flex;
+  align-items: center;
+  gap: var(--lk-space-3);
   padding: var(--lk-space-2) var(--lk-space-3);
   border-radius: var(--lk-radius-md);
   color: var(--lk-text-body);
@@ -226,6 +475,13 @@ h2 {
 .sidebar nav a:hover {
   background: var(--lk-green-50);
   color: var(--lk-text-on-light-green);
+}
+/* NavLink adds .active on the matching route — the current section should be
+   obvious without reading the URL. */
+.sidebar nav a.active {
+  background: var(--lk-primary-container);
+  color: var(--lk-on-primary-container);
+  font-weight: 600;
 }
 
 .sidebar-foot {
@@ -445,11 +701,29 @@ table.data td a:hover {
 
 /* ---- editor -------------------------------------------------------------- */
 
+/* ---- editor surfaces -----------------------------------------------------
+   The tab strip and the panel below it are one card, so the tabs visibly
+   belong to the content they switch. Previously both floated directly on the
+   page background with only a hairline under the tabs, which is what made the
+   editor look like it had lost its containers. */
+
+.editor-card {
+  background: var(--lk-surface);
+  border: 1px solid var(--lk-line);
+  border-radius: var(--lk-radius-lg);
+  box-shadow: var(--lk-shadow-card);
+  overflow: hidden;
+}
+.editor-panel {
+  padding: var(--lk-space-6);
+}
+
 .tabs {
   display: flex;
   gap: var(--lk-space-1);
+  padding: 0 var(--lk-space-3);
   border-bottom: 1px solid var(--lk-line);
-  margin-bottom: var(--lk-space-5);
+  background: var(--lk-green-50);
 }
 .tab {
   background: none;
@@ -461,6 +735,17 @@ table.data td a:hover {
   color: var(--lk-text-secondary);
   cursor: pointer;
 }
+/* A dot on any tab holding an unmet requirement — otherwise a problem on
+   Details is invisible while you are looking at Media. */
+.tab-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-left: 6px;
+  border-radius: 50%;
+  background: var(--lk-error);
+  vertical-align: middle;
+}
 .tab.on {
   color: var(--lk-text-on-light-green);
   border-bottom-color: var(--lk-primary);
@@ -470,24 +755,6 @@ table.data td a:hover {
   cursor: not-allowed;
 }
 
-.warn-bar {
-  display: flex;
-  align-items: center;
-  gap: var(--lk-space-3);
-  padding: var(--lk-space-3) var(--lk-space-4);
-  margin-bottom: var(--lk-space-4);
-  border-radius: var(--lk-radius-md);
-  background: var(--lk-gold-100);
-  color: var(--lk-gold-700);
-  font-size: var(--lk-text-body-size);
-}
-/* The blocked-navigation variant is a decision point, not an ambient notice —
-   give it more weight so it is not mistaken for the passive banner. */
-.warn-bar.block {
-  border: 1.5px solid var(--lk-gold-500);
-  box-shadow: var(--lk-shadow-raised);
-}
-
 /* ---- field sections ------------------------------------------------------
    Details was one flat grid of nine inputs. Grouping is the whole fix: the
    same fields, a quarter of the reading effort. */
@@ -495,41 +762,17 @@ table.data td a:hover {
 .fsection {
   margin-bottom: var(--lk-space-6);
 }
+.fsection:last-child {
+  margin-bottom: 0;
+}
 .fsection > header {
-  margin-bottom: var(--lk-space-3);
+  margin-bottom: var(--lk-space-4);
   padding-bottom: var(--lk-space-2);
   border-bottom: 1px solid var(--lk-line);
 }
 .fsection > header h2 {
   font-size: var(--lk-text-h3-size);
   font-weight: var(--lk-text-h3-weight);
-}
-
-/* ---- publish readiness ---------------------------------------------------
-   Replaces a title tooltip on a disabled button. Nobody hovers a disabled
-   control to find out why it is disabled. */
-
-.readiness {
-  margin-top: var(--lk-space-5);
-  padding: var(--lk-space-4);
-  border-radius: var(--lk-radius-md);
-  background: var(--lk-surface);
-  border: 1px solid var(--lk-line);
-}
-.readiness.ok {
-  background: var(--lk-green-50);
-  border-color: var(--lk-green-100);
-  color: var(--lk-text-on-light-green);
-}
-.readiness ul {
-  margin: var(--lk-space-2) 0 0;
-  padding-left: var(--lk-space-5);
-  display: flex;
-  flex-direction: column;
-  gap: var(--lk-space-1);
-}
-.readiness li {
-  font-size: var(--lk-text-body-size);
 }
 
 .link-button {
@@ -564,11 +807,11 @@ table.data td a:hover {
   color: var(--lk-text-heading);
 }
 .req {
-  color: #d14343;
+  color: var(--lk-error);
   margin-left: 2px;
 }
 .field-error {
-  color: #b02f2f;
+  color: var(--lk-on-error-container);
   font-size: var(--lk-text-caption-size);
 }
 
@@ -685,6 +928,18 @@ table.data td a:hover {
   display: flex;
   align-items: center;
   gap: var(--lk-space-2);
+}
+
+/* Persistent save state lives here rather than in a banner above the form —
+   it is a condition, not an event, and it belongs beside the buttons that
+   resolve it. */
+.save-state {
+  font-size: var(--lk-text-caption-size);
+  color: var(--lk-text-secondary);
+}
+.save-state.dirty {
+  color: var(--lk-gold-700);
+  font-weight: 600;
 }
 
 .savebar {

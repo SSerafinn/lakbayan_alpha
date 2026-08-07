@@ -42,7 +42,9 @@ export async function listDestinations(): Promise<Destination[]> {
 
 export async function getDestination(id: string): Promise<Destination | null> {
   const snap = await getDoc(doc(db, COLLECTION, id));
-  return snap.exists() ? ({ id: snap.id, ...snap.data() } as Destination) : null;
+  return snap.exists()
+    ? ({ id: snap.id, ...snap.data() } as Destination)
+    : null;
 }
 
 /**

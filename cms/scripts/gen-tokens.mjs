@@ -33,6 +33,15 @@ function deref(value) {
 /** Design tokens carry Android units. CSS wants px. */
 const toPx = (v) => `${String(v).replace(/(dp|sp)$/, "")}px`;
 
+/**
+ * W3C token files carry `$`-prefixed metadata — `$description`, `$type`,
+ * `$comment` — alongside real tokens. Emitting one produces `--lk-$comment`,
+ * which is not a valid custom property name and fails the CSS minifier at
+ * build time rather than here. Skip them everywhere we walk a group.
+ */
+const entries = (group) =>
+  Object.entries(group ?? {}).filter(([key]) => !key.startsWith("$"));
+
 const lines = [];
 const push = (name, value) => lines.push(`  --lk-${name}: ${value};`);
 
@@ -41,45 +50,51 @@ lines.push("   Do not edit — your changes will be overwritten. */");
 lines.push(":root {");
 
 lines.push("  /* colour ramps */");
-for (const [family, shades] of Object.entries(tokens.color)) {
+for (const [family, shades] of entries(tokens.color)) {
   if (shades.$value) {
     push(family, shades.$value);
     continue;
   }
-  for (const [shade, token] of Object.entries(shades)) {
+  for (const [shade, token] of entries(shades)) {
     push(`${family}-${shade}`, token.$value);
   }
 }
 
 lines.push("");
 lines.push("  /* semantic roles — prefer these over raw ramps */");
-for (const [name, token] of Object.entries(tokens.semantic)) {
-  push(name.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`), deref(token.$value));
+for (const [name, token] of entries(tokens.semantic)) {
+  push(
+    name.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`),
+    deref(token.$value),
+  );
 }
 
 lines.push("");
 lines.push("  /* spacing */");
-for (const [step, token] of Object.entries(tokens.space)) {
+for (const [step, token] of entries(tokens.space)) {
   push(`space-${step}`, toPx(token.$value));
 }
 
 lines.push("");
 lines.push("  /* radii */");
-for (const [name, token] of Object.entries(tokens.radius)) {
+for (const [name, token] of entries(tokens.radius)) {
   push(`radius-${name}`, toPx(token.$value));
 }
 
 lines.push("");
 lines.push("  /* elevation */");
-for (const [name, token] of Object.entries(tokens.elevation)) {
+for (const [name, token] of entries(tokens.elevation)) {
   push(`shadow-${name}`, token.$value);
 }
 
 lines.push("");
 lines.push("  /* type */");
-push("font-heading", `'${tokens.font.family.heading.$value}', system-ui, sans-serif`);
+push(
+  "font-heading",
+  `'${tokens.font.family.heading.$value}', system-ui, sans-serif`,
+);
 push("font-body", `'${tokens.font.family.body.$value}', system-ui, sans-serif`);
-for (const [name, token] of Object.entries(tokens.typography)) {
+for (const [name, token] of entries(tokens.typography)) {
   const v = token.$value;
   push(`text-${name}-size`, toPx(v.fontSize));
   push(`text-${name}-weight`, v.fontWeight);

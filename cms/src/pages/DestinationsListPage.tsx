@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { listDestinations, setStatus } from "../lib/destinations";
+import { Alert } from "../components/Alert";
 import {
   CATEGORIES,
   CATEGORY_LABELS,
@@ -117,10 +118,10 @@ export function DestinationsListPage() {
       </header>
 
       {error && (
-        <p className="error-note">
-          Could not load destinations: {error}. Is the emulator running, and do
-          you still have the admin claim?
-        </p>
+        <Alert variant="destructive" title="Could not load destinations">
+          {error}. Is the emulator running, and do you still have the admin
+          claim?
+        </Alert>
       )}
 
       <div className="toolbar">
