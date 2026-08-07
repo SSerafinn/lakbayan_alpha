@@ -10,6 +10,7 @@ import {
   uploadImage,
 } from "../lib/destinations";
 import { Alert } from "../components/Alert";
+import { Dialog } from "../components/Dialog";
 import { ImageThumb } from "../components/ImageThumb";
 import { formatCoord, searchPlaces, type GeocodeResult } from "../lib/geocode";
 import {
@@ -192,27 +193,32 @@ export function DestinationEditorPage() {
         </span>
       </header>
 
-      {blocker.state === "blocked" && (
-        <Alert
-          variant="warning"
-          title="You have unsaved changes"
-          actions={
-            <>
-              <button className="btn-quiet" onClick={() => blocker.reset()}>
-                Stay
-              </button>
-              <button
-                className="btn-secondary sm"
-                onClick={() => blocker.proceed()}
-              >
-                Discard and leave
-              </button>
-            </>
-          }
-        >
-          Leave this page and they will be lost.
-        </Alert>
-      )}
+      {/* A genuine decision point — nothing else can proceed until it is
+          answered — so this one is modal rather than an inline banner, which
+          is easy to miss and would defeat the guard. Escape and a backdrop
+          click both map to Stay, the non-destructive choice. */}
+      <Dialog
+        open={blocker.state === "blocked"}
+        onDismiss={() => blocker.reset?.()}
+        variant="warning"
+        title="You have unsaved changes"
+        actions={
+          <>
+            <button className="btn-quiet" onClick={() => blocker.reset?.()}>
+              Stay on this page
+            </button>
+            <button
+              className="btn-secondary"
+              onClick={() => blocker.proceed?.()}
+            >
+              Discard and leave
+            </button>
+          </>
+        }
+      >
+        Your edits to this destination have not been saved. Leaving now will
+        lose them.
+      </Dialog>
 
       {dirty && blocker.state !== "blocked" && (
         <Alert

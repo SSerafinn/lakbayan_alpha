@@ -245,6 +245,61 @@ h2 {
   border-color: var(--lk-error);
 }
 
+/* ---- dialog --------------------------------------------------------------
+   Native <dialog>, so focus trapping, Escape, inertness and top-layer
+   stacking come from the platform rather than from us getting them wrong. */
+
+.dialog {
+  width: min(440px, calc(100vw - var(--lk-space-8)));
+  padding: var(--lk-space-6);
+  border: 1px solid var(--lk-line);
+  border-radius: var(--lk-radius-lg);
+  background: var(--lk-surface);
+  color: var(--lk-text-body);
+  box-shadow: var(--lk-shadow-raised);
+}
+.dialog::backdrop {
+  background: rgb(30 39 51 / 0.45);
+}
+
+.dialog-head {
+  display: flex;
+  align-items: center;
+  gap: var(--lk-space-3);
+  margin-bottom: var(--lk-space-3);
+}
+.dialog-head h2 {
+  font-size: var(--lk-text-h3-size);
+  font-weight: var(--lk-text-h3-weight);
+}
+/* Only the icon carries the variant's colour. Tinting the whole surface would
+   make a routine confirmation look like a failure. */
+.dialog-info .dialog-icon {
+  color: var(--lk-info);
+}
+.dialog-warning .dialog-icon {
+  color: var(--lk-warning);
+}
+.dialog-success .dialog-icon {
+  color: var(--lk-success);
+}
+.dialog-destructive .dialog-icon {
+  color: var(--lk-error);
+}
+
+.dialog-body {
+  color: var(--lk-text-body);
+  font-size: var(--lk-text-body-size);
+  line-height: var(--lk-text-body-height);
+}
+
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--lk-space-2);
+  margin-top: var(--lk-space-6);
+}
+
 /* ---- shell --------------------------------------------------------------- */
 
 .boot {
