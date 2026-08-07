@@ -103,7 +103,7 @@ export async function deleteDestination(id: string): Promise<void> {
  * Upload a photo and return its Storage path.
  *
  * Stores the **path**, not the download URL: `docs/DATA_MODEL.md` specifies
- * `/destinations/{id}/images/{n}.jpg`, and a path survives token rotation
+ * `/destinations/{id}/images/{timestamp}.{ext}`, and a path survives token rotation
  * whereas a download URL does not.
  */
 export async function uploadImage(

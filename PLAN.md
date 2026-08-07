@@ -3,7 +3,7 @@
 Two tracks run in parallel:
 
 - **Track A — Mobile app** (this repo). Flutter, Android-first.
-- **Track B — Admin CMS** (separate repo, React — see `docs/DECISIONS.md` D-04).
+- **Track B — Admin CMS** (`cms/`, React — see `docs/DECISIONS.md` D-04 and D-10).
 
 Work top-to-bottom within a track. Tick tasks as they land. Follow
 `docs/CONVENTIONS.md`; use the Skills in `.claude/skills/`. Run `flutter analyze`,
@@ -85,7 +85,9 @@ Work top-to-bottom within a track. Tick tasks as they land. Follow
 
 # Track B — Admin CMS
 
-Separate repo, React (D-04). Eleven screens per the admin wireframes. Reuses
+Lives in `cms/` in this repo, React (D-04 for the stack, D-10 for the monorepo —
+the schema and design tokens are shared, and a repo boundary would split changes
+that must land atomically). Eleven screens per the admin wireframes. Reuses
 `tokens.json` from the design system — it is platform-agnostic W3C design tokens,
 so the same ramps and type scale become CSS custom properties.
 
