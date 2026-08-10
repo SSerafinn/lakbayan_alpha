@@ -64,9 +64,12 @@ Work top-to-bottom within a track. Tick tasks as they land. Follow
 - [ ] `features/itineraries`: create-your-own-tour + saved tours *(wireframe 1g).*
 - [ ] `features/profile` + global loading/empty/offline states *(wireframe 1h).*
 - **DoD:** download a town → maps + audio guides work fully offline.
+- [ ] **Spike first:** extract a Peñablanca PMTiles pack and render it on the
+      lowest-end phone available. Decides vector vs raster — see D-11.
 - **Biggest risk in the project.** Offline bundles alone are a Cloud Function
-  manifest, a download manager, Hive tracking, version invalidation and mbtiles
-  serving. The `.mbtiles` package choice is still unresolved (D-02).
+  manifest, a download manager, Hive tracking, version invalidation and tile
+  serving. The tile *source* is now settled (Protomaps, D-11); the renderer is
+  not, and the answer depends on hardware rather than documentation.
 
 ## Phase 4 · Weeks 11–12 — AR pilot *(stretch — only if on schedule)*
 - [ ] `features/ar`: ARCore Augmented Images native channel behind a Dart interface.
