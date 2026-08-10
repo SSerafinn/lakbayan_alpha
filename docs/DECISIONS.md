@@ -5,7 +5,7 @@ These were open; the scaffold defaults to the left. Confirm with the team before
 | # | Decision | Default | Alternative |
 |---|---|---|---|
 | D-01 | State management | **Riverpod 3** | Bloc |
-| D-02 | Maps SDK | **flutter_map + raster OSM tiles** (free) | Mapbox (paid, easy offline) |
+| D-02 | Maps SDK | **flutter_map** — tile source superseded by D-11 | Mapbox (paid, easy offline) |
 | D-03 | Local cache DB | **hive_ce** | Isar (complex queries) |
 | D-04 | Admin app stack | **React** — *in `cms/`, not a separate repo; see D-10* | Flutter Web |
 | D-05 | AR implementation | **native channel to ARCore** | ar_flutter_plugin |
@@ -51,6 +51,35 @@ and every teammate fail with `File google-services.json is missing`.
 
 A **production** project is different — keep its config out of the repo and inject
 it in CI from a secret.
+
+## D-11 · Offline tiles — source decided, renderer pending a spike (2026-08-07)
+
+**Partially accepted.** Full analysis in `docs/research/map-tiles.md`.
+
+**Source: Protomaps PMTiles.** D-02's default — raster tiles from
+`tile.openstreetmap.org` — **cannot** be used for Phase 3, and the reason is
+legal rather than technical: the [OSM Tile Usage Policy](https://operations.osmfoundation.org/policies/tiles/)
+prohibits bulk downloading and names "download city for offline use" as an
+example. Protomaps is free, permissively licensed, permits self-hosting, and
+`pmtiles extract` slices a region from the daily planet build into a single file
+— which is already the shape `/tiles/{townId}/` assumes.
+
+**Renderer: not decided.** Vector (`vector_map_tiles_pmtiles`) gives the
+smallest files but is CPU-heavy and its v10 is beta; raster
+(`flutter_map_mbtiles`) is simpler and faster on cheap hardware but needs a
+raster source Protomaps does not provide. **Settle it with a half-day spike on
+the lowest-end phone available**, not from documentation.
+
+**Do not use FMTC without checking the licence.** It is GPL-3.0, which would
+oblige us to release the app's source. A free alternative licence exists for
+open-source projects, so this hinges on whether Lakbayan is open-source. FMTC
+also does not solve the source problem — it is a downloader, not permission.
+
+**Design consequence:** bundle the union of ~2 km buffers around each town's
+destinations at high zoom, plus the whole municipality at low zoom — not the
+whole municipality at high zoom. Measured: a municipality at maxzoom 16 is
+~25–60 MB of raster, at maxzoom 15 ~6–16 MB. Retrofitting this after shipping
+whole-municipality packs means re-downloading everything.
 
 ## D-10 · Monorepo — the CMS lives in `cms/`, not a separate repo (2026-08-04)
 
@@ -114,5 +143,5 @@ exists, so promoting a teammate no longer needs a service account key.
 - **D-03 is now `hive_ce`,** the maintained community fork. Plain `hive` 2.x and
   `hive_generator` no longer resolve.
 - **D-02 wording corrected.** `flutter_map` renders *raster* tiles; it is not
-  MapLibre (that would be `maplibre_gl`). Offline `.mbtiles` still needs an extra
-  package — unresolved, and it blocks the Phase 3 offline bundle work.
+  MapLibre (that would be `maplibre_gl`). Offline tiles still need an extra
+  package — see D-11.
