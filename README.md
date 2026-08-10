@@ -309,6 +309,13 @@ generated files are gitignored, so a stale build only fails for the reviewer.
 - `*.g.dart`, `*.freezed.dart` — generated; committing them creates conflicts on
   every merge for no benefit
 
+### Repository settings
+
+Branch protection, merge strategy and Dependabot live on GitHub rather than in
+this repo, so they are documented in [docs/REPO_SETTINGS.md](docs/REPO_SETTINGS.md)
+— including *why*: two commits have already been lost to merge mechanics on this
+project, and both are prevented by settings listed there.
+
 ### Releases
 
 `PLAN.md` defines three milestones. When `staging` → `main` lands one, tag it:
