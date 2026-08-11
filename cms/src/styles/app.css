@@ -930,6 +930,117 @@ table.data td a:hover {
   gap: var(--lk-space-2);
 }
 
+/* ---- audio guide segments ------------------------------------------------
+   Wireframe screen 5. Cards in an ordered list rather than rows in the shared
+   data table: a stop carries two multi-line fields and a player, none of which
+   fit a table cell, and the sequence is the content here — the number in the
+   margin is what an editor checks against the walking route. */
+
+.segments {
+  display: flex;
+  flex-direction: column;
+  gap: var(--lk-space-4);
+}
+.segments-title {
+  font-size: var(--lk-text-h3-size);
+  font-weight: var(--lk-text-h3-weight);
+}
+
+.segment-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--lk-space-4);
+}
+
+.segment {
+  border: 1px solid var(--lk-line);
+  border-radius: var(--lk-radius-lg);
+  background: var(--lk-surface);
+  padding: var(--lk-space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--lk-space-4);
+}
+
+.segment-head {
+  display: flex;
+  align-items: center;
+  gap: var(--lk-space-3);
+}
+
+.segment-no {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--lk-primary-container);
+  color: var(--lk-on-primary-container);
+  font-size: var(--lk-text-caption-size);
+  font-weight: 700;
+}
+
+/* Grows to fill the row: the title is the thing being read, and boxing it to
+   a field width would leave it stranded beside the controls. */
+.segment-title {
+  flex: 1;
+  min-width: 0;
+  height: 36px;
+  padding: 0 var(--lk-space-3);
+  border: 1px solid var(--lk-line);
+  border-radius: var(--lk-radius-md);
+  background: var(--lk-surface);
+  font: inherit;
+  font-weight: 600;
+  color: inherit;
+}
+.segment-title:focus {
+  outline: none;
+  border-color: var(--lk-primary);
+}
+
+.segment-order {
+  display: flex;
+  gap: 2px;
+}
+/* The icon buttons in the head are square, not pill-shaped: at 30px tall a
+   pill around a single chevron reads as a lozenge with no meaning. */
+.segment-order .btn-quiet.sm,
+.segment-head > .btn-quiet.sm {
+  min-width: 30px;
+  padding: 0;
+  justify-content: center;
+  border-radius: var(--lk-radius-md);
+}
+.segment-head .btn-quiet.sm:disabled {
+  color: var(--lk-text-disabled);
+  cursor: not-allowed;
+}
+.segment-head .btn-quiet.sm:disabled:hover {
+  background: transparent;
+}
+
+.segment-audio {
+  display: flex;
+  align-items: center;
+  gap: var(--lk-space-2);
+}
+.segment-audio .btn-secondary.sm {
+  gap: var(--lk-space-1);
+}
+
+.segment-player {
+  width: 100%;
+  margin-top: var(--lk-space-2);
+  /* The native control is the right call here — it is keyboard accessible,
+     it scrubs, and nothing about this screen justifies rebuilding it. */
+  height: 36px;
+}
+
 /* Persistent save state lives here rather than in a banner above the form —
    it is a condition, not an event, and it belongs beside the buttons that
    resolve it. */

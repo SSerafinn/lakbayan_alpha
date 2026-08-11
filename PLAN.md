@@ -73,8 +73,9 @@ Work top-to-bottom within a track. Tick tasks as they land. Follow
       over the basemap, plus a `geo:` hand-off for driving directions (D-11).
 - **Biggest risk in the project.** Offline bundles alone are a Cloud Function
   manifest, a download manager, Hive tracking, version invalidation and tile
-  serving. The tile *source* is now settled (Protomaps, D-11); the renderer is
-  not, and the answer depends on hardware rather than documentation.
+  serving. Source and renderer are both settled (Protomaps, vector — D-11);
+  what is not settled is whether the renderer holds up on a cheap phone, and
+  that answer comes from the spike rather than from documentation.
 
 ## Phase 4 · Weeks 11–12 — AR pilot *(stretch — only if on schedule)*
 - [ ] `features/ar`: ARCore Augmented Images native channel behind a Dart interface.
@@ -130,7 +131,11 @@ CMS consumes that contract; it does not redefine it.
   and appears in the mobile app.
 
 ## CMS-2 · Weeks 7–9 — Content depth
-- [ ] Audio Guide segments editor: ordering, audio upload, TTS text *(screen 5)*.
+- [x] Audio Guide segments editor: ordering, audio upload, TTS text *(screen 5)*.
+      *A tab on the Destination Editor sharing its savebar, Ctrl+S and unsaved
+      guard — segments are a subcollection but not a second save model. Ordering
+      is move up/down, not drag: keyboard-reachable for a handful of stops.
+      A stop with neither recording nor narration text blocks publishing.*
 - [ ] Tours: stop picker, cover image, featured flag *(screen 8)*.
 - [ ] Local Guides directory *(screen 9)*.
 

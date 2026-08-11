@@ -36,6 +36,10 @@ destinations/{id}/segments/{sid}                               // audio guide st
   order         number    required   // 1-based, defines player sequence
   // No status field: visibility is inherited from the parent destination in
   // firestore.rules. Adding one here would let the two drift apart.
+  //
+  // `order` is written from list position by the CMS editor and is contiguous
+  // from 1. Readers should still sort by it rather than assume the gap-free
+  // sequence — a document written by hand or by a script need not honour it.
 offlineBundles/{townId}
   name, destinationIds[], tilePackRef, size, version, status   // pending | ready | stale
 tours/{id}
@@ -84,7 +88,11 @@ Two deliberate calls:
   decision nobody has made. Until then the app should render the string, not a
   live status.
 Storage paths: `/destinations/{id}/images/{timestamp}.{ext}`,
-`/destinations/{id}/audio/{segmentId}.mp3`,
+`/destinations/{id}/audio/{segmentId}.{ext}` — one object per segment, named
+after it. The extension is whatever was uploaded (mp3, m4a, aac, wav, ogg)
+rather than a fixed `.mp3`: that suffix on an m4a file misleads everything
+downstream that sniffs by name. Replacing a recording with a different format
+therefore writes a new object, and the CMS deletes the old one,
 `/ar/{destId}/markers/{n}.jpg`, `/tiles/{townId}/pack.mbtiles`.
 
 Denormalize for offline read patterns (a bundle carries what a town needs).

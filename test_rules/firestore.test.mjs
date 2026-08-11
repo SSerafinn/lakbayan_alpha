@@ -99,6 +99,9 @@ after(async () => {
   await env?.withSecurityRulesDisabled(async (ctx) => {
     const db = ctx.firestore();
     await deleteDoc(doc(db, "destinations/rulestest-draft/segments/s1"));
+    // Written by the admin-write test rather than seeded, and just as much a
+    // stray row in the CMS if it is left behind.
+    await deleteDoc(doc(db, "destinations/rulestest-draft/segments/s2"));
     await deleteDoc(doc(db, "destinations/rulestest-published/segments/s1"));
     for (const path of FIXTURES) {
       await deleteDoc(doc(db, path));
@@ -168,6 +171,29 @@ describe("segments inherit the parent's visibility", () => {
     const db = env.unauthenticatedContext().firestore();
     await assertFails(
       getDoc(doc(db, "destinations/rulestest-draft/segments/s1"))
+    );
+  });
+
+  it("refuses a segment write from a signed-in non-admin", async () => {
+    const db = env.authenticatedContext("traveller").firestore();
+    await assertFails(
+      setDoc(doc(db, "destinations/rulestest-published/segments/s1"), {
+        title: "Vandalised narration",
+        order: 1,
+      })
+    );
+  });
+
+  // The path the CMS audio guide editor actually takes: a guide is written
+  // while its destination is still a draft, long before either goes live.
+  it("allows an admin to write a segment under a draft destination", async () => {
+    const db = env.authenticatedContext("boss", { admin: true }).firestore();
+    await assertSucceeds(
+      setDoc(doc(db, "destinations/rulestest-draft/segments/s2"), {
+        title: "The approach path",
+        order: 2,
+        ttsText: "Follow the boardwalk to your left.",
+      })
     );
   });
 });
