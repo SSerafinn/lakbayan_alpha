@@ -35,9 +35,23 @@ branch nobody was watching.
 `staging`:
 
 - ✅ Require a pull request before merging
-  - Required approvals: **1**
-  - ✅ Require review from Code Owners *(`.github/CODEOWNERS` routes everything
-    to @SSerafinn, and names the files where a mistake is silent and costly)*
+  - Required approvals: **0 for now** — see below
+  - ❌ Require review from Code Owners — **off for now**, same reason
+
+> **You cannot approve your own pull request.** GitHub blocks it at the
+> platform level; there is no setting to allow it. With @SSerafinn as the only
+> active reviewer, requiring 1 approval — or a Code Owner review, when
+> `CODEOWNERS` routes everything to @SSerafinn — makes **every** PR
+> unmergeable, including the one that would fix the setting.
+>
+> Approvals are therefore 0 until the other two developers are reviewing.
+> **Raise it to 1 and re-enable Code Owner reviews then** — that is the point at
+> which it starts catching anything.
+>
+> Note what this does *not* cost us: all three of our lost-commit incidents
+> would have been prevented by **required status checks** and **require
+> branches to be up to date**, both of which stay on. The approval count was
+> never the protection that mattered here.
 - ✅ Require status checks to pass before merging
   - ✅ Require branches to be up to date before merging
   - Required checks: **`app`**, **`cms`**, **`rules`**
