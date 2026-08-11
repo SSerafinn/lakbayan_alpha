@@ -9,11 +9,20 @@
 # riverpod_lint are capped by the Dart SDK, json_annotation by an analyzer
 # conflict). Expect Dependabot to propose raising those and to fail CI; close
 # those PRs rather than forcing them, until the SDK moves.
+#
+# Every ecosystem sets `target-branch: staging`. Without it Dependabot opens
+# against the repository's default branch, and the first monthly run did
+# exactly that: twelve PRs aimed at `main`, which only release PRs may target
+# (see docs/REPO_SETTINGS.md). Merging them there would have put `main` ahead
+# of `staging` twelve times over — the divergence this project has already
+# lost commits to. This setting is the fix that does not depend on anyone
+# remembering to retarget.
 version: 2
 
 updates:
   - package-ecosystem: pub
     directory: /
+    target-branch: staging
     schedule:
       interval: monthly
     open-pull-requests-limit: 3
@@ -22,6 +31,7 @@ updates:
 
   - package-ecosystem: npm
     directory: /cms
+    target-branch: staging
     schedule:
       interval: monthly
     open-pull-requests-limit: 3
@@ -39,15 +49,33 @@ updates:
 
   - package-ecosystem: npm
     directory: /test_rules
+    target-branch: staging
     schedule:
       interval: monthly
     open-pull-requests-limit: 2
     commit-message:
       prefix: "chore(deps)"
+    groups:
+      # `@firebase/rules-unit-testing` declares a peer dependency on a matching
+      # major of `firebase`, so the two cannot move apart. Split into separate
+      # PRs they each fail `npm install` with ERESOLVE and neither can merge —
+      # which is precisely what happened with #22 and #23.
+      firebase:
+        patterns:
+          - firebase
+          - "@firebase/*"
 
   - package-ecosystem: github-actions
     directory: /
+    target-branch: staging
     schedule:
       interval: monthly
     commit-message:
       prefix: "chore(ci)"
+    groups:
+      # One PR for the lot. Every action pin lives in the same ci.yml, so
+      # separate PRs conflict with each other by construction: merging the
+      # first leaves the rest needing a rebase before they can follow.
+      actions:
+        patterns:
+          - "*"
