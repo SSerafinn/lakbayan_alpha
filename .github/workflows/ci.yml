@@ -23,7 +23,7 @@ jobs:
       # Gradle 8.14 / AGP do not support JDK 26 — pin to 17.
       # The rules job below needs 21 for the Firestore emulator, which is why
       # these are separate jobs rather than separate steps.
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "17"
@@ -92,7 +92,7 @@ jobs:
       - uses: actions/checkout@v4
 
       # firebase-tools refuses to run the Firestore emulator below JDK 21.
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "21"
