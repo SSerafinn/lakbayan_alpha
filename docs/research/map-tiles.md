@@ -134,7 +134,21 @@ whole-municipality packs means re-downloading everything.
 
 ---
 
-## Recommendation
+## Decided (2026-08-10)
+
+**Source: Protomaps. Renderer: vector. Routes: authored polylines.** See D-11.
+
+Vector was chosen for download size, which also keeps the chain free — Protomaps
+publishes vector, so raster would have meant paying for a source or adding a
+rasterisation step. The trade is explicit: **lighter to download, heavier to
+draw**. The spike below still runs, as validation rather than a decision.
+
+The original comparison is kept below, because the fallback matters if the
+spike fails.
+
+---
+
+## Recommendation (as written before the decision)
 
 **Source: Protomaps.** Free, permissive, legal for offline, one file per region,
 and its shape already matches the bundle design. Nothing else is free *and*

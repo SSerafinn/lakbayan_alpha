@@ -64,8 +64,13 @@ Work top-to-bottom within a track. Tick tasks as they land. Follow
 - [ ] `features/itineraries`: create-your-own-tour + saved tours *(wireframe 1g).*
 - [ ] `features/profile` + global loading/empty/offline states *(wireframe 1h).*
 - **DoD:** download a town → maps + audio guides work fully offline.
-- [ ] **Spike first:** extract a Peñablanca PMTiles pack and render it on the
-      lowest-end phone available. Decides vector vs raster — see D-11.
+- [ ] **Spike first:** extract a Peñablanca PMTiles pack, render it with
+      `vector_map_tiles` (pin 8.x — v10 is beta) on the lowest-end phone
+      available, and measure pan/zoom frame times. Vector is decided (D-11);
+      this validates it before `features/maps` is built on top. If it stutters,
+      the fallback is raster and a paid tile source.
+- [ ] Routes are authored polylines on the tour, not computed — `PolylineLayer`
+      over the basemap, plus a `geo:` hand-off for driving directions (D-11).
 - **Biggest risk in the project.** Offline bundles alone are a Cloud Function
   manifest, a download manager, Hive tracking, version invalidation and tile
   serving. The tile *source* is now settled (Protomaps, D-11); the renderer is
