@@ -1,0 +1,24 @@
+{
+  "__comment": "Branch protection payload for both main and staging. Applied with: gh api -X PUT repos/SSerafinn/lakbayan_alpha/branches/<branch>/protection --input .github/branch-protection.json. Kept in the repo so both branches get identical rules and the intent is reviewable — see docs/REPO_SETTINGS.md.",
+
+  "__comment_reviews": "required_approving_review_count is 0 while @SSerafinn is the only active reviewer. GitHub does not permit approving your own pull request — that is a platform rule with no setting to disable — so requiring 1 approval makes every PR unmergeable for a solo maintainer. Raise this to 1 and set require_code_owner_reviews true once the other two developers are reviewing. The protections that actually prevented our incidents are the status checks and strict below, not the approval count.",
+
+  "required_status_checks": {
+    "strict": true,
+    "contexts": ["app", "cms", "rules"]
+  },
+
+  "required_pull_request_reviews": {
+    "required_approving_review_count": 0,
+    "require_code_owner_reviews": false,
+    "dismiss_stale_reviews": true
+  },
+
+  "enforce_admins": true,
+
+  "restrictions": null,
+
+  "allow_force_pushes": false,
+  "allow_deletions": false,
+  "required_conversation_resolution": true
+}

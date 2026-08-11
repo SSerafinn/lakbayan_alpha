@@ -14,6 +14,33 @@ import { DestinationsListPage } from "./pages/DestinationsListPage";
 import { DestinationEditorPage } from "./pages/DestinationEditorPage";
 import { PlaceholderPage } from "./pages/PlaceholderPage";
 import { useEmulators } from "./lib/firebase";
+import { ToastProvider } from "./components/Toast";
+import {
+  LayoutDashboard,
+  MapPin,
+  Package,
+  Route,
+  Settings,
+  ShieldCheck,
+  UsersRound,
+  type LucideIcon,
+} from "lucide-react";
+
+/**
+ * Sidebar sections, in the wireframe's order.
+ *
+ * Data rather than seven hand-written links: adding a section is one entry,
+ * and the icon travels with it instead of being wired up separately.
+ */
+const NAV: { to: string; label: string; icon: LucideIcon; end?: boolean }[] = [
+  { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
+  { to: "/destinations", label: "Destinations", icon: MapPin },
+  { to: "/tours", label: "Tours", icon: Route },
+  { to: "/guides", label: "Local guides", icon: UsersRound },
+  { to: "/bundles", label: "Offline bundles", icon: Package },
+  { to: "/users", label: "Users & roles", icon: ShieldCheck },
+  { to: "/settings", label: "Settings", icon: Settings },
+];
 
 /**
  * Role gate. Every CMS route sits behind it.
@@ -40,15 +67,12 @@ function Shell() {
           <strong>Lakbayan</strong>
         </div>
         <nav>
-          <NavLink to="/" end>
-            Dashboard
-          </NavLink>
-          <NavLink to="/destinations">Destinations</NavLink>
-          <NavLink to="/tours">Tours</NavLink>
-          <NavLink to="/guides">Local guides</NavLink>
-          <NavLink to="/bundles">Offline bundles</NavLink>
-          <NavLink to="/users">Users &amp; roles</NavLink>
-          <NavLink to="/settings">Settings</NavLink>
+          {NAV.map(({ to, label, icon: Icon, end }) => (
+            <NavLink key={to} to={to} end={end}>
+              <Icon size={18} aria-hidden="true" />
+              {label}
+            </NavLink>
+          ))}
         </nav>
         <div className="sidebar-foot">
           <span className="hint">{user?.email}</span>
@@ -120,8 +144,10 @@ const router = createBrowserRouter([
 
 export default function App() {
   return (
-    <AuthProvider>
-      <RouterProvider router={router} />
-    </AuthProvider>
+    <ToastProvider>
+      <AuthProvider>
+        <RouterProvider router={router} />
+      </AuthProvider>
+    </ToastProvider>
   );
 }

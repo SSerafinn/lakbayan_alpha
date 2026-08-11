@@ -9,6 +9,9 @@ import {
   updateDestination,
   uploadImage,
 } from "../lib/destinations";
+import { Alert } from "../components/Alert";
+import { Dialog } from "../components/Dialog";
+import { useToast } from "../components/toast-context";
 import { ImageThumb } from "../components/ImageThumb";
 import { formatCoord, searchPlaces, type GeocodeResult } from "../lib/geocode";
 import {
@@ -20,7 +23,6 @@ import {
   readiness,
   slugify,
   validate,
-  type ReadinessItem,
   type Category,
   type Destination,
 } from "../types/destination";
@@ -39,8 +41,29 @@ type Tab = "details" | "location" | "media";
  */
 export function DestinationEditorPage() {
   const { id } = useParams<{ id: string }>();
-  const isNew = id === "new";
   const navigate = useNavigate();
+
+  /**
+   * The document created during this visit, before the route param catches up.
+   *
+   * Without it, `id` stays "new" until the navigation lands — and if that
+   * navigation is cancelled or delayed, the next save tries to *create* again
+   * and fails on the duplicate slug, having already written a document.
+   */
+  const createdIdRef = useRef<string | null>(null);
+
+  /**
+   * Set while we navigate to a freshly-created document.
+   *
+   * Our own post-save navigation would otherwise trip the unsaved-changes
+   * guard: `setSaved` has not been flushed when the blocker predicate runs, so
+   * it still sees the draft as dirty and asks whether to discard changes that
+   * were just written.
+   */
+  const bypassBlockerRef = useRef(false);
+
+  const docId = createdIdRef.current ?? id;
+  const isNew = id === "new" && createdIdRef.current === null;
 
   const [draft, setDraft] = useState<Draft | null>(
     isNew ? emptyDestination() : null,
@@ -52,9 +75,20 @@ export function DestinationEditorPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [slugEdited, setSlugEdited] = useState(!isNew);
+  const toast = useToast();
 
+  // Mirrors of state the Ctrl+S handler needs. Refs rather than dependencies so
+  // the listener registers once instead of on every keystroke, and still sees
+  // current values rather than a stale closure.
+  const dirtyRef = useRef(false);
+  const busyRef = useRef(false);
+  const saveRef = useRef<(() => Promise<unknown>) | null>(null);
+
+  // Keyed on the route param alone, not on `isNew`. `isNew` now flips to false
+  // the moment a document is created, which is *before* the route updates —
+  // depending on it here would fire a load for the literal id "new".
   useEffect(() => {
-    if (isNew || !id) return;
+    if (!id || id === "new") return;
     void (async () => {
       const found = await getDestination(id);
       if (!found) {
@@ -65,7 +99,7 @@ export function DestinationEditorPage() {
       setDraft(rest);
       setSaved(rest);
     })();
-  }, [id, isNew]);
+  }, [id]);
 
   const dirty = useMemo(
     () => JSON.stringify(draft) !== JSON.stringify(saved),
@@ -86,10 +120,36 @@ export function DestinationEditorPage() {
   // closing the tab, and it was the worst thing about this screen.
   const blocker = useBlocker(
     ({ currentLocation, nextLocation }) =>
-      dirty && currentLocation.pathname !== nextLocation.pathname,
+      !bypassBlockerRef.current &&
+      dirty &&
+      currentLocation.pathname !== nextLocation.pathname,
   );
 
-  if (error) return <p className="error-note">{error}</p>;
+  // Clear the bypass once the route has settled on the new document.
+  useEffect(() => {
+    bypassBlockerRef.current = false;
+  }, [id]);
+
+  // Ctrl/Cmd+S. Long-form history text plus a photo upload is a lot to lose,
+  // and reaching for the mouse to save is the kind of friction that makes
+  // people save less often.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.ctrlKey || e.metaKey) || e.key !== "s") return;
+      e.preventDefault();
+      if (dirtyRef.current && !busyRef.current) void saveRef.current?.();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  if (error && !draft) {
+    return (
+      <Alert variant="destructive" title="Cannot open this destination">
+        {error}
+      </Alert>
+    );
+  }
   if (!draft) return <div className="boot">Loading…</div>;
 
   const set = <K extends keyof Draft>(key: K, value: Draft[K]) =>
@@ -99,46 +159,100 @@ export function DestinationEditorPage() {
   const checklist = readiness(draft);
   const blockers = publishBlockers(draft);
 
-  async function save(nextStatus?: "draft" | "published") {
-    if (!draft) return;
-    const next = nextStatus ? { ...draft, status: nextStatus } : draft;
+  /** Is anything on this tab still unmet? Drives the dot on the tab label. */
+  const unmetIn = (t: Tab) => checklist.some((i) => !i.ok && i.tab === t);
 
-    if (Object.keys(validate(next)).length > 0) {
-      setTab("details");
-      setError("Fix the highlighted fields first.");
+  /** Publish, or explain why it cannot be published yet. */
+  function onPublish() {
+    const first = checklist.find((i) => !i.ok);
+    if (draft && draft.status !== "published" && first) {
+      setTab(first.tab);
+      toast.toast({
+        variant: "warning",
+        title: `Not ready to publish — ${blockers.length} thing${blockers.length === 1 ? "" : "s"} left`,
+        description: `${first.label}${first.why ? ` — ${first.why}` : ""}`,
+      });
       return;
     }
-    if (nextStatus === "published" && publishBlockers(next).length > 0) {
-      setError(publishBlockers(next)[0]);
-      return;
+    void save("published");
+  }
+
+  /** Returns the document id on success, null if it did not save. */
+  async function save(
+    nextStatus?: "draft" | "published",
+  ): Promise<string | null> {
+    if (!draft) return null;
+    const next = nextStatus ? { ...draft, status: nextStatus } : draft;
+
+    const invalid = validate(next);
+    if (Object.keys(invalid).length > 0) {
+      setTab("details");
+      toast.error(
+        "Fix the highlighted fields first",
+        Object.values(invalid)[0],
+      );
+      return null;
     }
 
     setBusy(true);
-    setError(null);
     try {
-      if (await isSlugTaken(next.slug, isNew ? undefined : id)) {
-        setError(
-          `The slug "${next.slug}" is already used by another destination.`,
-        );
+      // Exclude this document from the uniqueness check once it exists —
+      // otherwise its own slug reads as taken.
+      if (await isSlugTaken(next.slug, isNew ? undefined : docId)) {
         setTab("details");
-        return;
+        toast.error(
+          "That slug is already taken",
+          `"${next.slug}" belongs to another destination. Slugs appear in deep links, so they have to be unique.`,
+        );
+        return null;
       }
 
+      let savedId: string;
       if (isNew) {
-        const newId = await createDestination(next);
+        savedId = await createDestination(next);
+        // Record it before navigating: from here on this is an update, even if
+        // the navigation is delayed, cancelled, or the user stays put.
+        createdIdRef.current = savedId;
+        setDraft(next);
         setSaved(next);
-        navigate(`/destinations/${newId}`, { replace: true });
+        bypassBlockerRef.current = true;
+        navigate(`/destinations/${savedId}`, { replace: true });
       } else {
-        await updateDestination(id!, next);
+        savedId = docId!;
+        await updateDestination(savedId, next);
         setDraft(next);
         setSaved(next);
       }
+
+      // The page looks identical after a save — same fields, same values — so
+      // without this there is nothing to distinguish "saved" from "nothing
+      // happened", which is exactly what made a new draft feel like a
+      // duplicate form.
+      toast.success(
+        nextStatus === "published"
+          ? "Published"
+          : isNew
+            ? "Draft created"
+            : "Saved",
+        nextStatus === "published"
+          ? "It is now visible in the app."
+          : "Only you can see it until it is published.",
+      );
+      return savedId;
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      toast.error(
+        "That didn't save",
+        err instanceof Error ? err.message : String(err),
+      );
+      return null;
     } finally {
       setBusy(false);
     }
   }
+
+  dirtyRef.current = dirty;
+  busyRef.current = busy;
+  saveRef.current = () => save();
 
   return (
     <section className="page editor">
@@ -158,27 +272,103 @@ export function DestinationEditorPage() {
         </span>
       </header>
 
-      {blocker.state === "blocked" && (
-        <div className="warn-bar block">
-          <strong>You have unsaved changes.</strong> Leave this page and they
-          will be lost.
-          <span className="spacer" />
-          <button className="btn-quiet" onClick={() => blocker.reset()}>
-            Stay
+      {/* A genuine decision point — nothing else can proceed until it is
+          answered — so this one is modal rather than an inline banner, which
+          is easy to miss and would defeat the guard. Escape and a backdrop
+          click both map to Stay, the non-destructive choice. */}
+      <Dialog
+        open={blocker.state === "blocked"}
+        onDismiss={() => blocker.reset?.()}
+        variant="warning"
+        title="You have unsaved changes"
+        actions={
+          <>
+            <button className="btn-quiet" onClick={() => blocker.reset?.()}>
+              Stay on this page
+            </button>
+            <button
+              className="btn-secondary"
+              onClick={() => blocker.proceed?.()}
+            >
+              Discard and leave
+            </button>
+          </>
+        }
+      >
+        Your edits to this destination have not been saved. Leaving now will
+        lose them.
+      </Dialog>
+
+      {/* Unsaved state, save failures and publish blockers used to be three
+          banners stacked above the form, pushing it down the page and staying
+          long after they stopped being useful. They now live where they
+          belong: state in the savebar, events in a toast, decisions in the
+          dialog above. */}
+
+      <div className="editor-card">
+        <nav className="tabs">
+          <button
+            className={tab === "details" ? "tab on" : "tab"}
+            onClick={() => setTab("details")}
+          >
+            Details
+            {unmetIn("details") && <span className="tab-dot" />}
           </button>
           <button
-            className="btn-secondary sm"
-            onClick={() => blocker.proceed()}
+            className={tab === "location" ? "tab on" : "tab"}
+            onClick={() => setTab("location")}
           >
-            Discard and leave
+            Location
+            {unmetIn("location") && <span className="tab-dot" />}
           </button>
-        </div>
-      )}
+          <button
+            className={tab === "media" ? "tab on" : "tab"}
+            onClick={() => setTab("media")}
+          >
+            Media <span className="hint">{draft.images.length}</span>
+            {unmetIn("media") && <span className="tab-dot" />}
+          </button>
+          <button className="tab" disabled title="Arrives in CMS-2">
+            Audio Guide
+          </button>
+          <button className="tab" disabled title="Arrives in CMS-3">
+            AR
+          </button>
+        </nav>
 
-      {dirty && blocker.state !== "blocked" && (
-        <div className="warn-bar">
-          <strong>Unsaved changes.</strong>
-          <span className="spacer" />
+        <div className="editor-panel">
+          {tab === "details" && (
+            <DetailsTab
+              draft={draft}
+              errors={errors}
+              set={set}
+              slugEdited={slugEdited}
+              onNameChange={(name) => {
+                set("name", name);
+                if (!slugEdited) set("slug", slugify(name));
+              }}
+              onSlugEdited={() => setSlugEdited(true)}
+            />
+          )}
+
+          {tab === "location" && <LocationTab draft={draft} set={set} />}
+
+          {tab === "media" && (
+            <MediaTab
+              draft={draft}
+              destinationId={isNew ? null : docId!}
+              set={set}
+              onSaveFirst={() => save("draft")}
+            />
+          )}
+        </div>
+      </div>
+
+      <div className="savebar">
+        <span className={dirty ? "save-state dirty" : "save-state"}>
+          {dirty ? "Unsaved changes · Ctrl+S" : "All changes saved"}
+        </span>
+        {dirty && (
           <button
             className="btn-quiet"
             onClick={() => setDraft(saved)}
@@ -186,72 +376,11 @@ export function DestinationEditorPage() {
           >
             Discard
           </button>
-        </div>
-      )}
-
-      {error && <p className="error-note">{error}</p>}
-
-      <nav className="tabs">
-        <button
-          className={tab === "details" ? "tab on" : "tab"}
-          onClick={() => setTab("details")}
-        >
-          Details
-        </button>
-        <button
-          className={tab === "location" ? "tab on" : "tab"}
-          onClick={() => setTab("location")}
-        >
-          Location
-        </button>
-        <button
-          className={tab === "media" ? "tab on" : "tab"}
-          onClick={() => setTab("media")}
-        >
-          Media <span className="hint">{draft.images.length}</span>
-        </button>
-        <button className="tab" disabled title="Arrives in CMS-2">
-          Audio Guide
-        </button>
-        <button className="tab" disabled title="Arrives in CMS-3">
-          AR
-        </button>
-      </nav>
-
-      {tab === "details" && (
-        <DetailsTab
-          draft={draft}
-          errors={errors}
-          set={set}
-          slugEdited={slugEdited}
-          onNameChange={(name) => {
-            set("name", name);
-            if (!slugEdited) set("slug", slugify(name));
-          }}
-          onSlugEdited={() => setSlugEdited(true)}
-        />
-      )}
-
-      {tab === "location" && <LocationTab draft={draft} set={set} />}
-
-      {tab === "media" && (
-        <MediaTab
-          draft={draft}
-          destinationId={isNew ? null : id!}
-          set={set}
-          onError={setError}
-        />
-      )}
-
-      {draft.status !== "published" && (
-        <ReadinessPanel items={checklist} onJump={setTab} />
-      )}
-
-      <div className="savebar">
-        <span className="hint">
-          {dirty ? "Unsaved changes" : "All changes saved"}
-        </span>
+        )}
         <span className="spacer" />
+        {draft.status !== "published" && blockers.length > 0 && (
+          <span className="hint">{blockers.length} left before publishing</span>
+        )}
         {draft.status === "published" ? (
           <button
             className="btn-quiet"
@@ -269,13 +398,11 @@ export function DestinationEditorPage() {
             Save as draft
           </button>
         )}
-        <button
-          className="btn-primary"
-          disabled={
-            busy || (draft.status !== "published" && blockers.length > 0)
-          }
-          onClick={() => void save("published")}
-        >
+        {/* Deliberately NOT disabled when there are blockers. A disabled
+            button cannot explain itself, cannot be focused, and gives no
+            feedback when clicked — so people click it, nothing happens, and
+            they are stuck. Clicking now says what is missing and jumps there. */}
+        <button className="btn-primary" disabled={busy} onClick={onPublish}>
           {draft.status === "published" ? "Save" : "Publish"}
         </button>
       </div>
@@ -682,42 +809,58 @@ function MediaTab({
   draft,
   destinationId,
   set,
-  onError,
+  onSaveFirst,
 }: {
   draft: Draft;
   destinationId: string | null;
   set: <K extends keyof Draft>(k: K, v: Draft[K]) => void;
-  onError: (m: string) => void;
+  /** Creates the draft document and resolves to its id, or null if it failed. */
+  onSaveFirst: () => Promise<string | null>;
 }) {
   const fileInput = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
-
-  // Uploads are keyed by document id, so a brand-new destination has nowhere to
-  // put them yet. Saving first is the simplest honest answer.
-  if (!destinationId) {
-    return (
-      <div className="empty">
-        <p>Save the destination once before adding photos.</p>
-        <p className="hint">
-          Images are stored under /destinations/&lt;id&gt;/images/, which needs
-          the id to exist.
-        </p>
-      </div>
-    );
-  }
+  const toast = useToast();
 
   async function onPick(files: FileList | null) {
     if (!files?.length) return;
     setUploading(true);
     try {
+      // Uploads are keyed by document id, so a brand-new destination has
+      // nowhere to put them. Rather than blocking with "save it first" — a
+      // wall in front of the thing editors usually reach for first — create
+      // the draft silently and carry on.
+      const target = destinationId ?? (await onSaveFirst());
+      if (!target) return; // The save failed and already reported why.
+
       const paths: string[] = [];
+      let skipped = 0;
       for (const file of Array.from(files)) {
-        if (!file.type.startsWith("image/")) continue;
-        paths.push(await uploadImage(destinationId!, file));
+        if (!file.type.startsWith("image/")) {
+          skipped++;
+          continue;
+        }
+        paths.push(await uploadImage(target, file));
       }
-      set("images", [...draft.images, ...paths]);
+
+      if (paths.length > 0) {
+        set("images", [...draft.images, ...paths]);
+        toast.success(
+          `${paths.length} photo${paths.length === 1 ? "" : "s"} added`,
+          "Save to keep them.",
+        );
+      }
+      if (skipped > 0) {
+        toast.toast({
+          variant: "warning",
+          title: `${skipped} file${skipped === 1 ? "" : "s"} skipped`,
+          description: "Only images can be uploaded.",
+        });
+      }
     } catch (err) {
-      onError(err instanceof Error ? err.message : String(err));
+      toast.error(
+        "Upload failed",
+        err instanceof Error ? err.message : String(err),
+      );
     } finally {
       setUploading(false);
       if (fileInput.current) fileInput.current.value = "";
@@ -789,50 +932,6 @@ function MediaTab({
           ))}
         </ul>
       )}
-    </div>
-  );
-}
-
-/**
- * What is still missing before this can go live.
- *
- * Replaces a `title` tooltip on a disabled Publish button — which required
- * hovering a disabled control to discover why it was disabled. Each unmet item
- * jumps to the tab that fixes it.
- */
-function ReadinessPanel({
-  items,
-  onJump,
-}: {
-  items: ReadinessItem[];
-  onJump: (tab: Tab) => void;
-}) {
-  const missing = items.filter((i) => !i.ok);
-
-  if (missing.length === 0) {
-    return (
-      <div className="readiness ok">
-        <strong>Ready to publish.</strong> Everything required is filled in.
-      </div>
-    );
-  }
-
-  return (
-    <div className="readiness">
-      <strong>
-        {missing.length} thing{missing.length === 1 ? "" : "s"} left before this
-        can be published
-      </strong>
-      <ul>
-        {missing.map((i) => (
-          <li key={i.label}>
-            <button className="link-button" onClick={() => onJump(i.tab)}>
-              {i.label}
-            </button>
-            {i.why && <span className="hint"> — {i.why}</span>}
-          </li>
-        ))}
-      </ul>
     </div>
   );
 }

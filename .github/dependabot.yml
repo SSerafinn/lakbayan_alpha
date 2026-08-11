@@ -1,0 +1,53 @@
+# Dependency updates for the three ecosystems in this monorepo.
+#
+# Monthly, not weekly: a three-person student team does not need a PR queue,
+# and the point here is to notice a security advisory or a stale major before
+# it becomes a migration — not to chase every patch.
+#
+# The Flutter app's own version pins are deliberate and documented (see
+# docs/DECISIONS.md and the comments in pubspec.yaml — riverpod_annotation and
+# riverpod_lint are capped by the Dart SDK, json_annotation by an analyzer
+# conflict). Expect Dependabot to propose raising those and to fail CI; close
+# those PRs rather than forcing them, until the SDK moves.
+version: 2
+
+updates:
+  - package-ecosystem: pub
+    directory: /
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: "chore(deps)"
+
+  - package-ecosystem: npm
+    directory: /cms
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      # React, its types and the router move together; separate PRs for each
+      # just create conflicts.
+      react:
+        patterns:
+          - react
+          - react-dom
+          - react-router-dom
+          - "@types/react*"
+
+  - package-ecosystem: npm
+    directory: /test_rules
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 2
+    commit-message:
+      prefix: "chore(deps)"
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    commit-message:
+      prefix: "chore(ci)"
