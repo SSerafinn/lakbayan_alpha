@@ -64,11 +64,29 @@ example. Protomaps is free, permissively licensed, permits self-hosting, and
 `pmtiles extract` slices a region from the daily planet build into a single file
 — which is already the shape `/tiles/{townId}/` assumes.
 
-**Renderer: not decided.** Vector (`vector_map_tiles_pmtiles`) gives the
-smallest files but is CPU-heavy and its v10 is beta; raster
-(`flutter_map_mbtiles`) is simpler and faster on cheap hardware but needs a
-raster source Protomaps does not provide. **Settle it with a half-day spike on
-the lowest-end phone available**, not from documentation.
+**Renderer: vector** (`vector_map_tiles` + `vector_map_tiles_pmtiles`), chosen
+for download size. It also keeps the whole chain free: Protomaps publishes
+vector, so raster would have meant paying for a raster source or adding a
+rasterisation step.
+
+One thing this trades, stated plainly so nobody is surprised: **vector is
+lighter to download and heavier to draw.** Files shrink (Protomaps reports 70%+
+from de-duplication), but glyphs and geometry are rasterised on-device every
+frame instead of being decoded as images. The saving is in bandwidth and
+storage, not CPU.
+
+So the Phase 3 spike still runs — but as **validation, not a decision**. Pin
+`vector_map_tiles` to a stable release (8.x; v10 uses `flutter_gpu` and is
+beta), render a Peñablanca pack on the lowest-end phone available, and measure
+pan/zoom frame times. If it stutters there, the fallback is raster and the cost
+is a paid tile source, so it is worth knowing early rather than after
+`features/maps` is built on top.
+
+Routes are **authored polylines**, not computed. `CONVENTIONS.md` already
+specifies "map with pins + static route", so no routing engine is needed:
+`PolylineLayer` draws a tour's path over the basemap, fully offline. For "take
+me there", hand off to the device's map app via a `geo:` URI — driving
+directions need live traffic, which no offline pack can provide.
 
 **Do not use FMTC without checking the licence.** It is GPL-3.0, which would
 oblige us to release the app's source. A free alternative licence exists for
