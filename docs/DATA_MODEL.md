@@ -87,12 +87,32 @@ Two deliberate calls:
   open/closed badge needs structured per-day hours, which is a content-model
   decision nobody has made. Until then the app should render the string, not a
   live status.
-Storage paths: `/destinations/{id}/images/{timestamp}.{ext}`,
-`/destinations/{id}/audio/{segmentId}.{ext}` — one object per segment, named
-after it. The extension is whatever was uploaded (mp3, m4a, aac, wav, ogg)
-rather than a fixed `.mp3`: that suffix on an m4a file misleads everything
-downstream that sniffs by name. Replacing a recording with a different format
-therefore writes a new object, and the CMS deletes the old one,
-`/ar/{destId}/markers/{n}.jpg`, `/tiles/{townId}/pack.mbtiles`.
+
+### Storage paths
+
+```
+/destinations/{id}/images/{timestamp}.{ext}        // uploaded via the CMS
+/destinations/{id}/images/{source-filename}.{ext}  // written by the importer
+/destinations/{id}/audio/{segmentId}.{ext}
+/ar/{destId}/markers/{n}.jpg
+/tiles/{townId}/pack.mbtiles
+```
+
+**Images have two naming conventions on purpose.** The CMS uses a timestamp so
+that deleting one photo never renumbers the survivors. `scripts/import-content.mjs`
+replaces a destination's whole set in one go and has no such problem; what it
+needs instead is a name that is stable across runs, because a fresh timestamp
+each time would strand every object the previous import uploaded. Readers only
+ever follow the path stored on the document, so the two coexist safely.
+
+**Audio is one object per segment, named after it.** The extension is whatever
+was uploaded (mp3, m4a, aac, wav, ogg) rather than a fixed `.mp3` — that suffix
+on an m4a file misleads everything downstream that sniffs by name. Replacing a
+recording with a different format therefore writes a new object, and both the
+CMS and the importer delete the one it replaced.
+
+Segment ids are random when the CMS creates them and `stop-01`, `stop-02` … when
+the importer does, which is what keeps `{segmentId}.{ext}` stable across
+re-imports.
 
 Denormalize for offline read patterns (a bundle carries what a town needs).
