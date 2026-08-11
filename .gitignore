@@ -58,6 +58,11 @@ config/local.json
 .emulator-data/
 artifacts/
 
+# Office lock files. Excel writes ~$Book.xlsx beside a workbook while it is
+# open and deletes it on close, so it only ever appears mid-edit — which is
+# exactly when someone is most likely to `git add` the intake folder.
+~$*
+
 # misc
 *.log
 .DS_Store
