@@ -1,0 +1,2 @@
+﻿ref,title,description,stop_refs_in_order_semicolon_separated,cover_photo_filename,featured_yes_no,route_file_gpx_or_kml,typical_duration,starting_point,transport_notes
+EXAMPLE-T01 (delete this row),Peñablanca caves day trip,"A one-day loop taking in the show caves and the river, suitable for a first visit.",EXAMPLE-001;EXAMPLE-002;EXAMPLE-003,penablanca-tour-cover.jpg,yes,penablanca-loop.gpx,"6-7 hours","Tuguegarao City tourism office","Van hire or private vehicle; last 3 km is unpaved"
