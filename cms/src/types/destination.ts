@@ -1,4 +1,5 @@
 import type { Timestamp } from "firebase/firestore";
+import { segmentProblems, type SegmentDraft } from "./segment";
 
 /**
  * Mirrors `docs/DATA_MODEL.md` and `lib/core/models/destination.dart`.
@@ -127,7 +128,7 @@ export type ReadinessItem = {
   label: string;
   ok: boolean;
   /** Which tab to send the editor to when this is the thing that is missing. */
-  tab: "details" | "location" | "media";
+  tab: "details" | "location" | "media" | "audio";
   /** Shown when `ok` is false. */
   why?: string;
 };
@@ -138,9 +139,18 @@ export type ReadinessItem = {
  * Single source for both the checklist UI and [publishBlockers], so the button
  * can never be disabled for a reason the checklist does not show — which is
  * exactly what a `title` tooltip on a disabled button used to do.
+ *
+ * Segments are passed in rather than read here: they live in a subcollection,
+ * so they are not part of the destination document this module otherwise
+ * describes. They contribute checks only when the guide has stops at all — an
+ * audio guide is optional, but a half-built one must not go live.
  */
-export function readiness(d: Omit<Destination, "id">): ReadinessItem[] {
+export function readiness(
+  d: Omit<Destination, "id">,
+  segments: SegmentDraft[] = [],
+): ReadinessItem[] {
   const desc = d.description.trim();
+  const { untitled, silent } = segmentProblems(segments);
   return [
     { label: "Name", ok: d.name.trim() !== "", tab: "details" },
     { label: "Slug", ok: d.slug.trim() !== "", tab: "details" },
@@ -169,6 +179,24 @@ export function readiness(d: Omit<Destination, "id">): ReadinessItem[] {
       tab: "media",
       why: "The card has no fallback image.",
     },
+    // Only meaningful once a guide exists. A destination with no segments is
+    // perfectly publishable — most of them have no narration at all.
+    ...(segments.length > 0
+      ? [
+          {
+            label: "Every stop is named",
+            ok: untitled === 0,
+            tab: "audio" as const,
+            why: `${untitled} stop${untitled === 1 ? " has" : "s have"} no title.`,
+          },
+          {
+            label: "Every stop can be played",
+            ok: silent === 0,
+            tab: "audio" as const,
+            why: `${silent} stop${silent === 1 ? " has" : "s have"} neither a recording nor narration text — the player skips them in silence.`,
+          },
+        ]
+      : []),
   ];
 }
 
@@ -176,8 +204,11 @@ export function readiness(d: Omit<Destination, "id">): ReadinessItem[] {
  * Extra requirements to go live. Kept separate from [validate] so a draft can
  * be saved incomplete — an editor should be able to stop halfway.
  */
-export function publishBlockers(d: Omit<Destination, "id">): string[] {
-  return readiness(d)
+export function publishBlockers(
+  d: Omit<Destination, "id">,
+  segments: SegmentDraft[] = [],
+): string[] {
+  return readiness(d, segments)
     .filter((r) => !r.ok)
     .map((r) => (r.why ? `${r.label} — ${r.why}` : `${r.label} is required.`));
 }

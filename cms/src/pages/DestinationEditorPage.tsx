@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useBlocker, useNavigate, useParams } from "react-router-dom";
 import { CAGAYAN_TOWNS } from "../types/towns";
 import {
@@ -9,11 +9,15 @@ import {
   updateDestination,
   uploadImage,
 } from "../lib/destinations";
+import { listSegments, saveSegments } from "../lib/segments";
 import { Alert } from "../components/Alert";
 import { Dialog } from "../components/Dialog";
+import { Field, Section, Toggle } from "../components/Form";
 import { useToast } from "../components/toast-context";
 import { ImageThumb } from "../components/ImageThumb";
+import { AudioGuideTab } from "./AudioGuideTab";
 import { formatCoord, searchPlaces, type GeocodeResult } from "../lib/geocode";
+import type { SegmentDraft } from "../types/segment";
 import {
   CATEGORIES,
   CATEGORY_LABELS,
@@ -28,16 +32,21 @@ import {
 } from "../types/destination";
 
 type Draft = Omit<Destination, "id">;
-type Tab = "details" | "location" | "media";
+type Tab = "details" | "location" | "media" | "audio";
 
 /**
- * Admin wireframe screen 4 — Destination Editor.
+ * Admin wireframe screens 4 and 5 — Destination Editor and Audio Guide.
  *
  * One form across tabs rather than a wizard: the wireframe shows an unsaved
  * banner spanning Details and Media, so tab switching must not lose edits.
  *
- * Audio Guide and AR are separate tabs in the wireframe; they arrive with
- * CMS-2 and CMS-3 and are shown disabled so the shape is visible.
+ * The audio guide lives in a **subcollection**, not on the destination
+ * document, but it shares this page's dirty state, savebar and Ctrl+S all the
+ * same. Giving segments their own save-on-every-keystroke would mean two
+ * different rules for unsaved work on one screen, and the tab you were not
+ * looking at would be the one that behaved differently.
+ *
+ * AR is still a stub — it arrives with CMS-3.
  */
 export function DestinationEditorPage() {
   const { id } = useParams<{ id: string }>();
@@ -71,6 +80,13 @@ export function DestinationEditorPage() {
   const [saved, setSaved] = useState<Draft | null>(
     isNew ? emptyDestination() : null,
   );
+
+  // The audio guide, held beside the destination rather than inside it: it is
+  // a subcollection, so it loads and writes separately even though the editor
+  // presents the two as one document.
+  const [segments, setSegments] = useState<SegmentDraft[]>([]);
+  const [savedSegments, setSavedSegments] = useState<SegmentDraft[]>([]);
+
   const [tab, setTab] = useState<Tab>("details");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -98,12 +114,22 @@ export function DestinationEditorPage() {
       const { id: _drop, ...rest } = found;
       setDraft(rest);
       setSaved(rest);
+
+      // Loaded unconditionally rather than when the Audio Guide tab is first
+      // opened. The tab shows a count, and `readiness` needs the segments to
+      // know whether the guide blocks publishing — both are wrong on a page
+      // that has not opened the tab.
+      const stops = await listSegments(id);
+      setSegments(stops);
+      setSavedSegments(stops);
     })();
   }, [id]);
 
   const dirty = useMemo(
-    () => JSON.stringify(draft) !== JSON.stringify(saved),
-    [draft, saved],
+    () =>
+      JSON.stringify(draft) !== JSON.stringify(saved) ||
+      JSON.stringify(segments) !== JSON.stringify(savedSegments),
+    [draft, saved, segments, savedSegments],
   );
 
   // Closing the tab or reloading.
@@ -156,8 +182,8 @@ export function DestinationEditorPage() {
     setDraft((d) => (d ? { ...d, [key]: value } : d));
 
   const errors = validate(draft);
-  const checklist = readiness(draft);
-  const blockers = publishBlockers(draft);
+  const checklist = readiness(draft, segments);
+  const blockers = publishBlockers(draft, segments);
 
   /** Is anything on this tab still unmet? Drives the dot on the tab label. */
   const unmetIn = (t: Tab) => checklist.some((i) => !i.ok && i.tab === t);
@@ -213,15 +239,23 @@ export function DestinationEditorPage() {
         // Record it before navigating: from here on this is an update, even if
         // the navigation is delayed, cancelled, or the user stays put.
         createdIdRef.current = savedId;
-        setDraft(next);
-        setSaved(next);
-        bypassBlockerRef.current = true;
-        navigate(`/destinations/${savedId}`, { replace: true });
       } else {
         savedId = docId!;
         await updateDestination(savedId, next);
-        setDraft(next);
-        setSaved(next);
+      }
+
+      // After the destination, so a brand-new one has a parent document to
+      // hang its subcollection from — and before the state below is marked
+      // clean, so a failure here still reads as unsaved rather than saved.
+      await saveSegments(savedId, segments, savedSegments);
+
+      setDraft(next);
+      setSaved(next);
+      setSavedSegments(segments);
+
+      if (isNew) {
+        bypassBlockerRef.current = true;
+        navigate(`/destinations/${savedId}`, { replace: true });
       }
 
       // The page looks identical after a save — same fields, same values — so
@@ -328,8 +362,15 @@ export function DestinationEditorPage() {
             Media <span className="hint">{draft.images.length}</span>
             {unmetIn("media") && <span className="tab-dot" />}
           </button>
-          <button className="tab" disabled title="Arrives in CMS-2">
-            Audio Guide
+          <button
+            className={tab === "audio" ? "tab on" : "tab"}
+            onClick={() => setTab("audio")}
+          >
+            Audio Guide{" "}
+            {segments.length > 0 && (
+              <span className="hint">{segments.length}</span>
+            )}
+            {unmetIn("audio") && <span className="tab-dot" />}
           </button>
           <button className="tab" disabled title="Arrives in CMS-3">
             AR
@@ -361,6 +402,16 @@ export function DestinationEditorPage() {
               onSaveFirst={() => save("draft")}
             />
           )}
+
+          {tab === "audio" && (
+            <AudioGuideTab
+              destinationId={isNew ? null : docId!}
+              destinationName={draft.name}
+              segments={segments}
+              onChange={setSegments}
+              onSaveFirst={() => save("draft")}
+            />
+          )}
         </div>
       </div>
 
@@ -371,7 +422,10 @@ export function DestinationEditorPage() {
         {dirty && (
           <button
             className="btn-quiet"
-            onClick={() => setDraft(saved)}
+            onClick={() => {
+              setDraft(saved);
+              setSegments(savedSegments);
+            }}
             disabled={busy}
           >
             Discard
@@ -933,78 +987,5 @@ function MediaTab({
         </ul>
       )}
     </div>
-  );
-}
-
-/** Groups related fields so Details reads as sections, not a wall of inputs. */
-function Section({
-  title,
-  hint,
-  children,
-}: {
-  title: string;
-  hint?: string;
-  children: ReactNode;
-}) {
-  return (
-    <section className="fsection">
-      <header>
-        <h2>{title}</h2>
-        {hint && <p className="hint">{hint}</p>}
-      </header>
-      <div className="fgrid">{children}</div>
-    </section>
-  );
-}
-
-function Field({
-  label,
-  children,
-  hint,
-  error,
-  required,
-  wide,
-}: {
-  label: string;
-  children: React.ReactNode;
-  hint?: string;
-  error?: string;
-  required?: boolean;
-  wide?: boolean;
-}) {
-  return (
-    <div className={wide ? "f wide" : "f"}>
-      <label>
-        {label}
-        {required && <span className="req">*</span>}
-      </label>
-      {children}
-      {error ? (
-        <span className="field-error">{error}</span>
-      ) : hint ? (
-        <span className="hint">{hint}</span>
-      ) : null}
-    </div>
-  );
-}
-
-function Toggle({
-  label,
-  on,
-  onChange,
-}: {
-  label: string;
-  on: boolean;
-  onChange: (v: boolean) => void;
-}) {
-  return (
-    <label className="toggle">
-      <input
-        type="checkbox"
-        checked={on}
-        onChange={(e) => onChange(e.target.checked)}
-      />
-      <span>{label}</span>
-    </label>
   );
 }
