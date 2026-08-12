@@ -4,6 +4,7 @@
   "type": "module",
   "description": "Operational scripts run by a human against the emulator or a real project. Not part of any build.",
   "dependencies": {
+    "exceljs": "^4.4.0",
     "firebase-admin": "^13.0.0"
   }
 }
