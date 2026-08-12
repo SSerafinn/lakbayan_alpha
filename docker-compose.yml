@@ -8,7 +8,19 @@ services:
     ports:
       - "4000:4000"   # Emulator Suite UI  -> http://localhost:4000
       - "4400:4400"   # hub
-      - "4500:4500"   # logging
+      # 4500 (logging) is deliberately NOT published. Windows reserves blocks of
+      # ports for Hyper-V, and 4500 lands inside one on at least one machine
+      # here (`netsh interface ipv4 show excludedportrange protocol=tcp` listed
+      # 4495-4594). Docker then fails the whole container with "bind: An attempt
+      # was made to access a socket in a way forbidden by its access
+      # permissions" — and because it aborts partway through publishing, the
+      # container comes up *healthy* with most ports unmapped, which looks like
+      # a network problem rather than a port conflict.
+      #
+      # Nothing needs it from the host: the emulator still binds 4500 inside the
+      # container, and the Emulator UI on 4000 shows the logs. The ranges are
+      # assigned dynamically and move on reboot, so if another port here starts
+      # failing the same way, check that command before anything else.
       # Published ahead of time. The functions emulator is deliberately absent
       # from firebase.json until Phase 3 creates functions/ — configuring it
       # with no source makes the suite print a hard error on every startup.

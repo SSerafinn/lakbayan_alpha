@@ -81,6 +81,31 @@ docker compose --profile tools build
 
 The `--profile tools` flag is required — without it that service is skipped silently.
 
+### Put something in it
+
+A fresh emulator is empty, and an empty backend looks exactly like a broken
+connection: both give you a blank Explore tab and a CMS with nothing in it.
+Seed it:
+
+```bash
+cd scripts && npm install
+```
+
+```bash
+node seed-emulator.mjs
+```
+
+That gives you six published Cagayan destinations — two with audio guides — and
+an admin account, `test@gmail.com` / `password`. Pass a different address as an
+argument if you prefer. Re-run it whenever you like: documents are keyed by slug,
+so it overwrites rather than duplicates.
+
+You will need it again after any reset — see
+[Emulator data](docs/DOCKER.md#emulator-data) for when that happens.
+
+> Emulator only. It refuses to run against anything but a `demo-` project,
+> because unlike `import-content.mjs` it writes **published** documents.
+
 ## 5 · Run the app
 
 ```bash
@@ -183,6 +208,7 @@ Email/password sign-in works without any of this.
 | Flutter tests | `flutter test` |
 | Security-rules tests | `cd test_rules && npm test` |
 | Start / stop the backend | `docker compose up -d emulators` / `docker compose down` |
+| Refill an empty emulator | `cd scripts && node seed-emulator.mjs` |
 | Reproducible build, matching CI | `docker compose run --rm toolchain flutter test` |
 | Design system specimen | run the app → Profile tab → **Design system** |
 
@@ -204,8 +230,13 @@ is exported on clean shutdown, so your test users survive.
 
 ## Becoming an admin
 
-Every content write in `firestore.rules` requires the `admin` custom claim. Grant
-it to yourself after signing in through the app once:
+Every content write in `firestore.rules` requires the `admin` custom claim.
+Without it the CMS signs you in and then tells you that you are not an
+administrator, which reads like a broken login but is working as designed.
+
+On the emulator, `node seed-emulator.mjs` already creates an admin account for
+you — nothing further is needed. To promote a *different* account, sign in
+through the app or CMS once so the account exists, then:
 
 ```bash
 cd scripts && npm install
@@ -218,6 +249,9 @@ node grant-admin.mjs you@example.com
 That targets the **emulator** by default. Sign out and back in afterwards —
 custom claims are baked into the ID token and do not appear until it is reissued.
 For a real project, `--live` with `GOOGLE_APPLICATION_CREDENTIALS` set.
+
+`grant-admin.mjs` is the tool for promoting a real person on a real project.
+`seed-emulator.mjs` is the local shortcut and cannot touch a real project at all.
 
 ## Git workflow
 

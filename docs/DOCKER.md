@@ -170,12 +170,31 @@ and `"functions": { "port": 5001, "host": "0.0.0.0" }` under `"emulators"`. Port
 
 ## Emulator data
 
-State persists in `.emulator-data/` (gitignored) and is exported on shutdown, so
-your test users and documents survive a restart. Stop cleanly to keep it:
+State lives in `.emulator-data/` (gitignored). It is written by
+`--export-on-exit`, which fires **only on a clean shutdown**:
 
 ```bash
 docker compose down
 ```
+
+**Treat persistence as a convenience, not a guarantee.** `docker restart`, a
+crash, `docker compose kill`, Docker Desktop restarting and a host reboot all
+skip the export, and the suite comes back empty. That is the single most
+confusing local failure on this project, because an empty backend and a
+misconfigured one look identical from the app: a blank Explore tab, no error.
+
+When it happens, re-seed rather than rebuilding by hand:
+
+```bash
+cd scripts && node seed-emulator.mjs
+```
+
+That restores six published destinations and an admin account in a couple of
+seconds. See [Becoming an admin](../README.md#becoming-an-admin).
+
+If the app is still empty afterwards, the emulator is not the problem — check
+`FIREBASE_EMULATOR_HOST` against your current LAN IP, which a DHCP lease change
+will quietly invalidate.
 
 To share a seed dataset with the team later, export it deliberately and commit it
 under a named folder rather than committing the scratch directory:
