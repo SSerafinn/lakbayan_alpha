@@ -137,7 +137,12 @@ CMS consumes that contract; it does not redefine it.
       is move up/down, not drag: keyboard-reachable for a handful of stops.
       A stop with neither recording nor narration text blocks publishing.*
 - [ ] Tours: stop picker, cover image, featured flag *(screen 8)*.
-- [ ] Local Guides directory *(screen 9)*.
+- [x] Local Guides directory *(screen 9)*.
+      *One screen, not two: the editor opens above the table rather than on its
+      own route — six fields do not justify a second screen, and the wireframe
+      only draws one. No draft state, because `firestore.rules` exposes the
+      collection to every signed-in user the moment a document exists; removal
+      is a hard delete, which is how a withdrawn consent gets honoured.*
 
 ## CMS-3 · Weeks 10–12 — Operations
 - [ ] Offline Bundles: trigger `generateOfflineBundle`, show version and status *(screen 7)*.
