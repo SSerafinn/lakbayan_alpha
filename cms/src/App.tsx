@@ -12,6 +12,7 @@ import { LoginPage, NotAuthorised } from "./auth/LoginPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { DestinationsListPage } from "./pages/DestinationsListPage";
 import { DestinationEditorPage } from "./pages/DestinationEditorPage";
+import { GuidesPage } from "./pages/GuidesPage";
 import { PlaceholderPage } from "./pages/PlaceholderPage";
 import { useEmulators } from "./lib/firebase";
 import { ToastProvider } from "./components/Toast";
@@ -121,10 +122,7 @@ const router = createBrowserRouter([
         path: "tours",
         element: <PlaceholderPage title="Tours" phase="CMS-2" />,
       },
-      {
-        path: "guides",
-        element: <PlaceholderPage title="Local guides" phase="CMS-2" />,
-      },
+      { path: "guides", element: <GuidesPage /> },
       {
         path: "bundles",
         element: <PlaceholderPage title="Offline bundles" phase="CMS-3" />,

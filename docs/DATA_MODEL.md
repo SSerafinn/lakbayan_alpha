@@ -44,8 +44,18 @@ offlineBundles/{townId}
   name, destinationIds[], tilePackRef, size, version, status   // pending | ready | stale
 tours/{id}
   title, description, stops[] -> destId, coverImg, featured
-guides/{id}
-  name, town, specialties[], contact, verified, featured
+guides/{id}                                                    // real people — see below
+  name          string    required
+  town          string    required   // municipality
+  specialties   string[]             // lowercase, e.g. ["caving","birdwatching"]
+  contact       string    required   // free text: phone, email, or both
+  verified      bool      default false   // accredited by the province
+  featured      bool      default false
+  createdAt, updatedAt                // serverTimestamp
+  // No status field, deliberately. Unlike destinations there is no draft
+  // state: the rule below exposes a guide to every signed-in user the moment
+  // the document exists, so "saved but not live" is not a state this
+  // collection can represent. Removing someone is a hard delete.
 users/{uid}                                                    // no role field — see below
   uid, email, displayName, photoUrl,                           // identity, refreshed each sign-in
   savedTourIds[], downloadedTownIds[],                         // denormalized for offline reads
@@ -65,6 +75,16 @@ admin checks cost no extra read and `firestore.rules` / `storage.rules` stay
 consistent. Writing a `role` field from a client is rejected outright.
 
 Enums: `category` = church | nature | heritage | museum | food | landmark.
+
+**`guides` is the one content collection that is not world-readable.** Every row
+is a real person's contact details, so `firestore.rules` requires sign-in to
+read it — the others allow anonymous reads of published content. Two consequences
+worth keeping in mind when extending it: there is no draft state to stage an
+entry in, and consent to be listed is **not** modelled here. The intake sheet
+records who obtained it and when (`docs/data-intake/04-local-guides.csv`), and
+`scripts/import-content.mjs` refuses to import a guide without it, but nothing in
+Firestore carries that fact. If the province ever needs to prove consent from the
+system rather than from a spreadsheet, that is a schema change.
 
 **schemaVersion 2** (destinations). Bump it here and in
 `destinationSchemaVersion` together with any shape change, so a client reading a

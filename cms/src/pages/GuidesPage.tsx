@@ -1,0 +1,573 @@
+import { useEffect, useMemo, useState } from "react";
+import { BadgeCheck, Star } from "lucide-react";
+import {
+  createGuide,
+  deleteGuide,
+  listGuides,
+  setVerified,
+  updateGuide,
+} from "../lib/guides";
+import { Alert } from "../components/Alert";
+import { Dialog } from "../components/Dialog";
+import { Field, Section, Toggle } from "../components/Form";
+import { useToast } from "../components/toast-context";
+import { CAGAYAN_TOWNS } from "../types/towns";
+import {
+  emptyGuide,
+  validate,
+  type Guide,
+  type GuideDraft,
+} from "../types/guide";
+
+/**
+ * Admin wireframe screen 9 — Local guides directory.
+ *
+ * Follows the shared list pattern established by the destinations list: search,
+ * then filters, then bulk actions once rows are selected.
+ *
+ * **One screen, not two.** Destinations get a list *and* a separate editor
+ * screen; the wireframes give guides a single screen, and a guide is six fields
+ * with no media and no tabs — a whole route for that would be ceremony. The
+ * editor opens above the table instead. It is not a modal: `Dialog` is reserved
+ * for decision points that block everything else, which a form is not. Deleting
+ * someone *is* such a point, so that one is modal.
+ */
+export function GuidesPage() {
+  const [rows, setRows] = useState<Guide[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const toast = useToast();
+
+  const [search, setSearch] = useState("");
+  const [town, setTown] = useState("all");
+  const [verified, setVerifiedFilter] = useState<"all" | "yes" | "no">("all");
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [busy, setBusy] = useState(false);
+
+  /** `null` = editor closed. A string id = editing. "new" = adding. */
+  const [editing, setEditing] = useState<string | null>(null);
+  const [draft, setDraft] = useState<GuideDraft>(emptyGuide());
+  const [confirmDelete, setConfirmDelete] = useState<Guide | null>(null);
+
+  async function reload() {
+    try {
+      setRows(await listGuides());
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    }
+  }
+
+  useEffect(() => {
+    void reload();
+  }, []);
+
+  const towns = useMemo(
+    () => [...new Set((rows ?? []).map((r) => r.town).filter(Boolean))].sort(),
+    [rows],
+  );
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return (rows ?? []).filter(
+      (r) =>
+        (!q ||
+          r.name.toLowerCase().includes(q) ||
+          r.town.toLowerCase().includes(q) ||
+          r.specialties.some((s) => s.toLowerCase().includes(q))) &&
+        (town === "all" || r.town === town) &&
+        (verified === "all" || r.verified === (verified === "yes")),
+    );
+  }, [rows, search, town, verified]);
+
+  const hasFilters =
+    search.trim() !== "" || town !== "all" || verified !== "all";
+
+  function clearFilters() {
+    setSearch("");
+    setTown("all");
+    setVerifiedFilter("all");
+  }
+
+  function openNew() {
+    setDraft(emptyGuide());
+    setEditing("new");
+  }
+
+  function openEdit(g: Guide) {
+    const { id: _drop, createdAt: _c, updatedAt: _u, ...rest } = g;
+    setDraft(rest);
+    setEditing(g.id);
+  }
+
+  async function save() {
+    const errors = validate(draft);
+    if (Object.keys(errors).length > 0) {
+      toast.error("Fix the highlighted fields first", Object.values(errors)[0]);
+      return;
+    }
+    setBusy(true);
+    try {
+      const clean: GuideDraft = {
+        ...draft,
+        name: draft.name.trim(),
+        town: draft.town.trim(),
+        contact: draft.contact.trim(),
+      };
+      if (editing === "new") await createGuide(clean);
+      else await updateGuide(editing!, clean);
+      setEditing(null);
+      await reload();
+      toast.success(
+        editing === "new" ? "Guide added" : "Saved",
+        "Visible to anyone signed in to the app.",
+      );
+    } catch (err) {
+      toast.error(
+        "That didn't save",
+        err instanceof Error ? err.message : String(err),
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function doDelete(g: Guide) {
+    setBusy(true);
+    try {
+      await deleteGuide(g.id);
+      setConfirmDelete(null);
+      if (editing === g.id) setEditing(null);
+      setSelected((prev) => {
+        const next = new Set(prev);
+        next.delete(g.id);
+        return next;
+      });
+      await reload();
+      toast.success(`${g.name} removed`, "Their details are gone from the app.");
+    } catch (err) {
+      toast.error(
+        "Could not remove them",
+        err instanceof Error ? err.message : String(err),
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function bulkVerify(next: boolean) {
+    setBusy(true);
+    try {
+      await Promise.all([...selected].map((id) => setVerified(id, next)));
+      setSelected(new Set());
+      await reload();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function toggle(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  const counts = rows
+    ? `${rows.length} guide${rows.length === 1 ? "" : "s"} · ${rows.filter((r) => r.verified).length} accredited`
+    : "Loading…";
+
+  return (
+    <section className="page">
+      <header className="page-head row">
+        <div>
+          <h1>Local guides</h1>
+          <p className="hint">{counts}</p>
+        </div>
+        <span className="spacer" />
+        <button className="btn-primary" onClick={openNew}>
+          + Add guide
+        </button>
+      </header>
+
+      {error && (
+        <Alert variant="destructive" title="Could not load the directory">
+          {error}. Is the emulator running, and do you still have the admin
+          claim?
+        </Alert>
+      )}
+
+      {/* Stated once, at the top, rather than as a warning on the delete
+          dialogue where it would arrive too late to inform the decision. */}
+      <Alert variant="info" title="This directory holds personal data">
+        Every row is a real person's contact details, readable by anyone signed
+        in to the app. Add someone only once they have agreed to be listed, and
+        remove them promptly if they withdraw.
+      </Alert>
+
+      {editing !== null && (
+        <GuideEditor
+          draft={draft}
+          isNew={editing === "new"}
+          busy={busy}
+          onChange={setDraft}
+          onCancel={() => setEditing(null)}
+          onSave={() => void save()}
+        />
+      )}
+
+      <div className="toolbar">
+        <input
+          className="search"
+          placeholder="Search by name, town or specialty"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+        <select value={town} onChange={(e) => setTown(e.target.value)}>
+          <option value="all">Town: All</option>
+          {towns.map((t) => (
+            <option key={t} value={t}>
+              {t}
+            </option>
+          ))}
+        </select>
+        <select
+          value={verified}
+          onChange={(e) =>
+            setVerifiedFilter(e.target.value as "all" | "yes" | "no")
+          }
+        >
+          <option value="all">Accreditation: All</option>
+          <option value="yes">Accredited</option>
+          <option value="no">Not accredited</option>
+        </select>
+        {hasFilters && (
+          <button className="btn-quiet" onClick={clearFilters}>
+            Clear filters
+          </button>
+        )}
+
+        <span className="spacer" />
+
+        {selected.size > 0 && (
+          <>
+            <span className="hint">{selected.size} selected</span>
+            <button
+              className="btn-secondary sm"
+              disabled={busy}
+              onClick={() => void bulkVerify(true)}
+            >
+              Mark accredited
+            </button>
+            <button
+              className="btn-quiet"
+              disabled={busy}
+              onClick={() => void bulkVerify(false)}
+            >
+              Remove accreditation
+            </button>
+          </>
+        )}
+      </div>
+
+      {rows === null ? (
+        <TableSkeleton />
+      ) : filtered.length === 0 ? (
+        <div className="empty">
+          {rows.length === 0 ? (
+            <>
+              <p>No guides listed yet.</p>
+              <button className="btn-primary" onClick={openNew}>
+                Add your first
+              </button>
+            </>
+          ) : (
+            <>
+              <p>Nothing matches those filters.</p>
+              <button className="btn-quiet" onClick={clearFilters}>
+                Clear filters
+              </button>
+            </>
+          )}
+        </div>
+      ) : (
+        <table className="data">
+          <thead>
+            <tr>
+              <th className="tick" />
+              <th>Name</th>
+              <th>Town</th>
+              <th>Specialties</th>
+              <th>Contact</th>
+              <th>Accredited</th>
+              <th>Featured</th>
+              <th />
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.map((g) => (
+              <tr key={g.id} className={selected.has(g.id) ? "on" : undefined}>
+                <td className="tick">
+                  <input
+                    type="checkbox"
+                    checked={selected.has(g.id)}
+                    onChange={() => toggle(g.id)}
+                    aria-label={`Select ${g.name}`}
+                  />
+                </td>
+                <td>
+                  <button className="link-button" onClick={() => openEdit(g)}>
+                    {g.name}
+                  </button>
+                </td>
+                <td>{g.town}</td>
+                <td>
+                  {g.specialties.length === 0 ? (
+                    <span className="hint">—</span>
+                  ) : (
+                    <div className="tag-row">
+                      {g.specialties.map((s) => (
+                        <span key={s} className="badge">
+                          {s}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </td>
+                <td className="hint">{g.contact}</td>
+                <td>
+                  {g.verified ? (
+                    <span className="badge ok">
+                      <BadgeCheck size={12} aria-hidden="true" /> Accredited
+                    </span>
+                  ) : (
+                    <span className="badge draft">Not yet</span>
+                  )}
+                </td>
+                <td>
+                  {g.featured ? (
+                    <Star size={14} aria-label="Featured" />
+                  ) : (
+                    <span className="hint">—</span>
+                  )}
+                </td>
+                <td className="row">
+                  <button
+                    className="btn-quiet sm"
+                    onClick={() => openEdit(g)}
+                  >
+                    Edit
+                  </button>
+                  <button
+                    className="btn-quiet sm"
+                    onClick={() => setConfirmDelete(g)}
+                  >
+                    Remove
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+
+      {/* Modal, unlike the editor: this one is irreversible and it concerns a
+          real person, so it should stop everything until it is answered. */}
+      <Dialog
+        open={confirmDelete !== null}
+        onDismiss={() => setConfirmDelete(null)}
+        variant="destructive"
+        title={`Remove ${confirmDelete?.name ?? ""}?`}
+        actions={
+          <>
+            <button
+              className="btn-quiet"
+              onClick={() => setConfirmDelete(null)}
+            >
+              Keep them listed
+            </button>
+            <button
+              className="btn-secondary"
+              disabled={busy}
+              onClick={() => confirmDelete && void doDelete(confirmDelete)}
+            >
+              Remove
+            </button>
+          </>
+        }
+      >
+        This deletes their entry outright — there is no unpublish for guides, so
+        removing them is how a withdrawn consent is honoured. You will need
+        their details again to re-add them.
+      </Dialog>
+    </section>
+  );
+}
+
+function GuideEditor({
+  draft,
+  isNew,
+  busy,
+  onChange,
+  onCancel,
+  onSave,
+}: {
+  draft: GuideDraft;
+  isNew: boolean;
+  busy: boolean;
+  onChange: (next: GuideDraft) => void;
+  onCancel: () => void;
+  onSave: () => void;
+}) {
+  const [specialtyInput, setSpecialtyInput] = useState("");
+  const errors = validate(draft);
+
+  const set = <K extends keyof GuideDraft>(key: K, value: GuideDraft[K]) =>
+    onChange({ ...draft, [key]: value });
+
+  function commitSpecialty() {
+    const s = specialtyInput.trim().toLowerCase().replace(/,$/, "");
+    if (s && !draft.specialties.includes(s)) {
+      set("specialties", [...draft.specialties, s]);
+    }
+    setSpecialtyInput("");
+  }
+
+  return (
+    <div className="editor-card guide-editor">
+      <div className="editor-panel">
+        <datalist id="guide-towns">
+          {CAGAYAN_TOWNS.map((t) => (
+            <option key={t} value={t} />
+          ))}
+        </datalist>
+
+        <Section
+          title={isNew ? "New guide" : "Edit guide"}
+          hint="Shown in the app's guide directory to anyone signed in."
+        >
+          <Field label="Name" required error={errors.name}>
+            <input
+              value={draft.name}
+              onChange={(e) => set("name", e.target.value)}
+              placeholder="e.g. Maria Santos"
+            />
+          </Field>
+
+          <Field
+            label="Town / municipality"
+            required
+            error={errors.town}
+            hint="Start typing — Cagayan's municipalities are suggested."
+          >
+            <input
+              value={draft.town}
+              onChange={(e) => set("town", e.target.value)}
+              list="guide-towns"
+              placeholder="e.g. Peñablanca"
+            />
+          </Field>
+
+          <Field
+            label="Contact"
+            required
+            error={errors.contact}
+            hint="Phone, email, or both — shown exactly as written."
+            wide
+          >
+            <input
+              value={draft.contact}
+              onChange={(e) => set("contact", e.target.value)}
+              placeholder="0917-000-0000 · maria@example.com"
+            />
+          </Field>
+
+          <Field
+            label="Specialties"
+            hint="What they guide for. Enter or comma to add."
+            wide
+          >
+            <div className="tag-row">
+              {draft.specialties.map((s) => (
+                <span key={s} className="badge">
+                  {s}
+                  <button
+                    className="tag-x"
+                    aria-label={`Remove ${s}`}
+                    onClick={() =>
+                      set(
+                        "specialties",
+                        draft.specialties.filter((x) => x !== s),
+                      )
+                    }
+                  >
+                    ×
+                  </button>
+                </span>
+              ))}
+              <input
+                className="tag-input"
+                placeholder="add specialty"
+                value={specialtyInput}
+                onChange={(e) => setSpecialtyInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key !== "Enter" && e.key !== ",") return;
+                  e.preventDefault();
+                  commitSpecialty();
+                }}
+                onBlur={commitSpecialty}
+              />
+            </div>
+          </Field>
+
+          <Field label="Listing">
+            <div className="toggles">
+              <Toggle
+                label="Accredited by the province"
+                on={draft.verified}
+                onChange={(v) => set("verified", v)}
+              />
+              <Toggle
+                label="Featured in the directory"
+                on={draft.featured}
+                onChange={(v) => set("featured", v)}
+              />
+            </div>
+          </Field>
+        </Section>
+      </div>
+
+      <div className="savebar">
+        <span className="hint">
+          {isNew
+            ? "Nothing is written until you save."
+            : "Changes are live as soon as you save."}
+        </span>
+        <span className="spacer" />
+        <button className="btn-quiet" onClick={onCancel} disabled={busy}>
+          Cancel
+        </button>
+        <button className="btn-primary" onClick={onSave} disabled={busy}>
+          {isNew ? "Add guide" : "Save"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function TableSkeleton() {
+  return (
+    <table className="data">
+      <tbody>
+        {Array.from({ length: 5 }, (_, i) => (
+          <tr key={i}>
+            <td colSpan={8}>
+              <div className="skeleton" />
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}

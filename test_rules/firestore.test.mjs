@@ -40,6 +40,9 @@ const FIXTURES = [
   "destinations/rulestest-published",
   "destinations/rulestest-draft",
   "users/rulestest-ana",
+  // Deleted by the admin-delete case below; listed here so an early failure
+  // does not leave a stray person in the CMS directory.
+  "guides/rulestest-guide",
 ];
 
 before(async () => {
@@ -89,6 +92,14 @@ before(async () => {
     await setDoc(doc(db, "destinations/rulestest-published/segments/s1"), {
       title: "History",
       order: 1,
+    });
+    await setDoc(doc(db, "guides/rulestest-guide"), {
+      name: "Rules Test — Guide",
+      town: "Peñablanca",
+      specialties: ["caving"],
+      contact: "0917-000-0000",
+      verified: true,
+      featured: false,
     });
   });
 });
@@ -235,6 +246,42 @@ describe("guides", () => {
   it("requires sign-in, since rows carry personal contact details", async () => {
     const db = env.unauthenticatedContext().firestore();
     await assertFails(getDoc(doc(db, "guides/g1")));
+  });
+
+  it("lets any signed-in user read the directory", async () => {
+    const db = env.authenticatedContext("traveller").firestore();
+    await assertSucceeds(getDoc(doc(db, "guides/rulestest-guide")));
+  });
+
+  // The CMS directory is admin-only for writes. Worth its own case because
+  // guides are the one collection an ordinary signed-in user *can* read, which
+  // makes it the easiest place to assume they can write too.
+  it("refuses a write from a signed-in non-admin", async () => {
+    const db = env.authenticatedContext("traveller").firestore();
+    await assertFails(
+      setDoc(doc(db, "guides/rulestest-guide"), {
+        name: "Impersonated Guide",
+        town: "Piat",
+        contact: "0917-000-0000",
+      })
+    );
+  });
+
+  it("allows an admin to write and to delete", async () => {
+    const db = env.authenticatedContext("boss", { admin: true }).firestore();
+    await assertSucceeds(
+      setDoc(doc(db, "guides/rulestest-guide"), {
+        name: "Maria Santos",
+        town: "Peñablanca",
+        specialties: ["caving"],
+        contact: "0917-000-0000",
+        verified: true,
+        featured: false,
+      })
+    );
+    // Removal is how a withdrawn consent is honoured — there is no unpublish
+    // for this collection, so an admin must be able to delete outright.
+    await assertSucceeds(deleteDoc(doc(db, "guides/rulestest-guide")));
   });
 });
 
