@@ -161,15 +161,15 @@ in the Firebase *console* — that is correct, you are on the emulator.
 Recommended over the emulator: real GPS, real performance, and no virtualization
 overhead.
 
-Enable **Developer options → USB debugging**, plug in, then copy the shared config
-and set your own LAN IP:
+Enable **Developer options → USB debugging**, plug in, then let the helper work
+out your LAN IP and write it into a per-developer config:
 
 ```bash
-cp config/dev.json config/local.json
+node scripts/emulator-host.mjs --write
 ```
 
-Set `FIREBASE_EMULATOR_HOST` to your PC's Wi-Fi IPv4 (`ipconfig` — the Wi-Fi
-adapter, not WSL or VirtualBox), then:
+It skips the virtual adapters a phone cannot reach (WSL, VirtualBox, Hyper-V)
+and confirms the emulator actually answers on the address it picks. Then:
 
 ```bash
 flutter run --dart-define-from-file=config/local.json
@@ -208,6 +208,8 @@ Email/password sign-in works without any of this.
 | Flutter tests | `flutter test` |
 | Security-rules tests | `cd test_rules && npm test` |
 | Start / stop the backend | `docker compose up -d emulators` / `docker compose down` |
+| Seed content + an admin after a reset | `cd scripts && node seed-emulator.mjs` |
+| Find the emulator host for a phone | `node scripts/emulator-host.mjs` |
 | Refill an empty emulator | `cd scripts && node seed-emulator.mjs` |
 | Reproducible build, matching CI | `docker compose run --rm toolchain flutter test` |
 | Design system specimen | run the app → Profile tab → **Design system** |
@@ -225,7 +227,11 @@ is exported on clean shutdown, so your test users survive.
 3. **Config edits ignored** — dart-defines are compile-time; hot restart is not enough.
 4. **Emulator calls hang on a physical device** — Windows Firewall. Load
    `http://<your-ip>:4000` in the phone's browser to confirm before touching code.
-5. **Google Sign-In fails on web** — needs `GOOGLE_WEB_CLIENT_ID`; Android reads it
+5. **Every list in the app is empty** — usually a stale `FIREBASE_EMULATOR_HOST`
+   after a DHCP change, not missing content. In debug the app now says so in a
+   strip along the bottom; `node scripts/emulator-host.mjs` gives you the
+   current address.
+6. **Google Sign-In fails on web** — needs `GOOGLE_WEB_CLIENT_ID`; Android reads it
    from `google-services.json` instead. Android is the platform that matters here.
 
 ## Becoming an admin

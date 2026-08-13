@@ -10,8 +10,16 @@ import "demo_firebase_options.dart";
 
 /// Outcome of [bootstrapFirebase], so callers can report it rather than guess.
 enum FirebaseBootstrapStatus {
-  /// Firebase is up and every SDK points at the local Emulator Suite.
+  /// Firebase is up, every SDK points at the local Emulator Suite, and the
+  /// suite answered.
   emulators,
+
+  /// The SDKs are pointed at an emulator host that did not answer.
+  ///
+  /// Distinct from [unavailable] because initialization *worked* — the address
+  /// is simply wrong or unreachable. Almost always a stale
+  /// `FIREBASE_EMULATOR_HOST` after a DHCP change, or Docker not running.
+  emulatorsUnreachable,
 
   /// Firebase is up and pointing at a real project.
   live,
@@ -61,7 +69,20 @@ Future<FirebaseBootstrapStatus> bootstrapFirebase() async {
     await _initializeApp(demoFirebaseOptions);
     await _connectEmulators();
     _enableOfflinePersistence();
-    return FirebaseBootstrapStatus.emulators;
+
+    if (await _emulatorAnswered()) {
+      return FirebaseBootstrapStatus.emulators;
+    }
+    debugPrint(
+      "Firebase emulators did NOT answer on ${AppConfig.emulatorHost}.\n"
+      "The SDKs are pointed there regardless, so reads will quietly serve an "
+      "empty cache and every list will look like it has no content.\n"
+      "  - Suite running?  docker compose up -d emulators\n"
+      "  - Right address?  on a physical device this must be your PC's current "
+      "LAN IP, which changes with the DHCP lease. `node scripts/emulator-host.mjs` "
+      "prints it.",
+    );
+    return FirebaseBootstrapStatus.emulatorsUnreachable;
   } catch (e, st) {
     debugPrint(
       "Firebase emulator bootstrap FAILED on ${AppConfig.emulatorHost}: $e\n"
@@ -70,6 +91,40 @@ Future<FirebaseBootstrapStatus> bootstrapFirebase() async {
     );
     debugPrintStack(stackTrace: st);
     return FirebaseBootstrapStatus.unavailable;
+  }
+}
+
+/// Did anything actually answer at [AppConfig.emulatorHost]?
+///
+/// **`useFirestoreEmulator` performs no I/O and cannot fail.** It records an
+/// endpoint and returns, so a wrong host leaves this function's caller
+/// reporting a healthy emulator connection while every subsequent read serves
+/// an empty cache. On screen that is indistinguishable from "no content has
+/// been added yet", with nothing in the logs either way — which is exactly how
+/// a stale LAN IP in `config/local.json` cost an afternoon once already.
+///
+/// `Source.server` is what makes the check mean anything: it refuses the
+/// cache, so the call can only succeed by reaching the suite. A
+/// permission-denied still counts as reached — the rules were evaluated, which
+/// means something on the other end answered.
+///
+/// Emulator mode only. In a live build this is never called, so no startup
+/// round trip is added to a real launch.
+Future<bool> _emulatorAnswered() async {
+  try {
+    await FirebaseFirestore.instance
+        .collection("destinations")
+        .where("status", isEqualTo: "published")
+        .limit(1)
+        .get(const GetOptions(source: Source.server))
+        .timeout(const Duration(seconds: 4));
+    return true;
+  } on FirebaseException catch (e) {
+    return e.code == "permission-denied";
+  } catch (_) {
+    // Timeout, or the platform channel giving up on an address nothing is
+    // listening at.
+    return false;
   }
 }
 
