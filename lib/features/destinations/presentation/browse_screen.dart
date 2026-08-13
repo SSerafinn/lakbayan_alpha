@@ -117,7 +117,8 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
             ),
             data: (items) => items.isEmpty
                 ? _NoResults(
-                    hasFilters: selected != null ||
+                    hasFilters:
+                        selected != null ||
                         ref.read(browseQueryProvider).isNotEmpty,
                     onClear: () {
                       _controller.clear();
@@ -130,11 +131,11 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
                     padding: const EdgeInsets.all(AppSpace.x4),
                     gridDelegate:
                         const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      crossAxisSpacing: AppSpace.x3,
-                      mainAxisSpacing: AppSpace.x3,
-                      childAspectRatio: 0.78,
-                    ),
+                          crossAxisCount: 2,
+                          crossAxisSpacing: AppSpace.x3,
+                          mainAxisSpacing: AppSpace.x3,
+                          childAspectRatio: 0.78,
+                        ),
                     itemCount: items.length,
                     itemBuilder: (context, i) => _GridCard(items[i]),
                   ),
@@ -158,16 +159,16 @@ class _CategoryChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.only(right: AppSpace.x2),
-        child: FilterChip(
-          label: Text(label),
-          selected: selected,
-          onSelected: (_) => onTap(),
-          side: BorderSide(
-            color: selected ? AppColors.green500 : context.lakbayan.line,
-          ),
-        ),
-      );
+    padding: const EdgeInsets.only(right: AppSpace.x2),
+    child: FilterChip(
+      label: Text(label),
+      selected: selected,
+      onSelected: (_) => onTap(),
+      side: BorderSide(
+        color: selected ? AppColors.green500 : context.lakbayan.line,
+      ),
+    ),
+  );
 }
 
 class _GridCard extends StatelessWidget {

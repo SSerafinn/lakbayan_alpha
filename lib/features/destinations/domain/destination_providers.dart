@@ -65,11 +65,11 @@ Stream<List<Destination>> browseResults(Ref ref) {
         (all) => query.isEmpty
             ? all
             : all
-                .where(
-                  (d) =>
-                      d.name.toLowerCase().contains(query) ||
-                      d.town.toLowerCase().contains(query),
-                )
-                .toList(),
+                  .where(
+                    (d) =>
+                        d.name.toLowerCase().contains(query) ||
+                        d.town.toLowerCase().contains(query),
+                  )
+                  .toList(),
       );
 }

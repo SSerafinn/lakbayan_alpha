@@ -106,8 +106,9 @@ class _Content extends ConsumerWidget {
                 data: (items) => items.isEmpty
                     ? Text(
                         "No audio guide for this stop yet.",
-                        style: AppTypography.body
-                            .copyWith(color: c.textSecondary),
+                        style: AppTypography.body.copyWith(
+                          color: c.textSecondary,
+                        ),
                       )
                     : Column(
                         children: [
@@ -159,8 +160,7 @@ class _CarouselState extends State<_Carousel> {
                     controller: _controller,
                     onPageChanged: (i) => setState(() => _page = i),
                     itemCount: images.length,
-                    itemBuilder: (context, i) =>
-                        StorageImage(path: images[i]),
+                    itemBuilder: (context, i) => StorageImage(path: images[i]),
                   ),
           ),
 
@@ -170,8 +170,7 @@ class _CarouselState extends State<_Carousel> {
             left: AppSpace.x4,
             child: _RoundButton(
               icon: Icons.close,
-              onTap: () =>
-                  context.canPop() ? context.pop() : context.go("/"),
+              onTap: () => context.canPop() ? context.pop() : context.go("/"),
             ),
           ),
 
@@ -221,18 +220,18 @@ class _RoundButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Material(
-        color: Colors.black.withValues(alpha: 0.45),
-        shape: const CircleBorder(),
-        child: InkWell(
-          customBorder: const CircleBorder(),
-          onTap: onTap,
-          child: SizedBox(
-            width: 40,
-            height: 40,
-            child: Icon(icon, color: Colors.white, size: 20),
-          ),
-        ),
-      );
+    color: Colors.black.withValues(alpha: 0.45),
+    shape: const CircleBorder(),
+    child: InkWell(
+      customBorder: const CircleBorder(),
+      onTap: onTap,
+      child: SizedBox(
+        width: 40,
+        height: 40,
+        child: Icon(icon, color: Colors.white, size: 20),
+      ),
+    ),
+  );
 }
 
 class _Practical extends StatelessWidget {
@@ -349,16 +348,10 @@ class _Actions extends StatelessWidget {
           children: [
             // Saving requires an account and itineraries; both land later. The
             // wireframe pins these actions, so they stay visible but inert.
-            OutlinedButton(
-              onPressed: null,
-              child: Icon(Icons.favorite_border),
-            ),
+            OutlinedButton(onPressed: null, child: Icon(Icons.favorite_border)),
             SizedBox(width: AppSpace.x3),
             Expanded(
-              child: FilledButton(
-                onPressed: null,
-                child: Text("Add Tour"),
-              ),
+              child: FilledButton(onPressed: null, child: Text("Add Tour")),
             ),
           ],
         ),
@@ -374,13 +367,9 @@ class _Message extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Center(
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpace.x8),
-          child: Text(
-            text,
-            style: AppTypography.body,
-            textAlign: TextAlign.center,
-          ),
-        ),
-      );
+    child: Padding(
+      padding: const EdgeInsets.all(AppSpace.x8),
+      child: Text(text, style: AppTypography.body, textAlign: TextAlign.center),
+    ),
+  );
 }

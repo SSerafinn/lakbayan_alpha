@@ -77,8 +77,10 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                     alignment: Alignment.center,
                     child: Text(
                       "L",
-                      style: AppTypography.display
-                          .copyWith(color: Colors.white, fontSize: 44),
+                      style: AppTypography.display.copyWith(
+                        color: Colors.white,
+                        fontSize: 44,
+                      ),
                     ),
                   ),
                 ),
@@ -112,8 +114,9 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                 TextFormField(
                   controller: _password,
                   obscureText: _obscure,
-                  textInputAction:
-                      _isSignUp ? TextInputAction.next : TextInputAction.done,
+                  textInputAction: _isSignUp
+                      ? TextInputAction.next
+                      : TextInputAction.done,
                   decoration: InputDecoration(
                     labelText: "Password",
                     suffixIcon: TextButton(
@@ -139,8 +142,9 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                     controller: _confirm,
                     obscureText: _obscure,
                     textInputAction: TextInputAction.done,
-                    decoration:
-                        const InputDecoration(labelText: "Confirm password"),
+                    decoration: const InputDecoration(
+                      labelText: "Confirm password",
+                    ),
                     validator: (v) =>
                         v == _password.text ? null : "Passwords don't match.",
                   ),
@@ -185,16 +189,18 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                   onPressed: busy
                       ? null
                       : () => setState(() {
-                            _isSignUp = !_isSignUp;
-                            _formKey.currentState?.reset();
-                          }),
+                          _isSignUp = !_isSignUp;
+                          _formKey.currentState?.reset();
+                        }),
                   style: OutlinedButton.styleFrom(
                     minimumSize: const Size(0, 52),
                     shape: const RoundedRectangleBorder(
                       borderRadius: AppRadius.lgAll,
                     ),
                   ),
-                  child: Text(_isSignUp ? "I already have an account" : "Sign-up"),
+                  child: Text(
+                    _isSignUp ? "I already have an account" : "Sign-up",
+                  ),
                 ),
 
                 const SizedBox(height: AppSpace.x5),
@@ -202,8 +208,9 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                   children: [
                     Expanded(child: Divider(color: c.line)),
                     Padding(
-                      padding:
-                          const EdgeInsets.symmetric(horizontal: AppSpace.x3),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpace.x3,
+                      ),
                       child: Text("or", style: AppTypography.caption),
                     ),
                     Expanded(child: Divider(color: c.line)),
@@ -216,8 +223,8 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                   onTap: busy
                       ? null
                       : () => ref
-                          .read(authControllerProvider.notifier)
-                          .signInWithGoogle(),
+                            .read(authControllerProvider.notifier)
+                            .signInWithGoogle(),
                 ),
 
                 const SizedBox(height: AppSpace.x5),
@@ -226,8 +233,9 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                     onPressed: busy ? null : () => _continueAsGuest(context),
                     child: Text(
                       "Skip for now — browse as guest",
-                      style: AppTypography.caption
-                          .copyWith(color: c.textSecondary),
+                      style: AppTypography.caption.copyWith(
+                        color: c.textSecondary,
+                      ),
                     ),
                   ),
                 ),
@@ -257,12 +265,13 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
       _formKey.currentState?.validate();
       return;
     }
-    final sent =
-        await ref.read(authControllerProvider.notifier).sendPasswordReset(email);
+    final sent = await ref
+        .read(authControllerProvider.notifier)
+        .sendPasswordReset(email);
     if (sent && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Password reset sent to $email.")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Password reset sent to $email.")));
     }
   }
 

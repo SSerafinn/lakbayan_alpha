@@ -17,9 +17,7 @@ Future<void> main() async {
       // The status used to be discarded here. Handing it to the tree is what
       // lets the debug strip say which backend is answering — without it, an
       // unreachable emulator and an empty database look identical on screen.
-      overrides: [
-        firebaseBootstrapStatusProvider.overrideWithValue(status),
-      ],
+      overrides: [firebaseBootstrapStatusProvider.overrideWithValue(status)],
       child: const LakbayanApp(),
     ),
   );

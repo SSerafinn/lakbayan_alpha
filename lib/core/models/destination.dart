@@ -27,14 +27,14 @@ enum DestinationCategory {
   unknown;
 
   String get label => switch (this) {
-        church => "Churches",
-        nature => "Nature",
-        heritage => "Heritage",
-        museum => "Museums",
-        food => "Food",
-        landmark => "Landmarks",
-        unknown => "Other",
-      };
+    church => "Churches",
+    nature => "Nature",
+    heritage => "Heritage",
+    museum => "Museums",
+    food => "Food",
+    landmark => "Landmarks",
+    unknown => "Other",
+  };
 }
 
 /// Publication state. Only [published] documents are readable by non-admins —
@@ -122,7 +122,8 @@ abstract class Segment with _$Segment {
 
   const Segment._();
 
-  factory Segment.fromJson(Map<String, dynamic> json) => _$SegmentFromJson(json);
+  factory Segment.fromJson(Map<String, dynamic> json) =>
+      _$SegmentFromJson(json);
 
   /// A segment with neither recorded audio nor TTS text cannot be played.
   bool get isPlayable =>

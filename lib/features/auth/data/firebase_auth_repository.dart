@@ -16,7 +16,8 @@ class FirebaseAuthRepository implements AuthRepository {
   final fb.FirebaseAuth _auth;
 
   @override
-  Stream<AppUser?> authStateChanges() => _auth.authStateChanges().map(_toAppUser);
+  Stream<AppUser?> authStateChanges() =>
+      _auth.authStateChanges().map(_toAppUser);
 
   @override
   AppUser? get currentUser => _toAppUser(_auth.currentUser);
@@ -25,27 +26,25 @@ class FirebaseAuthRepository implements AuthRepository {
   Future<AppUser> signInWithEmail({
     required String email,
     required String password,
-  }) =>
-      _guard(() async {
-        final cred = await _auth.signInWithEmailAndPassword(
-          email: email.trim(),
-          password: password,
-        );
-        return _requireUser(cred.user);
-      });
+  }) => _guard(() async {
+    final cred = await _auth.signInWithEmailAndPassword(
+      email: email.trim(),
+      password: password,
+    );
+    return _requireUser(cred.user);
+  });
 
   @override
   Future<AppUser> signUpWithEmail({
     required String email,
     required String password,
-  }) =>
-      _guard(() async {
-        final cred = await _auth.createUserWithEmailAndPassword(
-          email: email.trim(),
-          password: password,
-        );
-        return _requireUser(cred.user);
-      });
+  }) => _guard(() async {
+    final cred = await _auth.createUserWithEmailAndPassword(
+      email: email.trim(),
+      password: password,
+    );
+    return _requireUser(cred.user);
+  });
 
   /// NOTE: this path cannot be exercised against the Auth emulator. Obtaining a
   /// Google ID token requires real Google infrastructure plus a Firebase
@@ -53,39 +52,39 @@ class FirebaseAuthRepository implements AuthRepository {
   /// has been run, expect [AuthFailure.unknown] here.
   @override
   Future<AppUser> signInWithGoogle() => _guard(() async {
-        final google = GoogleSignIn.instance;
+    final google = GoogleSignIn.instance;
 
-        // Web needs the OAuth client ID handed to it; Android reads it from
-        // google-services.json and rejects an explicit one. Passing it
-        // unconditionally breaks Android, so branch on the platform.
-        if (kIsWeb) {
-          if (AppConfig.googleWebClientId.isEmpty) {
-            throw const AuthException(AuthFailure.googleWebNotConfigured);
-          }
-          await google.initialize(clientId: AppConfig.googleWebClientId);
-        } else {
-          await google.initialize();
-        }
+    // Web needs the OAuth client ID handed to it; Android reads it from
+    // google-services.json and rejects an explicit one. Passing it
+    // unconditionally breaks Android, so branch on the platform.
+    if (kIsWeb) {
+      if (AppConfig.googleWebClientId.isEmpty) {
+        throw const AuthException(AuthFailure.googleWebNotConfigured);
+      }
+      await google.initialize(clientId: AppConfig.googleWebClientId);
+    } else {
+      await google.initialize();
+    }
 
-        final GoogleSignInAccount account;
-        try {
-          account = await google.authenticate();
-        } on GoogleSignInException catch (e) {
-          throw AuthException(
-            e.code == GoogleSignInExceptionCode.canceled
-                ? AuthFailure.cancelled
-                : AuthFailure.unknown,
-          );
-        }
+    final GoogleSignInAccount account;
+    try {
+      account = await google.authenticate();
+    } on GoogleSignInException catch (e) {
+      throw AuthException(
+        e.code == GoogleSignInExceptionCode.canceled
+            ? AuthFailure.cancelled
+            : AuthFailure.unknown,
+      );
+    }
 
-        final idToken = account.authentication.idToken;
-        if (idToken == null) throw const AuthException(AuthFailure.unknown);
+    final idToken = account.authentication.idToken;
+    if (idToken == null) throw const AuthException(AuthFailure.unknown);
 
-        final cred = await _auth.signInWithCredential(
-          fb.GoogleAuthProvider.credential(idToken: idToken),
-        );
-        return _requireUser(cred.user);
-      });
+    final cred = await _auth.signInWithCredential(
+      fb.GoogleAuthProvider.credential(idToken: idToken),
+    );
+    return _requireUser(cred.user);
+  });
 
   @override
   Future<void> sendPasswordResetEmail(String email) =>
@@ -135,19 +134,18 @@ class FirebaseAuthRepository implements AuthRepository {
   }
 
   AuthFailure _mapCode(String code) => switch (code) {
-        // Modern Firebase collapses wrong-password and user-not-found into
-        // invalid-credential precisely to avoid leaking account existence.
-        // The older codes are still emitted by some SDK versions.
-        "invalid-credential" ||
-        "wrong-password" ||
-        "user-not-found" =>
-          AuthFailure.invalidCredentials,
-        "email-already-in-use" => AuthFailure.emailAlreadyInUse,
-        "weak-password" => AuthFailure.weakPassword,
-        "invalid-email" => AuthFailure.invalidEmail,
-        "user-disabled" => AuthFailure.userDisabled,
-        "too-many-requests" => AuthFailure.tooManyRequests,
-        "network-request-failed" => AuthFailure.networkUnavailable,
-        _ => AuthFailure.unknown,
-      };
+    // Modern Firebase collapses wrong-password and user-not-found into
+    // invalid-credential precisely to avoid leaking account existence.
+    // The older codes are still emitted by some SDK versions.
+    "invalid-credential" ||
+    "wrong-password" ||
+    "user-not-found" => AuthFailure.invalidCredentials,
+    "email-already-in-use" => AuthFailure.emailAlreadyInUse,
+    "weak-password" => AuthFailure.weakPassword,
+    "invalid-email" => AuthFailure.invalidEmail,
+    "user-disabled" => AuthFailure.userDisabled,
+    "too-many-requests" => AuthFailure.tooManyRequests,
+    "network-request-failed" => AuthFailure.networkUnavailable,
+    _ => AuthFailure.unknown,
+  };
 }

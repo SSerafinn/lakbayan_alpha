@@ -30,7 +30,9 @@ class DevStatusBanner extends ConsumerWidget {
 
     // Null in tests and in release; `live` needs no announcement, because that
     // is what a real build is supposed to be doing.
-    if (!kDebugMode || status == null || status == FirebaseBootstrapStatus.live) {
+    if (!kDebugMode ||
+        status == null ||
+        status == FirebaseBootstrapStatus.live) {
       return child;
     }
 
@@ -57,29 +59,29 @@ class _Strip extends StatelessWidget {
     // the app". See docs/DESIGN_SYSTEM.md on not hardcoding brand colour.
     final (background, foreground, icon, message) = switch (status) {
       FirebaseBootstrapStatus.emulators => (
-          scheme.secondaryContainer,
-          scheme.onSecondaryContainer,
-          Icons.developer_mode,
-          "Emulators · ${AppConfig.emulatorHost}",
-        ),
+        scheme.secondaryContainer,
+        scheme.onSecondaryContainer,
+        Icons.developer_mode,
+        "Emulators · ${AppConfig.emulatorHost}",
+      ),
       FirebaseBootstrapStatus.emulatorsUnreachable => (
-          scheme.errorContainer,
-          scheme.onErrorContainer,
-          Icons.cloud_off,
-          "No emulator at ${AppConfig.emulatorHost} — lists will look empty",
-        ),
+        scheme.errorContainer,
+        scheme.onErrorContainer,
+        Icons.cloud_off,
+        "No emulator at ${AppConfig.emulatorHost} — lists will look empty",
+      ),
       FirebaseBootstrapStatus.unavailable => (
-          scheme.errorContainer,
-          scheme.onErrorContainer,
-          Icons.error_outline,
-          "Firebase failed to start — nothing will load",
-        ),
+        scheme.errorContainer,
+        scheme.onErrorContainer,
+        Icons.error_outline,
+        "Firebase failed to start — nothing will load",
+      ),
       FirebaseBootstrapStatus.live => (
-          scheme.secondaryContainer,
-          scheme.onSecondaryContainer,
-          Icons.cloud,
-          "Live project",
-        ),
+        scheme.secondaryContainer,
+        scheme.onSecondaryContainer,
+        Icons.cloud,
+        "Live project",
+      ),
     };
 
     return Material(
@@ -96,10 +98,9 @@ class _Strip extends StatelessWidget {
               Flexible(
                 child: Text(
                   message,
-                  style: Theme.of(context)
-                      .textTheme
-                      .labelSmall
-                      ?.copyWith(color: foreground),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.labelSmall?.copyWith(color: foreground),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),

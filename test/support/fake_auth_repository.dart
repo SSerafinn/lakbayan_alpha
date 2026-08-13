@@ -7,7 +7,7 @@ import "package:lakbayan/features/auth/domain/auth_repository.dart";
 /// binding. Lets a test hold the stream open to exercise the splash state.
 class FakeAuthRepository implements AuthRepository {
   FakeAuthRepository({AppUser? initialUser, this.emitInitial = true})
-      : _current = initialUser {
+    : _current = initialUser {
     if (emitInitial) _controller.add(_current);
   }
 

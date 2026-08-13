@@ -47,7 +47,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       final mayEnter = signedIn || isGuest;
       final atGate = here == Routes.splash || here == Routes.signIn;
 
-      if (!mayEnter) return atGate && here == Routes.signIn ? null : Routes.signIn;
+      if (!mayEnter) {
+        return atGate && here == Routes.signIn ? null : Routes.signIn;
+      }
       if (atGate) return Routes.home;
       return null;
     },

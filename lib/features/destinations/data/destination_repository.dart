@@ -54,9 +54,10 @@ class DestinationRepository {
     return query.orderBy("name").snapshots().map(_toList);
   }
 
-  Stream<Destination?> watchById(String id) => _col.doc(id).snapshots().map(
-        (snap) => snap.exists ? _tryParse(snap) : null,
-      );
+  Stream<Destination?> watchById(String id) => _col
+      .doc(id)
+      .snapshots()
+      .map((snap) => snap.exists ? _tryParse(snap) : null);
 
   /// Audio guide stops, in player order.
   ///

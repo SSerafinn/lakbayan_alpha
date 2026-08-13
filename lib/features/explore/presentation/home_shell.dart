@@ -131,7 +131,8 @@ class _ProfileTab extends ConsumerWidget {
           )
         else
           OutlinedButton(
-            onPressed: () => ref.read(authControllerProvider.notifier).signOut(),
+            onPressed: () =>
+                ref.read(authControllerProvider.notifier).signOut(),
             child: const Text("Sign out"),
           ),
         if (kDebugMode) ...[
