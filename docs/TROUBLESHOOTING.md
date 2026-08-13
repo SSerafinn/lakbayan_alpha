@@ -83,15 +83,19 @@ Android *emulator's* alias for the host loopback. A real phone is a separate
 machine on your Wi-Fi and needs your PC's LAN IP.
 
 That is what `config/local.json` is for — a gitignored, per-developer copy of
-`config/dev.json` carrying your own IP. Find yours:
+`config/dev.json` carrying your own IP. Rather than reading `ipconfig` and
+picking the right adapter by eye, ask:
 
 ```bash
-ipconfig
+node scripts/emulator-host.mjs
 ```
 
-Take the IPv4 address of the **Wi-Fi** adapter (not WSL, not VirtualBox — those
-are virtual adapters the phone cannot reach), put it in
-`config/local.json` as `FIREBASE_EMULATOR_HOST`, then:
+It lists every interface, marks the virtual ones a phone cannot reach (WSL,
+VirtualBox, Hyper-V), checks which address the emulator actually answers on, and
+prints the run command with the right value. Add `--write` to put it straight
+into `config/local.json`.
+
+Then:
 
 ```bash
 flutter run --dart-define-from-file=config/local.json
@@ -102,6 +106,28 @@ Check the boot log line — it prints the resolved config:
 ```
 Lakbayan config — emulators: true, host: 192.168.x.x, ...
 ```
+
+### "Everything is empty" is usually this
+
+**Your IP changes.** It comes from DHCP, so it moves when the lease renews, the
+router restarts, or you rejoin the network — and `config/local.json` still holds
+the old one. The app then points at an address nothing is listening on.
+
+That failure is silent by design of the SDK: `useFirestoreEmulator` only records
+an endpoint, it performs no I/O and cannot fail. Combined with offline
+persistence, every read serves an empty cache, so Explore renders an empty list
+and looks exactly like a database with no content in it.
+
+Two things now catch this:
+
+- The app **probes the emulator on startup** and, in debug builds, shows a red
+  strip along the bottom reading *"No emulator at 192.168.x.x — lists will look
+  empty"*. A green strip naming the host means the connection is fine and the
+  data really is missing.
+- `node scripts/emulator-host.mjs` tells you the address that works right now.
+
+Re-run the app after changing it. Dart-defines are compiled in, so a hot reload
+will not pick it up.
 
 **The phone and the laptop must be on the same Wi-Fi network.** Many campus and
 public networks enable client isolation, which blocks device-to-device traffic
