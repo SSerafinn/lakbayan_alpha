@@ -1,0 +1,18 @@
+{
+  /* Tests run in Node, not the browser, so they need Node's types — but the
+     app must not, or a component could reach for `fs` and still typecheck.
+     Hence a third project rather than widening tsconfig.app.json: the app
+     keeps DOM-only types, and only files matching the include below get
+     `node` added on top. tsconfig.app.json excludes these same files so they
+     are not compiled twice under two different sets of assumptions. */
+  "extends": "./tsconfig.app.json",
+  "compilerOptions": {
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.test.tsbuildinfo",
+    "types": ["vite/client", "node"]
+  },
+  "include": ["src/**/*.test.ts", "src/**/*.test.tsx"],
+  /* `exclude` is inherited through `extends`, and the parent excludes exactly
+     these files — leaving this out makes the project empty and tsc fails with
+     "No inputs were found". */
+  "exclude": []
+}

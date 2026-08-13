@@ -82,7 +82,26 @@ jobs:
       # browser.
       - run: npm run typecheck
       - run: npm run lint
+      - run: npm run test
       - run: npm run build
+
+      # scripts/ rides along in this job rather than getting its own.
+      #
+      # Branch protection requires exactly three checks by name — `app`, `cms`
+      # and `rules` (see docs/REPO_SETTINGS.md). A fourth job would not be
+      # required, so it could fail without blocking a merge, which is worse
+      # than a slightly overloaded job name. Move it out if and when the
+      # required-checks list is updated to match.
+      #
+      # `npm test` here is the JavaScript half of the slug contract; the
+      # TypeScript half runs above. They assert the same fixture, and the
+      # importer creates duplicate destinations if the two ever disagree.
+      - run: npm install
+        working-directory: scripts
+      - run: npm run lint
+        working-directory: scripts
+      - run: npm run test
+        working-directory: scripts
 
   # firestore.rules is code and is reviewed like code. It is evaluated by the
   # emulator rather than by Dart, so it gets its own job.

@@ -22,5 +22,9 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src"]
+  "include": ["src"],
+  /* Tests live beside the code they cover but compile under tsconfig.test.json,
+     which adds Node's types. Without this exclusion they would be checked
+     twice, and the DOM-only run would fail on `node:fs`. */
+  "exclude": ["src/**/*.test.ts", "src/**/*.test.tsx"]
 }
