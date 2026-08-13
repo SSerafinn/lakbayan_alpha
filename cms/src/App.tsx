@@ -14,6 +14,7 @@ import { DestinationsListPage } from "./pages/DestinationsListPage";
 import { DestinationEditorPage } from "./pages/DestinationEditorPage";
 import { GuidesPage } from "./pages/GuidesPage";
 import { PlaceholderPage } from "./pages/PlaceholderPage";
+import { ToursPage } from "./pages/ToursPage";
 import { useEmulators } from "./lib/firebase";
 import { ToastProvider } from "./components/Toast";
 import {
@@ -118,10 +119,7 @@ const router = createBrowserRouter([
       { index: true, element: <DashboardPage /> },
       { path: "destinations", element: <DestinationsListPage /> },
       { path: "destinations/:id", element: <DestinationEditorPage /> },
-      {
-        path: "tours",
-        element: <PlaceholderPage title="Tours" phase="CMS-2" />,
-      },
+      { path: "tours", element: <ToursPage /> },
       { path: "guides", element: <GuidesPage /> },
       {
         path: "bundles",

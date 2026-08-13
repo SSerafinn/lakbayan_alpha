@@ -441,8 +441,58 @@ for (const d of DESTINATIONS) {
   );
 }
 
+// ---------------------------------------------------------------------------
+// Tours
+//
+// Written after the destinations, because a tour is a list of their ids. The
+// ids are slugs here, so they can be written literally rather than looked up.
+// ---------------------------------------------------------------------------
+
+const TOURS = [
+  {
+    title: "Peñablanca caves in a day",
+    description:
+      "The show caves and the river, at an easy pace. A good first day in the province.",
+    stops: ["callao-cave", "palaui-island"],
+    featured: true,
+    colour: [46, 92, 74],
+  },
+  {
+    title: "Faith and heritage in the valley",
+    description:
+      "The Piat basilica and the Tuguegarao cathedral, with the provincial museum between them.",
+    stops: [
+      "basilica-minore-de-nuestra-senora-de-piat",
+      "cagayan-museum-and-historical-research-center",
+      "st-peter-metropolitan-cathedral",
+    ],
+    featured: false,
+    colour: [123, 92, 46],
+  },
+];
+
+for (const t of TOURS) {
+  // Same derived id as the CMS and the importer — see docs/DATA_MODEL.md.
+  const id = slugify(t.title);
+  const coverImg = `tours/${id}/cover.png`;
+  await bucket
+    .file(coverImg)
+    .save(solidPng(640, 360, t.colour), { contentType: "image/png" });
+
+  await db.collection("tours").doc(id).set({
+    title: t.title,
+    description: t.description,
+    stops: t.stops,
+    coverImg,
+    featured: t.featured,
+    createdAt: FieldValue.serverTimestamp(),
+    updatedAt: FieldValue.serverTimestamp(),
+  });
+  console.log(`  ${t.title} (${id}) — ${t.stops.length} stops`);
+}
+
 console.log(
-  `\nSeeded ${written} published destinations into the emulator ` +
-    `(${process.env.FIRESTORE_EMULATOR_HOST}).`,
+  `\nSeeded ${written} published destinations and ${TOURS.length} tours into ` +
+    `the emulator (${process.env.FIRESTORE_EMULATOR_HOST}).`,
 );
 console.log("Emulator UI: http://localhost:4000/firestore");

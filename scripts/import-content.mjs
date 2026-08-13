@@ -421,6 +421,14 @@ function validateTours(rows, destsByRef) {
         err(...where, `stop "${s}" is not on the Destinations sheet.`);
       }
     }
+    const cover = text(r.cover_photo_filename);
+    if (cover) {
+      const ext = extname(cover).slice(1).toLowerCase();
+      if (!IMAGE_EXTENSIONS.includes(ext)) {
+        err(...where, `"${cover}" is not one of ${IMAGE_EXTENSIONS.join(", ")}.`);
+      }
+    }
+
     if (!text(r.route_file)) {
       warn(
         ...where,
@@ -538,10 +546,17 @@ if (mediaDir) {
       }
     }
   }
+  for (const t of rows.tours) {
+    const f = text(t.cover_photo_filename);
+    if (f && !media.has(f.toLowerCase())) {
+      err(SHEETS.tours, t.__row, `"${f}" is not in ${mediaDir}.`);
+    }
+  }
 } else {
   const wanted =
     [...photosByDest.values()].flat().length +
-    [...segmentsByDest.values()].flat().filter((s) => text(s.recording_filename)).length;
+    [...segmentsByDest.values()].flat().filter((s) => text(s.recording_filename)).length +
+    rows.tours.filter((t) => text(t.cover_photo_filename)).length;
   if (wanted > 0) {
     warnings.push(
       `${wanted} media file${wanted === 1 ? " is" : "s are"} named in the sheets ` +
@@ -826,15 +841,33 @@ for (const [ref, r] of destsByRef) {
 
 for (const t of rows.tours) {
   const stops = list(t.stop_refs_in_order).map((s) => idByRef.get(s)).filter(Boolean);
+  // Same derived id the CMS uses, which is what makes re-importing a tour it
+  // already holds an update rather than a second copy. See docs/DATA_MODEL.md.
+  const id = slugify(text(t.title));
+
+  // The sheet has always collected a cover filename and this always wrote an
+  // empty string, so tour covers were silently dropped on every import. They
+  // had nowhere to go until `storage.rules` gained a /tours path.
+  let coverImg = "";
+  const coverFile = text(t.cover_photo_filename);
+  if (bucket && coverFile) {
+    const ext = extname(coverFile).slice(1).toLowerCase();
+    coverImg = await upload(
+      media.get(coverFile.toLowerCase()),
+      `tours/${id}/cover.${ext}`,
+      IMAGE_MIME[ext],
+    );
+  }
+
   await db
     .collection("tours")
-    .doc(slugify(text(t.title)))
+    .doc(id)
     .set(
       compact({
         title: text(t.title),
         description: text(t.description),
         stops,
-        coverImg: "",
+        coverImg,
         featured: bool(t.featured, false),
         updatedAt: FieldValue.serverTimestamp(),
       }),

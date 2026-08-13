@@ -90,6 +90,12 @@ before(async () => {
       title: "History",
       order: 1,
     });
+    await setDoc(doc(db, "tours/tour"), {
+      title: "Rules Test — Tour",
+      description: "Fixture for the security rules tests.",
+      stops: ["published"],
+      featured: false,
+    });
     await setDoc(doc(db, "guides/guide"), {
       name: "Rules Test — Guide",
       town: "Peñablanca",
@@ -228,6 +234,36 @@ describe("users", () => {
         downloadedTownIds: [],
       })
     );
+  });
+});
+
+describe("tours", () => {
+  // Unlike destinations, a tour has no status: it is catalog data and is
+  // public from the moment it exists. Pinned here because that is a surprising
+  // asymmetry, and anyone adding a draft state has to change this test first.
+  it("is readable by anyone, signed in or not", async () => {
+    const db = env.unauthenticatedContext().firestore();
+    await assertSucceeds(getDoc(doc(db, "tours/tour")));
+  });
+
+  it("refuses a write from a signed-in non-admin", async () => {
+    const db = env.authenticatedContext("traveller").firestore();
+    await assertFails(
+      setDoc(doc(db, "tours/tour"), { title: "Vandalised", stops: [] })
+    );
+  });
+
+  it("allows an admin to write and to delete", async () => {
+    const db = env.authenticatedContext("boss", { admin: true }).firestore();
+    await assertSucceeds(
+      setDoc(doc(db, "tours/tour"), {
+        title: "Peñablanca in a day",
+        description: "Cave in the morning, river in the afternoon.",
+        stops: ["published"],
+        featured: true,
+      })
+    );
+    await assertSucceeds(deleteDoc(doc(db, "tours/tour")));
   });
 });
 

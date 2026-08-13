@@ -136,7 +136,13 @@ CMS consumes that contract; it does not redefine it.
       guard — segments are a subcollection but not a second save model. Ordering
       is move up/down, not drag: keyboard-reachable for a handful of stops.
       A stop with neither recording nor narration text blocks publishing.*
-- [ ] Tours: stop picker, cover image, featured flag *(screen 8)*.
+- [x] Tours: stop picker, cover image, featured flag *(screen 8)*.
+      *One screen like guides. Stops reorder with the segment editor's controls
+      — the order **is** the tour. The document id is `slugify(title)`, matching
+      the importer, so a re-import updates rather than duplicates. No draft
+      state: `allow read: if true` makes a tour public the moment it exists, so
+      the editor refuses to save one that is not fit to be read, and warns when
+      a stop is unpublished or deleted.*
 - [x] Local Guides directory *(screen 9)*.
       *One screen, not two: the editor opens above the table rather than on its
       own route — six fields do not justify a second screen, and the wireframe
