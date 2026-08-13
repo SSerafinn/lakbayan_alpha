@@ -108,15 +108,16 @@ class _DesignSystemGalleryState extends State<DesignSystemGallery> {
               children: [
                 Text("Discover Cagayan", style: AppTypography.display),
                 const SizedBox(height: AppSpace.x3),
-                Text("Callao Cave & the Pinacanauan",
-                    style: AppTypography.h1,),
+                Text("Callao Cave & the Pinacanauan", style: AppTypography.h1),
                 const SizedBox(height: AppSpace.x3),
                 Text("Nearby heritage stops", style: AppTypography.h2),
                 const SizedBox(height: AppSpace.x3),
                 Text("Basilica Minore de Piat", style: AppTypography.h3),
                 const SizedBox(height: AppSpace.x3),
-                Text("Open daily · 7:00 AM – 5:00 PM",
-                    style: AppTypography.title,),
+                Text(
+                  "Open daily · 7:00 AM – 5:00 PM",
+                  style: AppTypography.title,
+                ),
                 const SizedBox(height: AppSpace.x3),
                 Text(
                   "The Pinacanauan River threads through limestone cliffs on "
@@ -132,8 +133,10 @@ class _DesignSystemGalleryState extends State<DesignSystemGallery> {
                 const SizedBox(height: AppSpace.x3),
                 Text("Start the walking tour", style: AppTypography.label),
                 const SizedBox(height: AppSpace.x3),
-                Text("Photo: Provincial Tourism Office · 2.4 km away",
-                    style: AppTypography.caption,),
+                Text(
+                  "Photo: Provincial Tourism Office · 2.4 km away",
+                  style: AppTypography.caption,
+                ),
                 const SizedBox(height: AppSpace.x3),
                 const Overline("Heritage trail"),
               ],
@@ -149,10 +152,19 @@ class _DesignSystemGalleryState extends State<DesignSystemGallery> {
                   spacing: AppSpace.x3,
                   runSpacing: AppSpace.x3,
                   children: [
-                    FilledButton(onPressed: () {}, child: const Text("Start tour")),
-                    OutlinedButton(onPressed: () {}, child: const Text("Open map")),
+                    FilledButton(
+                      onPressed: () {},
+                      child: const Text("Start tour"),
+                    ),
+                    OutlinedButton(
+                      onPressed: () {},
+                      child: const Text("Open map"),
+                    ),
                     TextButton(onPressed: () {}, child: const Text("Skip")),
-                    const FilledButton(onPressed: null, child: Text("Disabled")),
+                    const FilledButton(
+                      onPressed: null,
+                      child: Text("Disabled"),
+                    ),
                   ],
                 ),
                 const SizedBox(height: AppSpace.x4),
@@ -289,82 +301,78 @@ class _DesignSystemGalleryState extends State<DesignSystemGallery> {
   }
 
   Widget _section(String title) => Padding(
-        padding: const EdgeInsets.only(top: AppSpace.x6, bottom: AppSpace.x4),
-        child: Text(title, style: AppTypography.h2),
-      );
+    padding: const EdgeInsets.only(top: AppSpace.x6, bottom: AppSpace.x4),
+    child: Text(title, style: AppTypography.h2),
+  );
 
   Widget _card(Widget child) => Builder(
-        builder: (context) => Container(
-          padding: const EdgeInsets.all(AppSpace.x5),
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surface,
-            borderRadius: AppRadius.lgAll,
-            border: Border.all(color: context.lakbayan.line),
-            boxShadow: AppShadow.card,
-          ),
-          child: child,
-        ),
-      );
+    builder: (context) => Container(
+      padding: const EdgeInsets.all(AppSpace.x5),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: AppRadius.lgAll,
+        border: Border.all(color: context.lakbayan.line),
+        boxShadow: AppShadow.card,
+      ),
+      child: child,
+    ),
+  );
 
   Widget _ramp(String label, List<(String, Color)> swatches) => Padding(
-        padding: const EdgeInsets.only(bottom: AppSpace.x4),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    padding: const EdgeInsets.only(bottom: AppSpace.x4),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Overline(label),
+        const SizedBox(height: AppSpace.x2),
+        Row(
           children: [
-            Overline(label),
-            const SizedBox(height: AppSpace.x2),
-            Row(
-              children: [
-                for (final (name, color) in swatches)
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.only(right: AppSpace.x1),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Container(
-                            height: 56,
-                            decoration: BoxDecoration(
-                              color: color,
-                              borderRadius: AppRadius.smAll,
-                              border: Border.all(color: AppColors.line),
-                            ),
-                          ),
-                          const SizedBox(height: AppSpace.x1),
-                          Text(name, style: AppTypography.caption),
-                        ],
+            for (final (name, color) in swatches)
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.only(right: AppSpace.x1),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        height: 56,
+                        decoration: BoxDecoration(
+                          color: color,
+                          borderRadius: AppRadius.smAll,
+                          border: Border.all(color: AppColors.line),
+                        ),
                       ),
-                    ),
+                      const SizedBox(height: AppSpace.x1),
+                      Text(name, style: AppTypography.caption),
+                    ],
                   ),
-              ],
-            ),
+                ),
+              ),
           ],
         ),
-      );
+      ],
+    ),
+  );
 
   Widget _appBarSample({
     required Color background,
     required Color foreground,
     required String title,
     bool border = false,
-  }) =>
-      Container(
-        height: AppSize.appBarHeight,
-        padding: const EdgeInsets.symmetric(horizontal: AppSpace.x4),
-        decoration: BoxDecoration(
-          color: background,
-          borderRadius: AppRadius.mdAll,
-          border: border ? Border.all(color: AppColors.line) : null,
-        ),
-        child: Row(
-          children: [
-            Icon(Icons.arrow_back, color: foreground, size: 22),
-            const SizedBox(width: 14),
-            Text(
-              title,
-              style: AppTypography.h3.copyWith(color: foreground),
-            ),
-          ],
-        ),
-      );
+  }) => Container(
+    height: AppSize.appBarHeight,
+    padding: const EdgeInsets.symmetric(horizontal: AppSpace.x4),
+    decoration: BoxDecoration(
+      color: background,
+      borderRadius: AppRadius.mdAll,
+      border: border ? Border.all(color: AppColors.line) : null,
+    ),
+    child: Row(
+      children: [
+        Icon(Icons.arrow_back, color: foreground, size: 22),
+        const SizedBox(width: 14),
+        Text(title, style: AppTypography.h3.copyWith(color: foreground)),
+      ],
+    ),
+  );
 }

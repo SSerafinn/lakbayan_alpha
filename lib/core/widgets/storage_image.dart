@@ -50,9 +50,7 @@ class StorageImage extends ConsumerWidget {
         imageUrl: resolved,
         fit: fit,
         placeholder: (_, _) => ImagePlaceholder(borderRadius: borderRadius),
-        errorWidget: (_, _, _) => ImagePlaceholder(
-          borderRadius: borderRadius,
-        ),
+        errorWidget: (_, _, _) => ImagePlaceholder(borderRadius: borderRadius),
       ),
     );
 

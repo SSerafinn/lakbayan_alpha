@@ -34,6 +34,18 @@ jobs:
           flutter-version: 3.41.6 # keep in step with the team's local SDK
           cache: true
 
+      # Before pub get and codegen: formatting needs neither, and putting it
+      # first turns a whitespace mistake into a 20-second failure instead of a
+      # ten-minute one.
+      #
+      # Only tracked files. Generated sources (*.freezed.dart, *.g.dart) are
+      # gitignored but do exist once build_runner has run, and they are its
+      # output rather than ours to format.
+      #
+      # `flutter analyze` does not check formatting, which is how a de-indented
+      # line with trailing whitespace once passed CI untouched.
+      - run: dart format --output=none --set-exit-if-changed $(git ls-files '*.dart')
+
       - run: flutter pub get
 
       # Generated sources are gitignored, so this must run before analyze.

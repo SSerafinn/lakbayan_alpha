@@ -68,8 +68,11 @@ class DestinationCard extends StatelessWidget {
                   children: [
                     AspectRatio(
                       aspectRatio: 16 / 9,
-                      child: image ??
-                          const ImagePlaceholder(borderRadius: BorderRadius.zero),
+                      child:
+                          image ??
+                          const ImagePlaceholder(
+                            borderRadius: BorderRadius.zero,
+                          ),
                     ),
                     if (hasAr)
                       const Positioned(

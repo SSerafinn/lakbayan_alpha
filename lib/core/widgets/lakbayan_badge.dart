@@ -33,13 +33,11 @@ enum BadgeKind {
 class LakbayanBadge extends StatelessWidget {
   const LakbayanBadge(this.label, {required this.kind, super.key});
 
-  const LakbayanBadge.ar({super.key})
-      : label = "AR",
-        kind = BadgeKind.ar;
+  const LakbayanBadge.ar({super.key}) : label = "AR", kind = BadgeKind.ar;
 
   const LakbayanBadge.featured({super.key})
-      : label = "FEATURED",
-        kind = BadgeKind.featured;
+    : label = "FEATURED",
+      kind = BadgeKind.featured;
 
   final String label;
   final BadgeKind kind;
@@ -97,11 +95,11 @@ class Overline extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Text(
-        text.toUpperCase(),
-        style: AppTypography.overline.copyWith(
-          color: color ?? context.lakbayan.textSecondary,
-        ),
-      );
+    text.toUpperCase(),
+    style: AppTypography.overline.copyWith(
+      color: color ?? context.lakbayan.textSecondary,
+    ),
+  );
 }
 
 /// Rounded placeholder used wherever a photo has not loaded yet. Mirrors the

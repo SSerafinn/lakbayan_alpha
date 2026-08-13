@@ -24,7 +24,10 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [destinationRepositoryProvider.overrideWithValue(repo)],
-        child: MaterialApp(theme: buildAppTheme(), home: Scaffold(body: screen)),
+        child: MaterialApp(
+          theme: buildAppTheme(),
+          home: Scaffold(body: screen),
+        ),
       ),
     );
     await tester.pumpAndSettle();
@@ -45,8 +48,9 @@ void main() {
       expect(find.text("Buntun Bridge"), findsNothing);
     });
 
-    testWidgets("keeps the build-a-tour hero even with no content",
-        (tester) async {
+    testWidgets("keeps the build-a-tour hero even with no content", (
+      tester,
+    ) async {
       // The wireframe is explicit that the hero is never dismissible.
       await pump(
         tester,
@@ -165,8 +169,9 @@ void main() {
   });
 
   group("Destination detail", () {
-    testWidgets("renders the destination and its audio segments",
-        (tester) async {
+    testWidgets("renders the destination and its audio segments", (
+      tester,
+    ) async {
       final repo = FakeDestinationRepository(
         [testDestination(id: "callao", name: "Callao Cave")],
         segments: {
@@ -188,15 +193,13 @@ void main() {
       expect(find.text("2 · The Chapel"), findsOneWidget);
     });
 
-    testWidgets("handles a destination that is gone or unpublished",
-        (tester) async {
+    testWidgets("handles a destination that is gone or unpublished", (
+      tester,
+    ) async {
       // Unpublishing in the CMS makes a document unreadable to the app, so a
       // deep link to it must degrade rather than hang or crash.
       final repo = FakeDestinationRepository([
-        testDestination(
-          id: "hidden",
-          status: DestinationStatus.draft,
-        ),
+        testDestination(id: "hidden", status: DestinationStatus.draft),
       ]);
 
       await pump(
@@ -205,10 +208,7 @@ void main() {
         repo: repo,
       );
 
-      expect(
-        find.textContaining("no longer available"),
-        findsOneWidget,
-      );
+      expect(find.textContaining("no longer available"), findsOneWidget);
     });
   });
 }

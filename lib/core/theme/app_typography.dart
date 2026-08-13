@@ -18,16 +18,15 @@ abstract final class AppTypography {
     required FontWeight weight,
     required double height,
     double letterSpacing = 0,
-  }) =>
-      TextStyle(
-        fontFamily: headingFamily,
-        fontSize: size,
-        fontWeight: weight,
-        fontVariations: [FontVariation("wght", weight.value.toDouble())],
-        height: height,
-        letterSpacing: letterSpacing,
-        color: AppColors.ink900,
-      );
+  }) => TextStyle(
+    fontFamily: headingFamily,
+    fontSize: size,
+    fontWeight: weight,
+    fontVariations: [FontVariation("wght", weight.value.toDouble())],
+    height: height,
+    letterSpacing: letterSpacing,
+    color: AppColors.ink900,
+  );
 
   static TextStyle _body({
     required double size,
@@ -35,20 +34,22 @@ abstract final class AppTypography {
     required double height,
     double letterSpacing = 0,
     Color color = AppColors.ink700,
-  }) =>
-      TextStyle(
-        fontFamily: bodyFamily,
-        fontSize: size,
-        fontWeight: weight,
-        fontVariations: [FontVariation("wght", weight.value.toDouble())],
-        height: height,
-        letterSpacing: letterSpacing,
-        color: color,
-      );
+  }) => TextStyle(
+    fontFamily: bodyFamily,
+    fontSize: size,
+    fontWeight: weight,
+    fontVariations: [FontVariation("wght", weight.value.toDouble())],
+    height: height,
+    letterSpacing: letterSpacing,
+    color: color,
+  );
 
   /// Hero — 36 / Bold / 1.15. Design system notes a usable range of 32–40.
-  static final display =
-      _heading(size: 36, weight: FontWeight.w700, height: 1.15);
+  static final display = _heading(
+    size: 36,
+    weight: FontWeight.w700,
+    height: 1.15,
+  );
 
   static final h1 = _heading(size: 28, weight: FontWeight.w700, height: 1.2);
   static final h2 = _heading(size: 22, weight: FontWeight.w600, height: 1.25);
@@ -62,8 +63,11 @@ abstract final class AppTypography {
     color: AppColors.ink900,
   );
 
-  static final bodyLarge =
-      _body(size: 16, weight: FontWeight.w400, height: 1.5);
+  static final bodyLarge = _body(
+    size: 16,
+    weight: FontWeight.w400,
+    height: 1.5,
+  );
   static final body = _body(size: 14, weight: FontWeight.w400, height: 1.5);
 
   /// Button / label — the +0.3 tracking is deliberate.
@@ -96,28 +100,30 @@ abstract final class AppTypography {
   /// (AppBar, ListTile, buttons) inherit the design system without each call
   /// site restating a style.
   static TextTheme textTheme() => TextTheme(
-        displayLarge: display,
-        displayMedium: h1,
-        displaySmall: h2,
-        headlineLarge: h1,
-        headlineMedium: h2,
-        headlineSmall: h3,
-        titleLarge: h3,
-        titleMedium: title,
-        titleSmall: label,
-        bodyLarge: bodyLarge,
-        bodyMedium: body,
-        bodySmall: caption,
-        labelLarge: label,
-        labelMedium: caption,
-        labelSmall: overline,
-      );
+    displayLarge: display,
+    displayMedium: h1,
+    displaySmall: h2,
+    headlineLarge: h1,
+    headlineMedium: h2,
+    headlineSmall: h3,
+    titleLarge: h3,
+    titleMedium: title,
+    titleSmall: label,
+    bodyLarge: bodyLarge,
+    bodyMedium: body,
+    bodySmall: caption,
+    labelLarge: label,
+    labelMedium: caption,
+    labelSmall: overline,
+  );
 
   /// Same scale recoloured for dark surfaces.
   static TextTheme darkTextTheme() {
     const onDark = AppColors.darkText;
     final muted = onDark.withValues(alpha: 0.78);
-    return textTheme().apply(bodyColor: onDark, displayColor: onDark).copyWith(
+    return textTheme()
+        .apply(bodyColor: onDark, displayColor: onDark)
+        .copyWith(
           bodySmall: caption.copyWith(color: muted),
           labelMedium: caption.copyWith(color: muted),
           labelSmall: overline.copyWith(color: muted),

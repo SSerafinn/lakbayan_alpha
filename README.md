@@ -150,6 +150,15 @@ cd test_rules && npm install && npm test
 `flutter analyze` does **not** run custom_lint plugins, so the riverpod_lint rules
 are inert without that second command. Run both before pushing.
 
+It does not check formatting either, and CI does:
+
+```bash
+dart format $(git ls-files '*.dart')
+```
+
+Tracked files only — the generated `*.freezed.dart` and `*.g.dart` belong to
+build_runner, not to us.
+
 Then in the app: sign up with an email, and check the user appears in the Emulator
 UI Auth tab plus a `users/{uid}` document in the Firestore tab. Nothing will appear
 in the Firebase *console* — that is correct, you are on the emulator.
@@ -205,6 +214,7 @@ Email/password sign-in works without any of this.
 | Run the app | `flutter run --dart-define-from-file=config/dev.json` |
 | Codegen after model/provider changes | `dart run build_runner build` (or `/gen`) |
 | Static analysis | `flutter analyze` **and** `dart run custom_lint` |
+| Format Dart before pushing | `dart format $(git ls-files '*.dart')` |
 | Flutter tests | `flutter test` |
 | Security-rules tests | `cd test_rules && npm test` |
 | Start / stop the backend | `docker compose up -d emulators` / `docker compose down` |

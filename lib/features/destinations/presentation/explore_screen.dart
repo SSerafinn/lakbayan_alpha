@@ -35,10 +35,7 @@ class ExploreScreen extends ConsumerWidget {
         ),
         _HorizontalRail(state: popular),
 
-        _SectionHeader(
-          title: "Featured",
-          onMore: () => context.go("/browse"),
-        ),
+        _SectionHeader(title: "Featured", onMore: () => context.go("/browse")),
         // Featured stands in for the wireframe's "Nearby Places" until location
         // permission and distance sorting land with the maps work in Phase 3.
         // Same vertical-row treatment, editorially chosen rather than by
@@ -119,21 +116,21 @@ class _SectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.fromLTRB(
-          AppSpace.x4,
-          AppSpace.x5,
-          AppSpace.x2,
-          AppSpace.x2,
-        ),
-        child: Row(
-          children: [
-            Text(title, style: AppTypography.h3),
-            const Spacer(),
-            if (onMore != null)
-              TextButton(onPressed: onMore, child: const Text("More")),
-          ],
-        ),
-      );
+    padding: const EdgeInsets.fromLTRB(
+      AppSpace.x4,
+      AppSpace.x5,
+      AppSpace.x2,
+      AppSpace.x2,
+    ),
+    child: Row(
+      children: [
+        Text(title, style: AppTypography.h3),
+        const Spacer(),
+        if (onMore != null)
+          TextButton(onPressed: onMore, child: const Text("More")),
+      ],
+    ),
+  );
 }
 
 class _HorizontalRail extends StatelessWidget {
@@ -241,35 +238,34 @@ class _VerticalRows extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.symmetric(horizontal: AppSpace.x4),
-        child: state.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (e, _) => _ErrorNote(error: e),
-          data: (items) => items.isEmpty
-              ? const _EmptyNote("Nothing featured yet.")
-              : Column(
-                  children: [
-                    for (final d in items)
-                      LakbayanListRow(
-                        title: d.name,
-                        subtitle:
-                            "${d.town} · ${d.category.label}",
-                        leading: d.coverImage == null
-                            ? null
-                            : StorageImage(
-                                path: d.coverImage!,
-                                borderRadius: AppRadius.mdAll,
-                              ),
-                        trailing: d.featured
-                            ? const LakbayanBadge.featured()
-                            : null,
-                        showDivider: d != items.last,
-                        onTap: () => context.push("/destination/${d.id}"),
-                      ),
-                  ],
-                ),
-        ),
-      );
+    padding: const EdgeInsets.symmetric(horizontal: AppSpace.x4),
+    child: state.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (e, _) => _ErrorNote(error: e),
+      data: (items) => items.isEmpty
+          ? const _EmptyNote("Nothing featured yet.")
+          : Column(
+              children: [
+                for (final d in items)
+                  LakbayanListRow(
+                    title: d.name,
+                    subtitle: "${d.town} · ${d.category.label}",
+                    leading: d.coverImage == null
+                        ? null
+                        : StorageImage(
+                            path: d.coverImage!,
+                            borderRadius: AppRadius.mdAll,
+                          ),
+                    trailing: d.featured
+                        ? const LakbayanBadge.featured()
+                        : null,
+                    showDivider: d != items.last,
+                    onTap: () => context.push("/destination/${d.id}"),
+                  ),
+              ],
+            ),
+    ),
+  );
 }
 
 class _EmptyNote extends StatelessWidget {
@@ -279,14 +275,12 @@ class _EmptyNote extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.all(AppSpace.x4),
-        child: Text(
-          message,
-          style: AppTypography.body.copyWith(
-            color: context.lakbayan.textSecondary,
-          ),
-        ),
-      );
+    padding: const EdgeInsets.all(AppSpace.x4),
+    child: Text(
+      message,
+      style: AppTypography.body.copyWith(color: context.lakbayan.textSecondary),
+    ),
+  );
 }
 
 /// Surfaces the actual error rather than a generic message: a permission-denied

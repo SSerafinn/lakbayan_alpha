@@ -51,8 +51,9 @@ ThemeData _build(Brightness brightness) {
           onError: Colors.white,
         );
 
-  final textTheme =
-      isDark ? AppTypography.darkTextTheme() : AppTypography.textTheme();
+  final textTheme = isDark
+      ? AppTypography.darkTextTheme()
+      : AppTypography.textTheme();
   final brand = isDark ? LakbayanColors.dark : LakbayanColors.light;
 
   return ThemeData(
@@ -60,8 +61,9 @@ ThemeData _build(Brightness brightness) {
     brightness: brightness,
     colorScheme: scheme,
     textTheme: textTheme,
-    scaffoldBackgroundColor:
-        isDark ? AppColors.darkBackground : AppColors.background,
+    scaffoldBackgroundColor: isDark
+        ? AppColors.darkBackground
+        : AppColors.background,
     fontFamily: AppTypography.bodyFamily,
     extensions: [brand],
 
@@ -136,11 +138,7 @@ ThemeData _build(Brightness brightness) {
       showCheckmark: false,
     ),
 
-    dividerTheme: DividerThemeData(
-      color: brand.line,
-      thickness: 1,
-      space: 1,
-    ),
+    dividerTheme: DividerThemeData(color: brand.line, thickness: 1, space: 1),
 
     navigationBarTheme: NavigationBarThemeData(
       height: AppSize.bottomNav,
@@ -203,7 +201,9 @@ ThemeData _build(Brightness brightness) {
     listTileTheme: ListTileThemeData(
       contentPadding: const EdgeInsets.symmetric(horizontal: AppSpace.x1),
       titleTextStyle: AppTypography.title,
-      subtitleTextStyle: AppTypography.body.copyWith(color: brand.textSecondary),
+      subtitleTextStyle: AppTypography.body.copyWith(
+        color: brand.textSecondary,
+      ),
       shape: const RoundedRectangleBorder(borderRadius: AppRadius.mdAll),
       minVerticalPadding: AppSpace.x3,
     ),

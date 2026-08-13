@@ -17,7 +17,10 @@ void main() {
   setUp(() => auth = FakeAuthRepository());
   tearDown(() => auth.dispose());
 
-  Future<void> pump(WidgetTester tester, FirebaseBootstrapStatus? status) async {
+  Future<void> pump(
+    WidgetTester tester,
+    FirebaseBootstrapStatus? status,
+  ) async {
     tester.view.physicalSize = const Size(400, 1400);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
@@ -51,8 +54,9 @@ void main() {
     expect(find.textContaining("Emulators ·"), findsOneWidget);
   });
 
-  testWidgets("warns that lists will look empty when nothing answered",
-      (tester) async {
+  testWidgets("warns that lists will look empty when nothing answered", (
+    tester,
+  ) async {
     await pump(tester, FirebaseBootstrapStatus.emulatorsUnreachable);
 
     // The wording is the point: without it, the reasonable conclusion from a

@@ -17,8 +17,8 @@ class UserProfileRepository {
       _firestore.collection("users").doc(uid);
 
   Stream<UserProfile?> watch(String uid) => _doc(uid).snapshots().map(
-        (snap) => snap.exists ? UserProfile.fromJson(_withId(snap)) : null,
-      );
+    (snap) => snap.exists ? UserProfile.fromJson(_withId(snap)) : null,
+  );
 
   Future<UserProfile?> read(String uid) async {
     final snap = await _doc(uid).get();
@@ -57,7 +57,7 @@ class UserProfileRepository {
   }
 
   Map<String, dynamic> _withId(DocumentSnapshot<Map<String, dynamic>> snap) => {
-        ...?snap.data(),
-        "uid": snap.id,
-      };
+    ...?snap.data(),
+    "uid": snap.id,
+  };
 }

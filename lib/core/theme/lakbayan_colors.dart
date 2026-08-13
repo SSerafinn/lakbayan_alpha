@@ -114,24 +114,23 @@ class LakbayanColors extends ThemeExtension<LakbayanColors> {
     Color? badgeNeutralText,
     Color? badgeErrorFill,
     Color? badgeErrorText,
-  }) =>
-      LakbayanColors(
-        gold: gold ?? this.gold,
-        goldText: goldText ?? this.goldText,
-        goldContainer: goldContainer ?? this.goldContainer,
-        greenTint: greenTint ?? this.greenTint,
-        greenSubtle: greenSubtle ?? this.greenSubtle,
-        blueTint: blueTint ?? this.blueTint,
-        blueSubtle: blueSubtle ?? this.blueSubtle,
-        line: line ?? this.line,
-        textSecondary: textSecondary ?? this.textSecondary,
-        textDisabled: textDisabled ?? this.textDisabled,
-        textOnLightGreen: textOnLightGreen ?? this.textOnLightGreen,
-        badgeNeutralFill: badgeNeutralFill ?? this.badgeNeutralFill,
-        badgeNeutralText: badgeNeutralText ?? this.badgeNeutralText,
-        badgeErrorFill: badgeErrorFill ?? this.badgeErrorFill,
-        badgeErrorText: badgeErrorText ?? this.badgeErrorText,
-      );
+  }) => LakbayanColors(
+    gold: gold ?? this.gold,
+    goldText: goldText ?? this.goldText,
+    goldContainer: goldContainer ?? this.goldContainer,
+    greenTint: greenTint ?? this.greenTint,
+    greenSubtle: greenSubtle ?? this.greenSubtle,
+    blueTint: blueTint ?? this.blueTint,
+    blueSubtle: blueSubtle ?? this.blueSubtle,
+    line: line ?? this.line,
+    textSecondary: textSecondary ?? this.textSecondary,
+    textDisabled: textDisabled ?? this.textDisabled,
+    textOnLightGreen: textOnLightGreen ?? this.textOnLightGreen,
+    badgeNeutralFill: badgeNeutralFill ?? this.badgeNeutralFill,
+    badgeNeutralText: badgeNeutralText ?? this.badgeNeutralText,
+    badgeErrorFill: badgeErrorFill ?? this.badgeErrorFill,
+    badgeErrorText: badgeErrorText ?? this.badgeErrorText,
+  );
 
   @override
   LakbayanColors lerp(covariant LakbayanColors? other, double t) {
@@ -147,12 +146,21 @@ class LakbayanColors extends ThemeExtension<LakbayanColors> {
       line: Color.lerp(line, other.line, t)!,
       textSecondary: Color.lerp(textSecondary, other.textSecondary, t)!,
       textDisabled: Color.lerp(textDisabled, other.textDisabled, t)!,
-      textOnLightGreen:
-          Color.lerp(textOnLightGreen, other.textOnLightGreen, t)!,
-      badgeNeutralFill:
-          Color.lerp(badgeNeutralFill, other.badgeNeutralFill, t)!,
-      badgeNeutralText:
-          Color.lerp(badgeNeutralText, other.badgeNeutralText, t)!,
+      textOnLightGreen: Color.lerp(
+        textOnLightGreen,
+        other.textOnLightGreen,
+        t,
+      )!,
+      badgeNeutralFill: Color.lerp(
+        badgeNeutralFill,
+        other.badgeNeutralFill,
+        t,
+      )!,
+      badgeNeutralText: Color.lerp(
+        badgeNeutralText,
+        other.badgeNeutralText,
+        t,
+      )!,
       badgeErrorFill: Color.lerp(badgeErrorFill, other.badgeErrorFill, t)!,
       badgeErrorText: Color.lerp(badgeErrorText, other.badgeErrorText, t)!,
     );

@@ -9,22 +9,28 @@ import "package:flutter/foundation.dart";
 /// somebody's laptop.
 abstract final class AppConfig {
   /// Whether to route Auth/Firestore/Storage at the local Emulator Suite.
-  static const bool useFirebaseEmulators =
-      bool.fromEnvironment("USE_FIREBASE_EMULATORS");
+  static const bool useFirebaseEmulators = bool.fromEnvironment(
+    "USE_FIREBASE_EMULATORS",
+  );
 
-  static const String _emulatorHostOverride =
-      String.fromEnvironment("FIREBASE_EMULATOR_HOST");
+  static const String _emulatorHostOverride = String.fromEnvironment(
+    "FIREBASE_EMULATOR_HOST",
+  );
 
-  static const int authEmulatorPort =
-      int.fromEnvironment("FIREBASE_AUTH_EMULATOR_PORT", defaultValue: 9099);
+  static const int authEmulatorPort = int.fromEnvironment(
+    "FIREBASE_AUTH_EMULATOR_PORT",
+    defaultValue: 9099,
+  );
 
   static const int firestoreEmulatorPort = int.fromEnvironment(
     "FIREBASE_FIRESTORE_EMULATOR_PORT",
     defaultValue: 8080,
   );
 
-  static const int storageEmulatorPort =
-      int.fromEnvironment("FIREBASE_STORAGE_EMULATOR_PORT", defaultValue: 9199);
+  static const int storageEmulatorPort = int.fromEnvironment(
+    "FIREBASE_STORAGE_EMULATOR_PORT",
+    defaultValue: 9199,
+  );
 
   /// OAuth web client ID for Google Sign-In.
   ///
@@ -35,8 +41,9 @@ abstract final class AppConfig {
   ///
   /// Find it in the Firebase console under
   /// Authentication → Sign-in method → Google → Web SDK configuration.
-  static const String googleWebClientId =
-      String.fromEnvironment("GOOGLE_WEB_CLIENT_ID");
+  static const String googleWebClientId = String.fromEnvironment(
+    "GOOGLE_WEB_CLIENT_ID",
+  );
 
   /// Where the Emulator Suite is reachable from *this* device.
   ///

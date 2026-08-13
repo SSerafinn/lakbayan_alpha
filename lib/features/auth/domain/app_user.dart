@@ -66,19 +66,19 @@ enum AuthFailure {
   /// Deliberately vague for [invalidCredentials]: saying which of the email or
   /// the password was wrong tells an attacker which accounts exist.
   String get message => switch (this) {
-        invalidCredentials => "That email and password don't match.",
-        emailAlreadyInUse => "That email already has an account. Try logging in.",
-        weakPassword => "Use at least 8 characters.",
-        invalidEmail => "That doesn't look like an email address.",
-        userDisabled => "This account has been disabled.",
-        tooManyRequests => "Too many attempts. Wait a moment and try again.",
-        networkUnavailable => "You're offline. Connect and try again.",
-        cancelled => "Sign-in was cancelled.",
-        googleWebNotConfigured =>
-          "Google Sign-In isn't set up for web. Pass GOOGLE_WEB_CLIENT_ID — "
-              "see config/dev.json.",
-        unknown => "Something went wrong. Try again.",
-      };
+    invalidCredentials => "That email and password don't match.",
+    emailAlreadyInUse => "That email already has an account. Try logging in.",
+    weakPassword => "Use at least 8 characters.",
+    invalidEmail => "That doesn't look like an email address.",
+    userDisabled => "This account has been disabled.",
+    tooManyRequests => "Too many attempts. Wait a moment and try again.",
+    networkUnavailable => "You're offline. Connect and try again.",
+    cancelled => "Sign-in was cancelled.",
+    googleWebNotConfigured =>
+      "Google Sign-In isn't set up for web. Pass GOOGLE_WEB_CLIENT_ID — "
+          "see config/dev.json.",
+    unknown => "Something went wrong. Try again.",
+  };
 }
 
 /// Thrown by [AuthRepository]; carries a [AuthFailure] the UI can render.

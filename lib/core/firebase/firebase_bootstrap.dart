@@ -170,10 +170,14 @@ Future<void> _connectEmulators() async {
   final host = AppConfig.emulatorHost;
 
   await FirebaseAuth.instance.useAuthEmulator(host, AppConfig.authEmulatorPort);
-  FirebaseFirestore.instance
-      .useFirestoreEmulator(host, AppConfig.firestoreEmulatorPort);
-  await FirebaseStorage.instance
-      .useStorageEmulator(host, AppConfig.storageEmulatorPort);
+  FirebaseFirestore.instance.useFirestoreEmulator(
+    host,
+    AppConfig.firestoreEmulatorPort,
+  );
+  await FirebaseStorage.instance.useStorageEmulator(
+    host,
+    AppConfig.storageEmulatorPort,
+  );
 
   debugPrint(
     "Firebase emulators: auth :${AppConfig.authEmulatorPort}, "

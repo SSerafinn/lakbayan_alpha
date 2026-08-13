@@ -41,8 +41,9 @@ void main() {
     expect(find.byType(HomeShell), findsNothing);
   });
 
-  testWidgets("a signed-in user goes straight to the home shell",
-      (tester) async {
+  testWidgets("a signed-in user goes straight to the home shell", (
+    tester,
+  ) async {
     // Wireframe 1b: "Valid session -> straight to Explore, Auth never shown."
     final signedIn = FakeAuthRepository(
       initialUser: const AppUser(uid: "u1", email: "ana@example.com"),
@@ -85,7 +86,9 @@ void main() {
     expect(auth.signInCalls, 0, reason: "guest must not create an account");
   });
 
-  testWidgets("the design system gallery is reachable in debug", (tester) async {
+  testWidgets("the design system gallery is reachable in debug", (
+    tester,
+  ) async {
     await pumpApp(tester);
     await tester.tap(find.text("Skip for now — browse as guest"));
     await tester.pumpAndSettle();
