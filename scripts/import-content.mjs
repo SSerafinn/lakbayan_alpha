@@ -44,6 +44,11 @@ import { applicationDefault, cert, initializeApp } from "firebase-admin/app";
 import { FieldValue, getFirestore } from "firebase-admin/firestore";
 import { getStorage } from "firebase-admin/storage";
 
+// The slug is this importer's identity key — it is how a sheet row is matched
+// to a destination the CMS already created. Shared rather than reimplemented
+// for that reason; see the note in lib/slug.mjs.
+import { slugify } from "./lib/slug.mjs";
+
 // ---------------------------------------------------------------------------
 // Contract constants. These mirror the CMS and docs/DATA_MODEL.md; when the
 // schema moves, they move with it.
@@ -107,26 +112,8 @@ if (mediaDir && !existsSync(mediaDir)) {
 }
 
 // ---------------------------------------------------------------------------
-// Helpers shared with the CMS
+// Small helpers for reading sheet cells
 // ---------------------------------------------------------------------------
-
-/**
- * URL-safe slug from a name — character for character what
- * `cms/src/types/destination.ts` does.
- *
- * It has to match exactly. The slug is both the deep-link segment and this
- * importer's identity key, so a different implementation here would create a
- * second document for a destination the CMS already has.
- */
-function slugify(name) {
-  return name
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 60);
-}
 
 const text = (v) => (v === null || v === undefined ? "" : String(v).trim());
 

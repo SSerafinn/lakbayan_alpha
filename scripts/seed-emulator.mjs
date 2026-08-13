@@ -33,6 +33,8 @@ import { getAuth } from "firebase-admin/auth";
 import { FieldValue, getFirestore } from "firebase-admin/firestore";
 import { getStorage } from "firebase-admin/storage";
 
+import { slugify } from "./lib/slug.mjs";
+
 const PROJECT_ID = "demo-lakbayan";
 const SCHEMA_VERSION = 2;
 
@@ -131,7 +133,7 @@ async function ensureAdmin(email) {
   // Read-modify-write: setCustomUserClaims replaces the whole object, so a
   // blind set would drop any other claim. Same reasoning as grant-admin.mjs.
   await auth.setCustomUserClaims(user.uid, {
-    ...(user.customClaims ?? {}),
+    ...user.customClaims,
     admin: true,
   });
   return user;
@@ -207,17 +209,6 @@ function solidPng(width, height, [r, g, b]) {
 // ---------------------------------------------------------------------------
 // The content
 // ---------------------------------------------------------------------------
-
-/** Same derivation as the CMS and the importer — see cms/src/types/destination.ts. */
-function slugify(name) {
-  return name
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 60);
-}
 
 const DESTINATIONS = [
   {

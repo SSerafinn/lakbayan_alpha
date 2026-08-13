@@ -79,7 +79,8 @@ try {
 
   // Read-modify-write: setCustomUserClaims replaces the whole object, so a
   // blind set would silently drop any other claim the user has.
-  const claims = { ...(user.customClaims ?? {}) };
+  // Spreading null or undefined is already a no-op, so no `?? {}` is needed.
+  const claims = { ...user.customClaims };
   if (revoke) {
     delete claims.admin;
   } else {

@@ -75,6 +75,18 @@ export const CAGAYAN_CENTRE = { lat: 17.6132, lng: 121.727 };
  *
  * Strips diacritics first so "Peñablanca" becomes "penablanca" rather than
  * losing the ñ entirely — several Cagayan place names carry them.
+ *
+ * **`scripts/lib/slug.mjs` must produce the same string for the same input.**
+ * The CMS derives the slug when a destination is created; `import-content.mjs`
+ * re-derives it to decide whether a spreadsheet row is a destination that
+ * already exists. One character of disagreement and a re-import stops
+ * recognising them, creating a second copy of the province instead of updating
+ * it.
+ *
+ * The two cannot share code across the TypeScript/Node boundary, so they share
+ * a fixture instead: `scripts/lib/slug-cases.json`, asserted by `slug.test.ts`
+ * beside this file and by `scripts/lib/slug.test.mjs`. Change the behaviour
+ * here and both suites fail until the fixture is updated too.
  */
 export function slugify(name: string): string {
   return name
