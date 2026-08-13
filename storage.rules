@@ -11,6 +11,7 @@ service firebase.storage {
     // default instead of being world-readable the moment it is added.
     match /destinations/{destId}/images/{image} { allow read: if true; allow write: if isAdmin(); }
     match /destinations/{destId}/audio/{audio}  { allow read: if true; allow write: if isAdmin(); }
+    match /tours/{tourId}/{image}               { allow read: if true; allow write: if isAdmin(); }
     match /ar/{destId}/markers/{marker}         { allow read: if true; allow write: if isAdmin(); }
     match /tiles/{townId}/{pack}                { allow read: if true; allow write: if isAdmin(); }
 

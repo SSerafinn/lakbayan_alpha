@@ -930,6 +930,78 @@ table.data td a:hover {
   gap: var(--lk-space-2);
 }
 
+/* ---- tours ---------------------------------------------------------------
+   Screen 8. Same one-screen shape as guides: editor card above the table. The
+   stop list reuses the segment row's numbering and reorder controls, because
+   it is the same idea — an ordered list where the order is the content. */
+
+.tour-editor {
+  margin-bottom: var(--lk-space-6);
+}
+.tour-editor .savebar {
+  position: static;
+  margin-top: 0;
+  border: none;
+  border-top: 1px solid var(--lk-line);
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.stop-add {
+  margin-bottom: var(--lk-space-3);
+}
+.stop-add select {
+  height: 36px;
+  min-width: 280px;
+  padding: 0 var(--lk-space-3);
+  border: 1px solid var(--lk-line);
+  border-radius: var(--lk-radius-md);
+  background: var(--lk-surface);
+  font: inherit;
+  color: inherit;
+}
+
+.stop-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--lk-space-2);
+}
+.stop {
+  display: flex;
+  align-items: center;
+  gap: var(--lk-space-3);
+  padding: var(--lk-space-2) var(--lk-space-3);
+  border: 1px solid var(--lk-line);
+  border-radius: var(--lk-radius-md);
+  background: var(--lk-surface);
+}
+.stop-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+/* A stop pointing at a deleted destination is a live defect, so it reads as
+   one rather than as an empty row. */
+.stop-missing {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--lk-on-error-container);
+}
+
+/* The cover column stays narrow — the thumbnail is for recognition, not
+   inspection. */
+.tour-cover-cell {
+  width: 96px;
+}
+.tour-cover-cell .thumb {
+  width: 80px;
+}
+
 /* ---- local guides --------------------------------------------------------
    Screen 9. The editor sits above the table rather than on its own route: the
    wireframe gives guides one screen, and six fields do not justify a second.

@@ -42,8 +42,16 @@ destinations/{id}/segments/{sid}                               // audio guide st
   // sequence — a document written by hand or by a script need not honour it.
 offlineBundles/{townId}
   name, destinationIds[], tilePackRef, size, version, status   // pending | ready | stale
-tours/{id}
-  title, description, stops[] -> destId, coverImg, featured
+tours/{id}                        // id is slugify(title) — see below
+  title         string    required
+  description   string?
+  stops         string[]  required   // destination ids, in visiting order
+  coverImg      string?              // Storage path
+  featured      bool      default false
+  createdAt, updatedAt                // serverTimestamp
+  // No status field. `allow read: if true` below means a tour is public the
+  // moment the document exists, so there is no draft state to stage one in —
+  // the CMS refuses to save a tour that is not fit to be read instead.
 guides/{id}                                                    // real people — see below
   name          string    required
   town          string    required   // municipality
@@ -75,6 +83,14 @@ admin checks cost no extra read and `firestore.rules` / `storage.rules` stay
 consistent. Writing a `role` field from a client is rejected outright.
 
 Enums: `category` = church | nature | heritage | museum | food | landmark.
+
+**A tour's document id is `slugify(title)`, not a random one.** Destinations get
+random ids and carry a `slug` field; tours put the slug in the id instead, and
+both the CMS and `scripts/import-content.mjs` derive it the same way. That is
+what makes an import of a tour the CMS already has an update rather than a
+duplicate. Renaming a tour does **not** re-key it — the id keeps the original
+title's slug, which is the price of not orphaning anything that already points
+at it.
 
 **`guides` is the one content collection that is not world-readable.** Every row
 is a real person's contact details, so `firestore.rules` requires sign-in to
@@ -114,9 +130,14 @@ Two deliberate calls:
 /destinations/{id}/images/{timestamp}.{ext}        // uploaded via the CMS
 /destinations/{id}/images/{source-filename}.{ext}  // written by the importer
 /destinations/{id}/audio/{segmentId}.{ext}
+/tours/{id}/cover.{ext}
 /ar/{destId}/markers/{n}.jpg
 /tiles/{townId}/pack.mbtiles
 ```
+
+**`storage.rules` enumerates these paths one by one and denies everything else**,
+so a new asset location needs a rule added there before an upload will work. A
+tour cover written to any other path is rejected, not silently accepted.
 
 **Images have two naming conventions on purpose.** The CMS uses a timestamp so
 that deleting one photo never renumbers the survivors. `scripts/import-content.mjs`
