@@ -1,3 +1,4 @@
+import "package:animations/animations.dart";
 import "package:flutter/foundation.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
@@ -8,9 +9,11 @@ import "../../features/auth/presentation/splash_screen.dart";
 import "../../features/design_system/presentation/design_system_gallery.dart";
 import "../../features/destinations/presentation/destination_detail_screen.dart";
 import "../../features/explore/presentation/home_shell.dart";
+import "../../features/landing/presentation/landing_screen.dart";
 
 abstract final class Routes {
   static const splash = "/splash";
+  static const landing = "/landing";
   static const signIn = "/sign-in";
   static const home = "/";
   static const designSystem = "/design-system";
@@ -45,10 +48,18 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 
       final signedIn = auth.value != null;
       final mayEnter = signedIn || isGuest;
-      final atGate = here == Routes.splash || here == Routes.signIn;
+      final atGate =
+          here == Routes.splash ||
+          here == Routes.landing ||
+          here == Routes.signIn;
 
+      // No account yet: open on the landing page, which hands off to sign-in.
+      // Both stay reachable while signed out so "Skip" and the back gesture
+      // work. Once signed in — or browsing as guest — the branch below sends
+      // the user on and the landing page is never shown again.
       if (!mayEnter) {
-        return atGate && here == Routes.signIn ? null : Routes.signIn;
+        final atEntry = here == Routes.landing || here == Routes.signIn;
+        return atEntry ? null : Routes.landing;
       }
       if (atGate) return Routes.home;
       return null;
@@ -59,8 +70,26 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const SplashScreen(),
       ),
       GoRoute(
+        path: Routes.landing,
+        builder: (context, state) => const LandingScreen(),
+      ),
+      GoRoute(
         path: Routes.signIn,
-        builder: (context, state) => const SignInScreen(),
+        // Shared axis, vertical: Material's own pattern for screens with a
+        // navigational relationship, onboarding into auth among them.
+        pageBuilder: (context, state) => CustomTransitionPage<void>(
+          key: state.pageKey,
+          transitionDuration: const Duration(milliseconds: 420),
+          reverseTransitionDuration: const Duration(milliseconds: 360),
+          child: const SignInScreen(),
+          transitionsBuilder: (context, animation, secondary, child) =>
+              SharedAxisTransition(
+                animation: animation,
+                secondaryAnimation: secondary,
+                transitionType: SharedAxisTransitionType.vertical,
+                child: child,
+              ),
+        ),
       ),
       GoRoute(
         path: Routes.home,

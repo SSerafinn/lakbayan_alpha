@@ -13,6 +13,10 @@ abstract final class AppTypography {
   static const headingFamily = "PlusJakartaSans";
   static const bodyFamily = "Inter";
 
+  /// Display face for the landing page. Not part of the type scale — it is a
+  /// brand voice for the first screen only, never body or UI text.
+  static const brandFamily = "Barabara";
+
   static TextStyle _heading({
     required double size,
     required FontWeight weight,
@@ -49,6 +53,36 @@ abstract final class AppTypography {
     size: 36,
     weight: FontWeight.w700,
     height: 1.15,
+  );
+
+  /// Landing-page hero.
+  ///
+  /// Barabara is a static OTF, so unlike the scale above there is no `wght`
+  /// axis to set. Its cmap covers **A–Z, digits and punctuation only** — there
+  /// are no lowercase glyphs, so any lowercase character silently falls back
+  /// to another face. Copy set in this style must be uppercase.
+  ///
+  /// Sized to fit an eight-character line at 360dp of usable width; display
+  /// faces sit tall in the line box, hence the generous `height`.
+  static const brandDisplay = TextStyle(
+    fontFamily: brandFamily,
+    fontSize: 48,
+    height: 1.16,
+    letterSpacing: 1,
+    color: AppColors.ink900,
+  );
+
+  /// The Lakbayan wordmark. Same face as [brandDisplay], a step down.
+  ///
+  /// Coloured at the call site, one span per syllable, from the `ef*Ink`
+  /// values in [AppColors]: the province's own hues darkened until they clear
+  /// contrast. Not part of the design system's type scale.
+  static const brandWordmark = TextStyle(
+    fontFamily: brandFamily,
+    fontSize: 42,
+    height: 1.1,
+    letterSpacing: 1.5,
+    color: AppColors.textOnLightGreen,
   );
 
   static final h1 = _heading(size: 28, weight: FontWeight.w700, height: 1.2);
