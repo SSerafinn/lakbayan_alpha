@@ -14,7 +14,8 @@ import "lakbayan_colors.dart";
 /// - Primary action = green/500 fill. Secondary = blue/500 outline.
 /// - Gold is an accent for badges only and is intentionally NOT wired to any
 ///   button or action role — it lives in [LakbayanColors].
-/// - Corners are 12–16dp; pill only for buttons and chips.
+/// - Corners are 12–16dp. Buttons take 16dp; the pill is reserved for
+///   chips, per the 2026-08 rebrand.
 ThemeData buildAppTheme() => _build(Brightness.light);
 
 ThemeData buildAppDarkTheme() => _build(Brightness.dark);
@@ -80,7 +81,10 @@ ThemeData _build(Brightness brightness) {
       surfaceTintColor: Colors.transparent,
     ),
 
-    // Primary — green fill, pill, 48dp tall to meet the touch target minimum.
+    // Primary — green fill, 48dp tall to meet the touch target minimum.
+    // 16dp corners rather than a pill since the 2026-08 rebrand: a pill at
+    // full width reads as a tag, and the softer rectangle sits better with
+    // the field shape above it.
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
         backgroundColor: scheme.primary,
@@ -88,8 +92,8 @@ ThemeData _build(Brightness brightness) {
         disabledBackgroundColor: AppColors.disabledFill,
         disabledForegroundColor: AppColors.slate300,
         minimumSize: const Size(0, AppSize.minTouchTarget),
-        padding: const EdgeInsets.symmetric(horizontal: 22),
-        shape: const RoundedRectangleBorder(borderRadius: AppRadius.pillAll),
+        padding: const EdgeInsets.symmetric(horizontal: AppSpace.x4),
+        shape: const RoundedRectangleBorder(borderRadius: AppRadius.lgAll),
         textStyle: AppTypography.label,
       ),
     ),
@@ -101,7 +105,7 @@ ThemeData _build(Brightness brightness) {
         side: BorderSide(color: scheme.secondary, width: 1.5),
         minimumSize: const Size(0, AppSize.minTouchTarget),
         padding: const EdgeInsets.symmetric(horizontal: 22),
-        shape: const RoundedRectangleBorder(borderRadius: AppRadius.pillAll),
+        shape: const RoundedRectangleBorder(borderRadius: AppRadius.lgAll),
         textStyle: AppTypography.label,
       ),
     ),
@@ -168,24 +172,44 @@ ThemeData _build(Brightness brightness) {
       ),
     ),
 
+    // Soft-filled fields with no resting outline. A boxed field on a white
+    // sheet reads as a form to be processed; a filled one reads as a place to
+    // write. The border appears only on focus, so the ring is information
+    // rather than decoration.
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: scheme.surface,
+      fillColor: isDark ? AppColors.darkSurface : AppColors.background,
+      // Comfortable without being tall: a field this size still clears the
+      // touch target with the text vertically centred in it.
       contentPadding: const EdgeInsets.symmetric(
         horizontal: AppSpace.x4,
-        vertical: AppSpace.x3,
+        vertical: AppSpace.x4,
       ),
-      border: OutlineInputBorder(
-        borderRadius: AppRadius.mdAll,
-        borderSide: BorderSide(color: brand.line),
+      isDense: true,
+      border: const OutlineInputBorder(
+        borderRadius: AppRadius.lgAll,
+        borderSide: BorderSide.none,
       ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: AppRadius.mdAll,
-        borderSide: BorderSide(color: brand.line),
+      enabledBorder: const OutlineInputBorder(
+        borderRadius: AppRadius.lgAll,
+        borderSide: BorderSide.none,
       ),
       focusedBorder: OutlineInputBorder(
-        borderRadius: AppRadius.mdAll,
+        borderRadius: AppRadius.lgAll,
         borderSide: BorderSide(color: scheme.primary, width: 1.5),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: AppRadius.lgAll,
+        borderSide: BorderSide(color: scheme.error),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: AppRadius.lgAll,
+        borderSide: BorderSide(color: scheme.error, width: 1.5),
+      ),
+      labelStyle: AppTypography.body.copyWith(color: brand.textSecondary),
+      floatingLabelStyle: AppTypography.caption.copyWith(
+        color: scheme.primary,
+        letterSpacing: 0.6,
       ),
       hintStyle: AppTypography.body.copyWith(color: brand.textDisabled),
     ),

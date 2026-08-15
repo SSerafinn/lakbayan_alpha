@@ -383,6 +383,7 @@ where neither owns them. See `docs/DECISIONS.md` D-10.
 ```
 lib/core/        theme, router, models, services shared across features
 lib/features/    one folder per feature (data/domain/presentation)
+lib/features/landing/  the first screens a new visitor sees, before sign-in
 cms/             admin CMS — React + Vite (see cms/README.md)
 design/          tokens.json — single source of truth for BOTH apps' styling
 config/          run configuration — dev.json shared, local.json yours

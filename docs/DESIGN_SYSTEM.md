@@ -46,7 +46,10 @@ structurally so the code resists breaking them:
 - **Never white text on gold.** Use `ink/900`.
 - **Primary = green/500 fill. Secondary = blue/500 outline.** Blue never carries
   the primary CTA; it is for links, map surfaces and secondary actions.
-- **Corners 12–16dp**, pill only for buttons and chips. No heavy colour bars.
+- **Corners 12–16dp.** Buttons take 16dp; the **pill is reserved for chips**.
+  Changed 2026-08 in the rebrand: a full-width pill reads as a tag rather than
+  an action, and the softer rectangle sits with the input fields above it. The
+  earlier rule said pill for buttons *and* chips. No heavy colour bars.
 - **48dp minimum touch target** on anything tappable.
 - Photography is the hero — keep the chrome calm.
 
@@ -55,6 +58,28 @@ structurally so the code resists breaking them:
 Plus Jakarta Sans (headings) and Inter (body) are **bundled** in `assets/fonts/`,
 not fetched via `google_fonts`. Offline-first is a hard guardrail and `google_fonts`
 downloads on first run by default.
+
+### Barabara — display face, added for the landing page (v1)
+
+A third family, **Barabara**, carries the landing page's greetings and the
+Lakbayan wordmark. It is a brand voice for the first screens only: never body,
+never UI labels, never a substitute for the scale above. `AppTypography`
+exposes it as `brandDisplay` and `brandWordmark`.
+
+Two things it does that the other two do not:
+
+- **It has no lowercase glyphs.** Its cmap covers `A-Z`, digits and
+  punctuation. A lowercase character does not fall back visibly — it silently
+  renders in another face, so a mixed-case string comes out in two typefaces.
+  **Copy set in Barabara must be uppercase.** It also has `'` but no `"`.
+- **It is a static OTF**, so unlike the two variable fonts there is no `wght`
+  axis and no `FontVariation` to set.
+
+**Open:** the file at `assets/fonts/Barabara/Barabara.otf` ships without a
+licence, while Inter and Plus Jakarta Sans each carry their `*-OFL.txt`
+alongside. Display faces are frequently licensed for personal use only, which
+would not cover a provincial government app. **Confirm the licence before
+release** and commit it beside the font.
 
 Both are **variable** fonts. That has a sharp edge: on a variable font `fontWeight`
 alone selects the file's default instance, so every style in `app_typography.dart`

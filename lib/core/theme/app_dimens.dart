@@ -62,9 +62,9 @@ abstract final class AppSize {
   static const dragHandleWidth = 36.0;
   static const dragHandleHeight = 4.0;
 
-  /// How far the auth sheet rides up over the illustrated header. Generous, so
-  /// the form has room without the artwork being cropped further.
-  static const authCardOverlap = 116.0;
+  /// How far the auth sheet rides up over the illustrated header. Enough to
+  /// give the form room without covering the lighthouse behind it.
+  static const authCardOverlap = 96.0;
 
   /// Two lines of [AppTypography.brandDisplay], with headroom for the tall
   /// caps of a display face. Reserved so copy does not shift while a heading
