@@ -36,7 +36,11 @@ void main() {
         child: const LakbayanApp(),
       ),
     );
-    await tester.pumpAndSettle();
+    // Not pumpAndSettle: signed out, the app opens on the landing page, whose
+    // greeting and swipe chevron animate on repeating controllers. An idle
+    // tree never arrives, so advance the clock by hand instead.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 700));
   }
 
   testWidgets("says nothing when no status was reported", (tester) async {

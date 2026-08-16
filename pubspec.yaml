@@ -9,6 +9,8 @@ environment:
   sdk: ^3.8.0
 
 dependencies:
+  animated_text_kit: ^4.3.0
+  animations: ^2.2.0
   audio_service: ^0.18.19
   cached_network_image: ^3.4.1
   cloud_firestore: ^6.7.1
@@ -34,9 +36,11 @@ dependencies:
   json_annotation: ^4.9.0
   just_audio: ^0.10.6
   latlong2: ^0.10.1
+  lottie: ^3.3.2
   path_provider: ^2.1.6
   # Capped below 4.0.5, which requires Dart >=3.12 (this project is on 3.11.4).
   riverpod_annotation: ">=4.0.0 <4.0.5"
+  smooth_sheets: ^1.1.1
 
 dev_dependencies:
   flutter_test:
@@ -54,6 +58,9 @@ dev_dependencies:
 flutter:
   uses-material-design: true
 
+  assets:
+    - assets/images/
+
   # Bundled rather than fetched via google_fonts: offline-first is a hard
   # guardrail, and google_fonts downloads at first run by default.
   # Both are variable fonts — see the FontVariation note in app_typography.dart.
@@ -64,3 +71,7 @@ flutter:
     - family: Inter
       fonts:
         - asset: assets/fonts/Inter.ttf
+    # Display face, landing page only. Static OTF, so no `wght` axis to set.
+    - family: Barabara
+      fonts:
+        - asset: assets/fonts/Barabara/Barabara.otf
