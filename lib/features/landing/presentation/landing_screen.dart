@@ -1,6 +1,10 @@
+import "dart:async";
+
 import "package:flutter/material.dart";
+import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
 
+import "../../../core/prefs/app_preferences.dart";
 import "../../../core/router/app_router.dart";
 import "../../../core/theme/app_dimens.dart";
 import "../../../core/theme/lakbayan_colors.dart";
@@ -11,14 +15,14 @@ import "landing_widgets.dart";
 ///
 /// Keep the pages **outside** the [AnimatedBuilder]s. Rebuilding them on every
 /// scroll frame restarts their text animation mid-drag.
-class LandingScreen extends StatefulWidget {
+class LandingScreen extends ConsumerStatefulWidget {
   const LandingScreen({super.key});
 
   @override
-  State<LandingScreen> createState() => _LandingScreenState();
+  ConsumerState<LandingScreen> createState() => _LandingScreenState();
 }
 
-class _LandingScreenState extends State<LandingScreen> {
+class _LandingScreenState extends ConsumerState<LandingScreen> {
   final PageController _controller = PageController();
 
   static const double _handoffPull = 56;
@@ -43,6 +47,17 @@ class _LandingScreenState extends State<LandingScreen> {
   void _leave() {
     if (_leaving) return;
     setState(() => _leaving = true);
+
+    // Recorded on the way out rather than on first paint: someone who opens
+    // the app and kills it on page one has not read the introduction, and
+    // should get it again. Reaching sign-in is what counts as having seen it.
+    //
+    // Not awaited — the navigation should not wait on a disk write, and if the
+    // write loses a race with the app being killed the only cost is seeing the
+    // pages once more.
+    final prefs = ref.read(appPreferencesProvider);
+    if (prefs != null) unawaited(prefs.markLandingSeen());
+
     context.push(Routes.signIn).then((_) {
       if (mounted) setState(() => _leaving = false);
     });
