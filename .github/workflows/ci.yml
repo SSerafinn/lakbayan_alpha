@@ -34,9 +34,19 @@ jobs:
           flutter-version: 3.41.6 # keep in step with the team's local SDK
           cache: true
 
-      # Before pub get and codegen: formatting needs neither, and putting it
-      # first turns a whitespace mistake into a 20-second failure instead of a
-      # ten-minute one.
+      - run: flutter pub get
+
+      # After pub get, before codegen.
+      #
+      # It ran first originally, on the reasoning that formatting needs neither
+      # step — which is true, but the formatter still reads analysis_options.yaml,
+      # and that file `include:`s package:flutter_lints. With no package
+      # resolution yet it cannot follow the include, so every run printed a
+      # screenful of "Failed to resolve package URI" warnings. Harmless, and
+      # more than enough to bury a real message.
+      #
+      # Still ahead of build_runner, which is the genuinely slow step, so a
+      # whitespace mistake fails in well under a minute rather than ten.
       #
       # Only tracked files. Generated sources (*.freezed.dart, *.g.dart) are
       # gitignored but do exist once build_runner has run, and they are its
@@ -45,8 +55,6 @@ jobs:
       # `flutter analyze` does not check formatting, which is how a de-indented
       # line with trailing whitespace once passed CI untouched.
       - run: dart format --output=none --set-exit-if-changed $(git ls-files '*.dart')
-
-      - run: flutter pub get
 
       # Generated sources are gitignored, so this must run before analyze.
       - run: dart run build_runner build
