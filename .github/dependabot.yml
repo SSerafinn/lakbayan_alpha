@@ -28,6 +28,22 @@ updates:
     open-pull-requests-limit: 3
     commit-message:
       prefix: "chore(deps)"
+    groups:
+      # The FlutterFire packages share a native Firebase Android SDK, pulled in
+      # transitively, so raising one moves the native floor for all of them.
+      # Split into separate PRs they break each other: bumping firebase_storage
+      # alone (#45) passed analyze and every test, then failed the APK build
+      # compiling a *different* package —
+      #
+      #   firebase_auth-6.5.7/.../FlutterFirebaseAuthPlugin.java:140:
+      #   error: cannot find symbol
+      #
+      # firebase_auth 6.6.1 built fine on its own (#44). Neither PR was wrong;
+      # they simply had to land together.
+      firebase:
+        patterns:
+          - firebase_*
+          - cloud_firestore
 
   - package-ecosystem: npm
     directory: /cms
