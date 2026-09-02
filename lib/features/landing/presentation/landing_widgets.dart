@@ -42,20 +42,31 @@ class LandingPageContent extends StatelessWidget {
           const SizedBox(height: AppSpace.x6),
           SizedBox(
             height: AppSize.brandDisplayBlock,
-            child: AnimatedTextKit(
-              key: ValueKey(page.greeting),
-              repeatForever: true,
-              pause: const Duration(milliseconds: 2200),
-              animatedTexts: [
-                TyperAnimatedText(
-                  page.greeting,
-                  textStyle: AppTypography.brandDisplay.copyWith(
-                    color: scheme.onSurface,
+            // The greeting types itself out and repeats forever, which is the
+            // character of the screen — and exactly what someone who has asked
+            // the system to reduce motion does not want looping at them. They
+            // get the finished words instead; nothing is lost but the effect.
+            child: MediaQuery.disableAnimationsOf(context)
+                ? Text(
+                    page.greeting,
+                    style: AppTypography.brandDisplay.copyWith(
+                      color: scheme.onSurface,
+                    ),
+                  )
+                : AnimatedTextKit(
+                    key: ValueKey(page.greeting),
+                    repeatForever: true,
+                    pause: const Duration(milliseconds: 2200),
+                    animatedTexts: [
+                      TyperAnimatedText(
+                        page.greeting,
+                        textStyle: AppTypography.brandDisplay.copyWith(
+                          color: scheme.onSurface,
+                        ),
+                        speed: const Duration(milliseconds: 65),
+                      ),
+                    ],
                   ),
-                  speed: const Duration(milliseconds: 65),
-                ),
-              ],
-            ),
           ),
           const SizedBox(height: AppSpace.x5),
           ConstrainedBox(
@@ -130,7 +141,30 @@ class SwipeHintState extends State<SwipeHint>
   late final AnimationController _nudge = AnimationController(
     vsync: this,
     duration: const Duration(milliseconds: 850),
-  )..repeat(reverse: true);
+  );
+
+  /// Whether the nudge is running.
+  ///
+  /// Exposed so the reduced-motion test can assert on the animation itself
+  /// rather than on a pixel offset, which would pass for the wrong reason the
+  /// moment the nudge distance changed.
+  bool get isNudging => _nudge.isAnimating;
+
+  /// Started here rather than in the initialiser because whether it should run
+  /// at all depends on `MediaQuery`, which is not available until dependencies
+  /// resolve. Left at rest under reduced motion, so the chevron simply sits
+  /// still — it is a hint, and it still points the right way without moving.
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final reduce = MediaQuery.disableAnimationsOf(context);
+    if (reduce && _nudge.isAnimating) {
+      _nudge.stop();
+      _nudge.value = 0;
+    } else if (!reduce && !_nudge.isAnimating) {
+      _nudge.repeat(reverse: true);
+    }
+  }
 
   @override
   void dispose() {

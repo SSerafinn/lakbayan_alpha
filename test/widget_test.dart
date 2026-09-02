@@ -43,10 +43,14 @@ void main() {
     await settle(tester);
   }
 
-  /// The landing page is the signed-out entry point, so any test that needs
-  /// the sign-in screen travels through it first. There is no skip control by
-  /// design: the only way out is to swipe past the last page, or tap the
-  /// chevron that does the same thing.
+  /// The landing page is the signed-out entry point **on a fresh device**, so
+  /// any test that needs the sign-in screen travels through it first. There is
+  /// no skip control by design: the only way out is to swipe past the last
+  /// page, or tap the chevron that does the same thing.
+  ///
+  /// These tests override no preferences, which reads as "landing not yet
+  /// seen". Once it has been, a signed-out launch goes straight to sign-in —
+  /// covered in test/features/landing/landing_test.dart.
   Future<void> leaveLanding(WidgetTester tester) async {
     for (var i = 0; i < 3; i++) {
       await tester.tap(find.byIcon(Icons.chevron_right_rounded));

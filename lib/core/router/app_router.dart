@@ -10,6 +10,7 @@ import "../../features/design_system/presentation/design_system_gallery.dart";
 import "../../features/destinations/presentation/destination_detail_screen.dart";
 import "../../features/explore/presentation/home_shell.dart";
 import "../../features/landing/presentation/landing_screen.dart";
+import "../prefs/app_preferences.dart";
 
 abstract final class Routes {
   static const splash = "/splash";
@@ -53,13 +54,26 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           here == Routes.landing ||
           here == Routes.signIn;
 
-      // No account yet: open on the landing page, which hands off to sign-in.
-      // Both stay reachable while signed out so "Skip" and the back gesture
-      // work. Once signed in — or browsing as guest — the branch below sends
-      // the user on and the landing page is never shown again.
+      // No account yet. The landing pages are an introduction, so they run
+      // **once per device** and afterwards the entry point is sign-in.
+      //
+      // Showing them on every signed-out launch quietly undid the guest
+      // escape hatch: guest mode is session-only by design (see
+      // [GuestMode]), so someone browsing as a guest is signed out again on
+      // the next launch — and would have had to swipe through three pages of
+      // onboarding to reach "Skip for now" every single time. Wireframe 1b
+      // has guest keeping discovery open, not gated behind a carousel.
+      //
+      // Both routes stay reachable while signed out, so the back gesture out
+      // of sign-in still works.
       if (!mayEnter) {
         final atEntry = here == Routes.landing || here == Routes.signIn;
-        return atEntry ? null : Routes.landing;
+        if (atEntry) return null;
+        // Null preferences (tests, or Hive unavailable) reads as "not seen",
+        // which shows the landing page. The safe direction to fail.
+        final seenLanding =
+            ref.read(appPreferencesProvider)?.hasSeenLanding ?? false;
+        return seenLanding ? Routes.signIn : Routes.landing;
       }
       if (atGate) return Routes.home;
       return null;
