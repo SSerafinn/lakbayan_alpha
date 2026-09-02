@@ -92,14 +92,29 @@ class FirebaseAuthRepository implements AuthRepository {
 
   @override
   Future<void> signOut() async {
-    // Sign out of Google too, or the next sign-in silently reuses the account
-    // and the user cannot switch identities.
-    try {
-      await GoogleSignIn.instance.signOut();
-    } catch (_) {
-      // Never configured or never used — not a reason to block sign-out.
-    }
+    // **Firebase first.** This is the sign-out the user actually asked for,
+    // and nothing below may be able to prevent it.
+    //
+    // It used to run second, after signing out of Google, and that made
+    // sign-out silently do nothing for anyone who had signed in with an email
+    // address. `GoogleSignIn.instance` is only ever initialized inside
+    // [signInWithGoogle], so in that case the call below runs against an
+    // uninitialized plugin — and on web it never completes rather than
+    // throwing. A `catch` does nothing about a hang, so `_auth.signOut()` was
+    // never reached: the user stayed signed in, the router never redirected,
+    // and not one line was logged anywhere.
     await _auth.signOut();
+
+    // Signing out of Google as well is a nicety, not a requirement: without it
+    // the next Google sign-in silently reuses the account and the user cannot
+    // switch identities. Best-effort, and time-boxed so a plugin that hangs
+    // costs three seconds rather than the whole operation.
+    try {
+      await GoogleSignIn.instance.signOut().timeout(const Duration(seconds: 3));
+    } catch (_) {
+      // Never configured, never used, or too slow to be worth waiting for.
+      // Firebase is already signed out, which is the part that mattered.
+    }
   }
 
   AppUser? _toAppUser(fb.User? user) => user == null

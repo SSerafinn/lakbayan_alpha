@@ -42,6 +42,22 @@ dependencies:
   riverpod_annotation: ">=4.0.0 <4.0.5"
   smooth_sheets: ^1.1.2
 
+dependency_overrides:
+  # Pinned back one version to keep the **web** target compiling. 3.11.0 calls
+  # `isA<JSObject>()` from dart:js_interop, which does not exist in Dart 3.11.4
+  # — the SDK this project pins. Its own constraint says `sdk: ^3.6.0`, which is
+  # simply wrong, so pub resolves it happily and the build then fails with
+  # "The method 'isA' isn't defined for the type 'Object'".
+  #
+  # It arrived transitively with firebase_auth 6.6.1 (#44) and went unnoticed
+  # because CI only builds Android — `flutter build apk` never compiles
+  # firebase_core_web. Web is a development convenience here, not a shipped
+  # target, and this package is web-only, so Android is unaffected either way.
+  #
+  # Remove this when the Flutter SDK moves to 3.47.x, which also unblocks
+  # go_router 18 (closed as #46 for the same underlying reason).
+  firebase_core_web: 3.10.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
