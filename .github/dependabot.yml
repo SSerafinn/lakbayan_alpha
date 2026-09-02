@@ -40,10 +40,15 @@ updates:
       #
       # firebase_auth 6.6.1 built fine on its own (#44). Neither PR was wrong;
       # they simply had to land together.
+      # FlutterFire is `firebase_*` plus two packages that are not named for it
+      # at all. Both have to be listed, or they get their own PRs and the
+      # grouping does not do the one job it exists for. `cloud_functions` was
+      # missed first time round and Dependabot promptly opened it on its own.
       firebase:
         patterns:
           - firebase_*
           - cloud_firestore
+          - cloud_functions
 
   - package-ecosystem: npm
     directory: /cms
