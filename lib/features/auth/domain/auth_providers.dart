@@ -83,7 +83,12 @@ class AuthController extends _$AuthController {
   Future<void> signOut() async {
     state = const AsyncLoading();
     await ref.read(authRepositoryProvider).signOut();
-    state = const AsyncData(null);
+    // Signing out is exactly the case where this provider goes away mid-call:
+    // the auth stream emits null, the router redirects, and the screen holding
+    // it is disposed — all before this line. Writing state then throws
+    // "Cannot use the Ref ... after it has been disposed", which was showing
+    // up in the console on every sign-in and sign-out.
+    if (ref.mounted) state = const AsyncData(null);
   }
 
   /// Runs an auth call, then makes sure `users/{uid}` exists.
@@ -94,18 +99,31 @@ class AuthController extends _$AuthController {
   /// created on their next launch.
   Future<bool> _run(Future<AppUser> Function(AuthRepository) action) async {
     state = const AsyncLoading();
+
+    // Both repositories are read **before** the first await, not after it. A
+    // successful sign-in disposes this provider on the way through — the auth
+    // stream emits, the router redirects home, and the screen holding the
+    // controller is gone — and `ref.read` past that point throws rather than
+    // returning. Reading the profile repository after the gap is what put
+    // "Cannot use the Ref ... after it has been disposed" in the console.
+    final repository = ref.read(authRepositoryProvider);
+    final profiles = ref.read(userProfileRepositoryProvider);
+
     try {
-      final user = await action(ref.read(authRepositoryProvider));
+      final user = await action(repository);
       try {
-        await ref.read(userProfileRepositoryProvider).ensureProfile(user);
+        await profiles.ensureProfile(user);
       } catch (e, st) {
-        state = AsyncError(e, st);
+        if (ref.mounted) state = AsyncError(e, st);
         return true;
       }
-      state = const AsyncData(null);
+      if (ref.mounted) state = const AsyncData(null);
       return true;
     } on AuthException catch (e, st) {
-      state = AsyncError(e, st);
+      // Guarded like the rest: a failure can arrive after the caller has gone,
+      // and this one matters most — the screen that would show the error is
+      // usually still there, but it must not throw when it is not.
+      if (ref.mounted) state = AsyncError(e, st);
       return false;
     }
   }
