@@ -13,7 +13,7 @@ most of it downloads.
 
 | Tool | Version | Why this version |
 |---|---|---|
-| **Flutter SDK** | **3.41.6** | Pinned. CI and the Docker image use exactly this; a different minor can change generated code. |
+| **Flutter SDK** | **3.47.2** | Pinned. CI and the Docker image use exactly this; a different minor can change generated code. |
 | **JDK** | **17** | **Not 21, not 26.** Gradle 8.14 fails on anything newer — see step 2. |
 | **Android Studio** | latest | For the Android SDK, platform-tools and a device emulator. |
 | **Docker Desktop** | latest, WSL2 backend | Runs the Firebase emulators. |
@@ -57,7 +57,7 @@ cd lakbayan_alpha && flutter pub get
 ```
 
 ```bash
-dart run build_runner build --delete-conflicting-outputs
+dart run build_runner build
 ```
 
 **Codegen is not optional.** `*.freezed.dart` and `*.g.dart` are gitignored, so a
@@ -136,10 +136,6 @@ flutter analyze
 ```
 
 ```bash
-dart run custom_lint
-```
-
-```bash
 flutter test
 ```
 
@@ -147,10 +143,12 @@ flutter test
 cd test_rules && npm install && npm test
 ```
 
-`flutter analyze` does **not** run custom_lint plugins, so the riverpod_lint rules
-are inert without that second command. Run both before pushing.
+`flutter analyze` runs the riverpod_lint rules too — it is a native analyzer
+plugin (`plugins:` in `analysis_options.yaml`), so there is no second lint
+command. If you have an older checkout's habit of `dart run custom_lint`, that
+package is gone.
 
-It does not check formatting either, and CI does:
+It does not check formatting, and CI does:
 
 ```bash
 dart format $(git ls-files '*.dart')
@@ -213,7 +211,7 @@ Email/password sign-in works without any of this.
 |---|---|
 | Run the app | `flutter run --dart-define-from-file=config/dev.json` |
 | Codegen after model/provider changes | `dart run build_runner build` (or `/gen`) |
-| Static analysis | `flutter analyze` **and** `dart run custom_lint` |
+| Static analysis (includes riverpod_lint) | `flutter analyze` |
 | Format Dart before pushing | `dart format $(git ls-files '*.dart')` |
 | Flutter tests | `flutter test` |
 | Security-rules tests | `cd test_rules && npm test` |
@@ -324,10 +322,10 @@ the context the next person needs and the hardest to reconstruct later.
 
 ### Before you open a PR
 
-All four must pass. CI runs them anyway, but locally is faster than a red build:
+All three must pass. CI runs them anyway, but locally is faster than a red build:
 
 ```bash
-flutter analyze && dart run custom_lint && flutter test
+flutter analyze && flutter test
 ```
 
 ```bash

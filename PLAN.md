@@ -6,8 +6,8 @@ Two tracks run in parallel:
 - **Track B — Admin CMS** (`cms/`, React — see `docs/DECISIONS.md` D-04 and D-10).
 
 Work top-to-bottom within a track. Tick tasks as they land. Follow
-`docs/CONVENTIONS.md`; use the Skills in `.claude/skills/`. Run `flutter analyze`,
-`dart run custom_lint` and `flutter test` before committing; commit with `/commit`.
+`docs/CONVENTIONS.md`; use the Skills in `.claude/skills/`. Run `flutter analyze`
+and `flutter test` before committing; commit with `/commit`.
 
 > Tip for Claude Code: run `/implement-next` to pick up the first unchecked task.
 

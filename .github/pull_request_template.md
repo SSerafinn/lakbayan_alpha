@@ -18,7 +18,6 @@ alternative, or worked around something, say so here.
 <!-- Be specific: which screen, which device, what you actually saw. -->
 
 - [ ] `flutter analyze`
-- [ ] `dart run custom_lint`
 - [ ] `flutter test`
 - [ ] `cd test_rules && npm test` *(if `firestore.rules` changed)*
 - [ ] Ran on a device or emulator

@@ -70,10 +70,6 @@ docker compose run --rm toolchain flutter analyze
 ```
 
 ```bash
-docker compose run --rm toolchain dart run custom_lint
-```
-
-```bash
 docker compose run --rm toolchain flutter test
 ```
 
@@ -207,9 +203,21 @@ docker compose exec emulators firebase emulators:export /app/.emulator-data/seed
 
 The Flutter version is pinned in **three** places and they must move together:
 
-- `docker/flutter/Dockerfile` — the base image tag
+- `docker/flutter/Dockerfile` — the `FLUTTER_VERSION` build arg
 - `.github/workflows/ci.yml` — `flutter-version`
 - whatever the three of you have installed locally (`flutter --version`)
+
+The toolchain image installs the SDK itself — a `git clone` at the exact tag on
+a plain JDK 17 base — rather than starting from a prebuilt Flutter image. The
+public ones (`cirruslabs/flutter`, `instrumentisto/flutter`) both stopped
+tracking stable in 2026, which had left every SDK bump waiting on a third
+party. Bumping now means changing the arg and running
+`docker compose --profile tools build`.
+
+When you bump, also check the Android SDK args at the top of the Dockerfile
+against what the new Flutter wants (`compileSdkVersion`, `ndkVersion` in
+`packages/flutter_tools/gradle/src/main/kotlin/FlutterExtension.kt` at that
+tag). They usually move a version or two behind.
 
 `firebase-tools` is pinned in `docker/firebase/Dockerfile`.
 
