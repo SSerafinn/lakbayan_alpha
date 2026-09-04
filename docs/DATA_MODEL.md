@@ -68,6 +68,8 @@ users/{uid}                                                    // no role field 
   uid, email, displayName, photoUrl,                           // identity, refreshed each sign-in
   savedTourIds[], downloadedTownIds[],                         // denormalized for offline reads
   createdAt, updatedAt                                         // serverTimestamp
+  // Readable by the owner and by admins (the CMS Users screen); writable by
+  // the owner only. An admin cannot edit someone else's profile.
 ```
 
 `users/{uid}` is implemented as `UserProfile`
@@ -78,9 +80,12 @@ distinct create and update paths rather than a blind `set(merge: true)`, because
 on every login.
 
 **Admin rights are a custom auth claim (`request.auth.token.admin`), not a Firestore
-field.** A trusted Cloud Function sets it. Rules never read a `role` document, so
-admin checks cost no extra read and `firestore.rules` / `storage.rules` stay
-consistent. Writing a `role` field from a client is rejected outright.
+field.** The `setAdminRole` callable in `functions/` sets it, from the CMS Users
+screen; `scripts/grant-admin.mjs` bootstraps the very first admin. Rules never
+read a `role` document, so admin checks cost no extra read and `firestore.rules`
+/ `storage.rules` stay consistent. Writing a `role` field from a client is
+rejected outright. Because the claim lives on the Auth account, the set of
+admins and the set of `users/` documents are different lists — see D-12.
 
 Enums: `category` = church | nature | heritage | museum | food | landmark.
 

@@ -46,8 +46,12 @@ service cloud.firestore {
 
     // Each user owns their document. `role` is never client-writable; admin
     // rights live in custom claims, so no role field should be written at all.
+    //
+    // Admins may read (not write) any profile: the CMS Users screen lists
+    // them. Writes stay owner-only — an admin who needs to change someone's
+    // saved tours is a support case, not a feature.
     match /users/{uid} {
-      allow read: if isOwner(uid);
+      allow read: if isOwner(uid) || isAdmin();
       allow create: if isOwner(uid) && !('role' in request.resource.data);
       allow update: if isOwner(uid) && !('role' in request.resource.data);
       allow delete: if isOwner(uid);

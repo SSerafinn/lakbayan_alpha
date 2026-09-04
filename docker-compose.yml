@@ -21,10 +21,7 @@ services:
       # container, and the Emulator UI on 4000 shows the logs. The ranges are
       # assigned dynamically and move on reboot, so if another port here starts
       # failing the same way, check that command before anything else.
-      # Published ahead of time. The functions emulator is deliberately absent
-      # from firebase.json until Phase 3 creates functions/ — configuring it
-      # with no source makes the suite print a hard error on every startup.
-      - "5001:5001"   # functions (Phase 3)
+      - "5001:5001"   # functions
       - "8080:8080"   # firestore
       - "9099:9099"   # auth
       - "9150:9150"   # firestore websocket
@@ -38,11 +35,13 @@ services:
       - ./storage.rules:/app/storage.rules:ro
       # Auth users and Firestore documents survive a restart.
       - ./.emulator-data:/app/.emulator-data
-    command: >
-      firebase emulators:start
-      --project demo-lakbayan
-      --import=/app/.emulator-data
-      --export-on-exit=/app/.emulator-data
+      # Cloud Functions source. The container installs and builds it on start
+      # (docker/firebase/start.sh); lib/ lands back on the host through this
+      # mount, node_modules stays in the named volume below.
+      - ./functions:/app/functions
+      - functions-modules:/app/functions/node_modules
+      - ./docker/firebase/start.sh:/app/start.sh:ro
+    command: ["sh", "/app/start.sh"]
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:4000"]
       interval: 10s
@@ -83,6 +82,7 @@ services:
     tty: true
 
 volumes:
+  functions-modules:
   dart-tool:
   build-out:
   gradle-project:

@@ -1,9 +1,12 @@
-// Grant or revoke the `admin` custom claim.
+// Grant or revoke the `admin` custom claim — the BOOTSTRAP, for the first
+// admin on a fresh project.
 //
 // firestore.rules and storage.rules gate every content write on
-// `request.auth.token.admin == true`. Nothing else in this project sets that
-// claim, so without this script no account can write content — not the CMS,
-// not a seeding script, not you. It is the bootstrap.
+// `request.auth.token.admin == true`. Day to day, admins are added from the
+// CMS's Users & roles screen, which calls the `setAdminRole` function in
+// functions/. That screen needs an admin to open it, so the first one has to
+// come from here. After that, prefer the screen: it needs no service account
+// key, and it refuses the self-revoke this script will happily perform.
 //
 // Usage (emulator — the default, and safe):
 //   cd scripts && npm install

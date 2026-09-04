@@ -122,6 +122,15 @@ jobs:
       - run: npm run test
         working-directory: scripts
 
+      # functions/ too, for the same reason. `npm test` compiles first, so a
+      # type error fails here as well as a failing assertion.
+      - run: npm install
+        working-directory: functions
+      - run: npm run lint
+        working-directory: functions
+      - run: npm run test
+        working-directory: functions
+
   # firestore.rules is code and is reviewed like code. It is evaluated by the
   # emulator rather than by Dart, so it gets its own job.
   rules:
@@ -146,4 +155,9 @@ jobs:
 
       # emulators:exec starts the suite, runs the command, and tears it down,
       # failing the job if the command does.
-      - run: firebase emulators:exec --project demo-lakbayan "cd test_rules && npm test"
+      #
+      # --only firestore: firebase.json now declares functions/, and without
+      # this flag the suite would also try to start the functions emulator —
+      # which needs functions/lib built and would fail this job for a reason
+      # that has nothing to do with the rules.
+      - run: firebase emulators:exec --only firestore --project demo-lakbayan "cd test_rules && npm test"

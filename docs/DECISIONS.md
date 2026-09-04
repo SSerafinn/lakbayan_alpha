@@ -99,6 +99,36 @@ whole municipality at high zoom. Measured: a municipality at maxzoom 16 is
 ~25–60 MB of raster, at maxzoom 15 ~6–16 MB. Retrofitting this after shipping
 whole-municipality packs means re-downloading everything.
 
+## D-12 · Cloud Functions: `functions/`, Singapore, callables for what a browser must not do (2026-09-04)
+
+**Accepted.** The first Cloud Functions land with the CMS Users screen, and they
+set the shape for the ones Phase 3 adds (`generateOfflineBundle`):
+
+- **One codebase, `functions/`**, TypeScript compiled to `lib/`, ESM, Node 22.
+  Linted and unit-tested in the `cms` CI job alongside `scripts/` — the
+  required-check list is fixed by name (see `docs/REPO_SETTINGS.md`), so a new
+  job would not gate merges.
+- **Region `asia-southeast1`** (Singapore), the nearest that offers 2nd-gen
+  functions. Firestore's own location is separate and unaffected. The CMS
+  names the region explicitly; a mismatch 404s rather than errors, which is
+  why both sides carry a comment pointing here.
+- **Callables, not Firestore triggers, for admin actions.** `setAdminRole` and
+  `listAdmins` exist because custom claims can only be set by the Admin SDK,
+  and the Admin SDK must never run in a browser. The alternative — an
+  `admins/` collection the rules read — would cost a document read on every
+  write check and give the claim two sources of truth. Rejected; the claim
+  stays the only authority, as D-09 established.
+- **The function refuses a self-revoke.** The last admin revoking their own
+  claim would lock content editing until someone found a service account key.
+  Two admins can still revoke each other, so this is a guard against the
+  likely mistake, not a guarantee.
+- **`scripts/grant-admin.mjs` stays** — as the bootstrap for the first admin
+  on a fresh project, which by definition cannot be done from a screen that
+  requires an admin. It is no longer the way to add a colleague.
+
+Consequences: the emulators container now builds `functions/` on every start
+(`docs/DOCKER.md`), and deploying will need the Blaze plan.
+
 ## D-10 · Monorepo — the CMS lives in `cms/`, not a separate repo (2026-08-04)
 
 **Accepted. This reverses D-04's "separate repo"**; the React choice stands.

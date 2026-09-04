@@ -15,6 +15,7 @@ import { DestinationEditorPage } from "./pages/DestinationEditorPage";
 import { GuidesPage } from "./pages/GuidesPage";
 import { PlaceholderPage } from "./pages/PlaceholderPage";
 import { ToursPage } from "./pages/ToursPage";
+import { UsersPage } from "./pages/UsersPage";
 import { useEmulators } from "./lib/firebase";
 import { ToastProvider } from "./components/Toast";
 import {
@@ -125,10 +126,7 @@ const router = createBrowserRouter([
         path: "bundles",
         element: <PlaceholderPage title="Offline bundles" phase="CMS-3" />,
       },
-      {
-        path: "users",
-        element: <PlaceholderPage title="Users & roles" phase="CMS-3" />,
-      },
+      { path: "users", element: <UsersPage /> },
       {
         path: "settings",
         element: <PlaceholderPage title="Settings" phase="CMS-4" />,

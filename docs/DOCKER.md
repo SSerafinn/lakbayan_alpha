@@ -156,13 +156,37 @@ docker compose run --rm toolchain flutter pub get
 
 and on the host, `flutter pub get`. They are independent; run both.
 
-## Cloud Functions (Phase 3)
+## Cloud Functions
 
-The functions emulator is intentionally **not** in `firebase.json`. Declaring it
-without a `functions/` directory makes the whole suite print a hard error on every
-startup. When Phase 3 adds `functions/`, add both a top-level `"functions"` block
-and `"functions": { "port": 5001, "host": "0.0.0.0" }` under `"emulators"`. Port
-5001 is already published in `docker-compose.yml`.
+`functions/` is TypeScript, compiled to `functions/lib/` by `tsc`. The functions
+emulator runs `lib/`, so **the emulators container builds it on every start**
+(`docker/firebase/start.sh`): `npm install` into a named volume, `tsc`, then
+`firebase emulators:start`. That is why `docker compose up emulators` is still
+one command after a checkout, and why a stale build cannot silently serve last
+week's function. The first start after a dependency change is slower by however
+long `npm install` takes.
+
+The build output lands on the host through the bind mount, gitignored. If you
+want to run the functions tests or lint on the host — CI does — install there
+too:
+
+```bash
+cd functions && npm install && npm test
+```
+
+Host and container installs do not collide: the container's `node_modules` is
+the `functions-modules` volume, not the host directory.
+
+The rules job in CI passes `--only firestore` to `emulators:exec` so it does not
+try to start functions without a build. Do the same for any other
+`emulators:exec` you add that does not need them.
+
+**Region.** Every function is declared in `asia-southeast1`, and the CMS calls
+that region explicitly. A mismatch does not error; the call 404s. Both sides
+point at D-12 in `docs/DECISIONS.md`.
+
+**Deploying** needs the project on the Blaze plan — Cloud Functions are not
+available on Spark. Nothing in this repo deploys them yet.
 
 ## Emulator data
 
