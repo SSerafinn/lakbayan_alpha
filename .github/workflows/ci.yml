@@ -31,7 +31,7 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
-          flutter-version: 3.41.6 # keep in step with the team's local SDK
+          flutter-version: 3.47.2 # keep in step with the team's local SDK
           cache: true
 
       - run: flutter pub get
@@ -59,11 +59,10 @@ jobs:
       # Generated sources are gitignored, so this must run before analyze.
       - run: dart run build_runner build
 
+      # Also runs riverpod_lint: since 3.1.4 it is a native analyzer plugin
+      # (analysis_options.yaml `plugins:`), so the old `dart run custom_lint`
+      # step is gone rather than merely optional.
       - run: flutter analyze
-
-      # `flutter analyze` does NOT execute custom_lint plugins, so riverpod_lint
-      # rules are inert without this step.
-      - run: dart run custom_lint
 
       - run: flutter test
 

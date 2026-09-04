@@ -1,8 +1,13 @@
 include: package:flutter_lints/flutter.yaml
 
+# Native analyzer plugins (Dart 3.13+). riverpod_lint moved here from
+# custom_lint in 3.1.4, so `flutter analyze` now runs its rules directly — there
+# is no separate lint command any more. Keep the version in step with
+# dev_dependencies in pubspec.yaml.
+plugins:
+  riverpod_lint: ^3.1.9
+
 analyzer:
-  plugins:
-    - custom_lint
   errors:
     invalid_annotation_target: ignore
   exclude:
@@ -13,6 +18,10 @@ analyzer:
     - "cms/**"
     - "test_rules/**"
     - "scripts/**"
+    # Build output and platform shells — no Dart of ours lives in them either.
+    - "build/**"
+    - "android/**"
+    - "web/**"
 
 linter:
   rules:

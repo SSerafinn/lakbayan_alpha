@@ -19,13 +19,13 @@ replaces them**. Android-first, Flutter + Firebase.
 - Install deps: `flutter pub get`
 - Codegen (freezed/json/riverpod/hive): `dart run build_runner build`
 - Run app: `flutter run` (**host only** — never in Docker; see `docs/DOCKER.md`)
-- Analyze / test: `flutter analyze` · `dart run custom_lint` · `flutter test`
+- Analyze / test: `flutter analyze` (includes riverpod_lint) · `flutter test`
 - Firebase emulators: `docker compose up emulators` (UI at localhost:4000)
 - Security rules tests: `cd test_rules && npm install && npm test` (emulators must be up)
 - Same checks in the pinned container: `docker compose run --rm toolchain <cmd>`
 
-`flutter analyze` does **not** run custom_lint plugins — riverpod_lint rules only
-fire under `dart run custom_lint`. Run both before committing.
+riverpod_lint is a native analyzer plugin (`plugins:` in `analysis_options.yaml`),
+so `flutter analyze` runs its rules — there is no separate `custom_lint` step.
 
 ## Architecture (summary — see docs/ARCHITECTURE.md)
 Flutter client (offline-first) ↔ Firebase. Reads are **local-first** (cache → network);

@@ -98,9 +98,8 @@ class _Strip extends StatelessWidget {
               Flexible(
                 child: Text(
                   message,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.labelSmall?.copyWith(color: foreground),
+                  style: Theme.of(context).textTheme.labelSmall
+                      ?.copyWith(color: foreground),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
