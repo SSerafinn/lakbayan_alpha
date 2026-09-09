@@ -10,6 +10,7 @@ import "../../features/design_system/presentation/design_system_gallery.dart";
 import "../../features/destinations/presentation/destination_detail_screen.dart";
 import "../../features/explore/presentation/home_shell.dart";
 import "../../features/landing/presentation/landing_screen.dart";
+import "../../features/itineraries/presentation/itinerary_screen.dart";
 import "../../features/offline/presentation/downloads_screen.dart";
 import "../prefs/app_preferences.dart";
 
@@ -23,6 +24,9 @@ abstract final class Routes {
   /// Wireframe 1f. Pushed from Profile rather than given a tab: downloading is
   /// something you do once before a trip, not a place you spend time.
   static const downloads = "/downloads";
+
+  /// One of the user's own itineraries. Pushed from the Itineraries tab.
+  static String itinerary(String id) => "/itinerary/$id";
 
   /// Destination Detail. Pushed, not replaced — wireframe 1d opens it as a
   /// sheet over whatever is beneath.
@@ -122,6 +126,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: Routes.downloads,
         builder: (context, state) => const DownloadsScreen(),
+      ),
+      GoRoute(
+        path: "/itinerary/:id",
+        builder: (context, state) =>
+            ItineraryScreen(id: state.pathParameters["id"]!),
       ),
       // Debug-only: the living design system specimen. Excluded from release so
       // it cannot be reached in a shipped build.

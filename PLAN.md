@@ -110,7 +110,17 @@ and `flutter test` before committing; commit with `/commit`.
             discovery open without an account, and taking a town with you is
             discovery. A `pending` bundle is shown but not offered: downloading
             one would produce a town with no map and no way to say why.*
-- [ ] `features/itineraries`: create-your-own-tour + saved tours *(wireframe 1g).*
+- [x] `features/itineraries`: create-your-own-tour + saved tours *(wireframe 1g).*
+      *A new collection, `users/{uid}/itineraries` — a visitor's plan cannot
+      live in `tours`, which `firestore.rules` gates on the admin claim, and
+      relaxing that would open the province's catalog to anybody with an
+      account. Owner-only in both directions, unlike `users/{uid}` itself:
+      admins can read a profile for the CMS, but nobody has business reading
+      what somebody is doing on Saturday. Four rules tests pin that.
+      Saving a province tour records the **id** rather than a copy, so a tour
+      the province later edits stays correct. The selected tab moved into a
+      provider so Explore's "Create your own tour" hero can send somebody to
+      Itineraries without threading a callback through two widgets.*
 - [ ] `features/profile` + global loading/empty/offline states *(wireframe 1h).*
 - **DoD:** download a town → maps + audio guides work fully offline.
 - [x] **Spike — resolved without hardware, and it changed the renderer.**

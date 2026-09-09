@@ -79,6 +79,13 @@ users/{uid}                                                    // no role field 
   createdAt, updatedAt                                         // serverTimestamp
   // Readable by the owner and by admins (the CMS Users screen); writable by
   // the owner only. An admin cannot edit someone else's profile.
+
+users/{uid}/itineraries/{id}                  // tours somebody built themselves
+  name          string    required   // what they called it
+  destinationIds string[] required   // ordered; the order IS the route
+  createdAt, updatedAt                // serverTimestamp
+  // Owner-only in both directions — not admin-readable, unlike the parent.
+  // These are private plans; the CMS has no business in them.
 ```
 
 `users/{uid}` is implemented as `UserProfile`
@@ -105,6 +112,21 @@ what makes an import of a tour the CMS already has an update rather than a
 duplicate. Renaming a tour does **not** re-key it — the id keeps the original
 title's slug, which is the price of not orphaning anything that already points
 at it.
+
+### Two kinds of tour, in two places
+
+`tours/{id}` is the province's own: admin-written, world-readable, and part of
+the catalog. `users/{uid}/itineraries/{id}` is one a visitor built for
+themselves. They are deliberately **not** the same collection, because
+`firestore.rules` gates `tours` on the `admin` claim — a visitor could not write
+one, and relaxing that rule to let them would open the province's catalog to
+anybody with an account.
+
+The app treats them alike where it can. Both are an ordered list of destination
+ids, so the map draws a route from either without caring which it has. Saving a
+province tour is a different act again: it records the id in `savedTourIds` on
+the user document rather than copying the tour, so an itinerary the province
+later edits stays correct.
 
 **`guides` is the one content collection that is not world-readable.** Every row
 is a real person's contact details, so `firestore.rules` requires sign-in to
