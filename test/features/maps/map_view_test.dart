@@ -16,7 +16,7 @@ import "../../support/fake_destination_repository.dart";
 /// `flutter_map` fetches tiles as soon as it lays out, and the test HTTP client
 /// fails every request anyway — this makes that explicit rather than incidental,
 /// so a future change that starts hitting a real host is a visible one.
-const _noTiles = OnlineRasterTiles(
+const _noTiles = TileSource(
   urlTemplate: "https://tiles.invalid/{z}/{x}/{y}.png",
   attribution: "© OpenStreetMap contributors",
 );

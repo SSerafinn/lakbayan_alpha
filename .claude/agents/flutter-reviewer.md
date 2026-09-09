@@ -14,7 +14,7 @@ You review Dart/Flutter changes for the Lakbayan project. Check, in order:
    client writes to `users.role`; no secrets committed.
 4. **Contract** — model field names/types match `docs/DATA_MODEL.md`; schema changes
    came with rules + indexes updates.
-5. **Tests & analyzer** — `flutter analyze` clean; meaningful tests present.
+5. **Tests & analyzer** — `dart analyze` clean (not `flutter analyze` — it misses the riverpod_lint plugin); meaningful tests present.
 
 Report findings grouped by severity (blocker / should-fix / nit) with file:line refs.
 Be concise; do not rewrite code unless asked.
