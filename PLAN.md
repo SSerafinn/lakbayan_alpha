@@ -54,8 +54,19 @@ and `flutter test` before committing; commit with `/commit`.
 - **DoD:** browse real destinations end-to-end from Firestore, images loading.
 
 ## Phase 3 · Weeks 7–10 — Core value  → Milestone **M2 (Beta)**
-- [ ] `features/maps`: map view (flutter_map), pins, tap-to-detail, pre-set routes
-      *(wireframe 1d).*
+- [x] `features/maps`: map view (flutter_map), pins, tap-to-detail
+      *(wireframe 1c's ◈ toggle).*
+      *The toggle swaps Browse's grid for a map of **the same results**, so the
+      search box and category chips drive both — a change of representation, not
+      of subject. It stays inside the tab rather than pushing a route, because
+      wireframe 1a keeps the bottom navigation on every screen but Splash, Auth,
+      Player and AR. Tile source is a provider with two shapes, network and
+      pack; it returns the network one until the rasterisation step exists, and
+      never falls back silently, because a missing pack must be loud rather than
+      invisible. ODbL attribution is on the map, which the licence requires.*
+- [ ] Pre-set routes: `PolylineLayer` over the basemap for a tour's stops, plus
+      the `geo:` hand-off for driving directions (D-11). Needs the tour a map is
+      being shown *for*, which arrives with `features/itineraries`.
 - [x] `features/audio`: just_audio player + `flutter_tts` fallback; segment list UI
       *(wireframe 1e).*
       *One `Narrator` interface over both engines, so the UI never asks which is
@@ -85,8 +96,6 @@ and `flutter test` before committing; commit with `/commit`.
       Docker, `@maplibre/maplibre-gl-native` plus `pmtiles convert`. Needed
       before offline maps work end to end; not before `features/maps` starts,
       which can use a network raster source in development.
-- [ ] Routes are authored polylines on the tour, not computed — `PolylineLayer`
-      over the basemap, plus a `geo:` hand-off for driving directions (D-11).
 - **Biggest risk in the project.** Offline bundles alone are a Cloud Function
   manifest, a download manager, Hive tracking, version invalidation and tile
   serving. Source and renderer are both settled — Protomaps PMTiles, rendered
