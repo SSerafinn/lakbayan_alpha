@@ -152,8 +152,14 @@ CMS consumes that contract; it does not redefine it.
 
 ## CMS-3 · Weeks 10–12 — Operations
 - [ ] Offline Bundles: trigger `generateOfflineBundle`, show version and status *(screen 7)*.
-- [ ] Users + Admin team & roles *(screen 10)*. Replace `scripts/grant-admin.mjs`
+- [x] Users + Admin team & roles *(screen 10)*. Replace `scripts/grant-admin.mjs`
       with a callable Cloud Function so promotion no longer needs a service account.
+      *Two lists from two places: the admin team is whoever holds the custom
+      claim (Auth, via `listAdmins`/`setAdminRole` in `functions/`), app users
+      are the `users/` collection (Firestore, now admin-readable). The script
+      stays as the bootstrap for the first admin only. The function refuses a
+      self-revoke. First `functions/` in the repo — see D-12 for the conventions
+      the offline-bundle function inherits.*
 - [ ] AR Content editor: marker upload, exhibit binding *(screen 6)*.
       *Cut with Phase 4 if AR is dropped.*
 

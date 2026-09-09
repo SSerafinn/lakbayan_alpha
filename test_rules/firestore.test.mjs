@@ -215,6 +215,30 @@ describe("users", () => {
     await assertFails(getDoc(doc(db, "users/ben")));
   });
 
+  it("stops a non-admin listing the collection", async () => {
+    const db = env.authenticatedContext("ana").firestore();
+    await assertFails(getDocs(collection(db, "users")));
+  });
+
+  // The CMS Users screen. Read-only: the next test pins that an admin still
+  // cannot write someone else's profile.
+  it("lets an admin read and list other users", async () => {
+    const db = env
+      .authenticatedContext("staff", { admin: true })
+      .firestore();
+    await assertSucceeds(getDoc(doc(db, "users/ben")));
+    await assertSucceeds(getDocs(collection(db, "users")));
+  });
+
+  it("stops an admin writing someone else's profile", async () => {
+    const db = env
+      .authenticatedContext("staff", { admin: true })
+      .firestore();
+    await assertFails(
+      setDoc(doc(db, "users/ben"), { uid: "ben", savedTourIds: [] })
+    );
+  });
+
   it("refuses a client-written role field", async () => {
     // Admin is a custom claim. A client that can grant itself `role: admin`
     // would defeat every isAdmin() check in the file.

@@ -1,0 +1,5 @@
+node_modules
+# tsc output. The emulator and `firebase deploy` read lib/, which is why the
+# emulator container builds it on start (docker/firebase/start.sh).
+lib
+*.log

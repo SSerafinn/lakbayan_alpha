@@ -15,6 +15,7 @@ android/app/build
 
 # Sibling apps and Node tooling — the Flutter toolchain image needs none of it.
 cms
+functions
 test_rules
 scripts/node_modules
 **/google-services.json
