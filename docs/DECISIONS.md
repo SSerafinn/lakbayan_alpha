@@ -82,27 +82,45 @@ pan/zoom frame times. If it stutters there, the fallback is raster and the cost
 is a paid tile source, so it is worth knowing early rather than after
 `features/maps` is built on top.
 
-### Renderer reopened (2026-09-09) — the paragraph above is out of date
+### Renderer settled as RASTER (2026-09-09) — this supersedes the paragraph above
 
-**The source stands. The renderer is undecided again**, and the spike has not
-run because there is nothing it can currently be run against.
+**Source unchanged: Protomaps PMTiles. Renderer: raster, via
+`flutter_map_pmtiles`.** Routes remain authored polylines.
 
-Resolving the packages against this project — Flutter 3.47.2, `flutter_map
-^8.3.1` — shows the recommended stack **cannot be installed**.
-`vector_map_tiles` 8.x requires `flutter_map ^7.0.2`, and every version of
-`vector_map_tiles_pmtiles` pins `pmtiles ^1.2.0`, which pins `latlong2 ^0.9.0`.
-The raster packages fail the same way. Full evidence table in
-`docs/research/map-tiles.md`.
+The spike never ran, because resolving the packages first showed the recommended
+stack **cannot be installed**. `vector_map_tiles` 8.x requires `flutter_map
+^7.0.2`, and every PMTiles or MBTiles adapter pins `latlong2 ^0.9.0` against our
+`^0.10.1`. Nine resolutions are tabulated in `docs/research/map-tiles.md`.
 
-One combination does resolve — `vector_map_tiles 9.0.0-beta.9` with `pmtiles
-^1.3.0` — and it costs: `latlong2` down to ^0.9.1, `lottie` down to 3.3.0, a
-beta renderer, and PMTiles glue we write ourselves because the adapter package
-pins the older renderer. Raster is no longer the cheap fallback either: it needs
-its own `TileProvider` *and* a rasterisation step or a paid source.
+The decisive finding is that **every one of those failures is the same
+`latlong2` conflict, and the pin causing it is ours** — `flutter_map` 8.3.2
+accepts `>=0.9.1 <0.11.0` either way, and nothing in `lib/` imports `latlong2`.
+Relax it and both raster packages resolve with **one downgrade and nothing
+else**: no beta, no adapter of our own, no second package moved.
 
-**Three options, priced in the research doc.** This needs a human decision before
-`features/maps` starts. `scripts/extract-tiles.mjs` is unaffected and landed —
-the pack is the same file under every option.
+Vector, by contrast, costs two downgrades, an adapter we maintain, and a beta
+renderer we would be **pinned to** — the later betas moved to a `latlong2` the
+required `pmtiles` forbids, so there is no upgrade path from it.
+
+Why raster is also the better fit on merit, not merely the cheaper one:
+
+- **The map draws a basemap, pins and one authored polyline.** No dynamic
+  restyling, no feature filtering. Vector's advantages are ones this app never
+  uses.
+- **The target is low-end Android.** Vector rasterises geometry and glyphs every
+  frame; raster decodes an image. That gap is precisely what the spike existed
+  to measure, and it falls on the hardware we care about.
+- **The size argument that chose vector has weakened.** Vector was picked for
+  download size; the buffer-union pack design has already cut a town to
+  single-digit MB.
+
+**The cost we are accepting: a rasterisation step**, since Protomaps publishes
+vector. Build-time, per town, a few hundred tiles — `@maplibre/maplibre-gl-native`
+renders a style headlessly and `pmtiles convert` bridges the formats. It belongs
+in Docker, where this project's tooling already lives.
+
+Open, and worth answering before that pipeline is built: how a rasterised
+Protomaps basemap actually looks. That is a taste call for a tourism map.
 
 Routes are **authored polylines**, not computed. `CONVENTIONS.md` already
 specifies "map with pins + static route", so no routing engine is needed:

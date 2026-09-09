@@ -194,7 +194,7 @@ researched from here.
 
 ---
 
-## Resolution findings (2026-09-09) — the renderer decision is reopened
+## Resolution findings (2026-09-09) — renderer settled as raster
 
 Before running the spike, the packages were resolved against this project as it
 actually stands (Flutter 3.47.2, `flutter_map ^8.3.1`, `latlong2 ^0.10.1`). **The
@@ -207,61 +207,82 @@ the pubspecs.
 | `vector_map_tiles_pmtiles` (the recommended path) | ❌ every version pins `pmtiles ^1.2.0` → `latlong2 ^0.9.0` |
 | `vector_map_tiles 9.0.0-beta.13` + `pmtiles ^2.2.0` | ❌ `pmtiles` 2.x wants `protobuf ^6`; `vector_tile_renderer` (**every** version, including 7.0.0-beta.1) wants `vector_tile ^2.0.0` → `protobuf ^3` |
 | `vector_map_tiles 9.0.0-beta.8` | ❌ `latlong2 ^0.9.1` against our `^0.10.1` |
-| `flutter_map_pmtiles` (the raster package) | ❌ same `pmtiles ^1.2.0` → `latlong2 ^0.9.0` |
+| `flutter_map_pmtiles` (raster) | ❌ same `pmtiles ^1.2.0` → `latlong2 ^0.9.0` |
+| `flutter_map_mbtiles` (raster) | ❌ `mbtiles ^0.4.0` → `latlong2 ^0.9.0`. A different package, the same conflict |
 | `pmtiles ^2.2.0` alone | ✅ resolves |
-| **`vector_map_tiles 9.0.0-beta.9` + `pmtiles ^1.3.0` + downgrades** | ✅ **resolves** |
+| `vector_map_tiles 9.0.0-beta.9` + `pmtiles ^1.3.0` + downgrades | ✅ resolves, expensively |
+| **`latlong2 ^0.9.1` + `flutter_map_pmtiles`** | ✅ **resolves. One downgrade, nothing else** |
+| `latlong2 ^0.9.1` + `flutter_map_mbtiles` | ✅ resolves, plus `sqlite3` |
 
-### What the working combination costs
+### One conflict, wearing several hats
 
-The last row is the only way to render vector tiles here today. It requires, in
-the app's own `pubspec.yaml`:
+Every ❌ above is the same disagreement: **`latlong2` 0.9 against 0.10**. It is
+worth stating plainly because the first reading of this table was wrong, and the
+mistake changed the recommendation.
 
-- **`latlong2` ^0.10.1 → ^0.9.1.** Not a `flutter_map` problem — 8.3.2 declares
-  `latlong2 >=0.9.1 <0.11.0` and is happy either way. The pin is ours.
-- **`lottie` ^3.3.2 → 3.3.0.** `pmtiles` 1.3.0 needs `archive ^3`, and `lottie`
-  from 3.3.1 needs `archive ^4`. `lottie` is currently unimported, so this costs
-  nothing today, but it is a real ceiling on a package we are keeping.
-- **A beta renderer**, `vector_map_tiles 9.0.0-beta.9`.
-- **Glue we write and own.** `vector_map_tiles_pmtiles` pins
-  `vector_map_tiles ^8.0.0` and so cannot be used with the beta. The interface is
-  small — `VectorTileProvider.provide(TileIdentity) → Future<Uint8List>` over
-  `PmTilesArchive.tile(ZXY(z,x,y).toTileId())` — but it becomes ours to maintain.
-- Plus `unicode` 1.1.9 → 0.3.1 and `protobuf` pinned to 3.x transitively.
+`flutter_map` is not the constraint. 8.3.2 declares `latlong2 >=0.9.1 <0.11.0`
+and is content either way. **Our own `^0.10.1` pin is what forbids every tile
+package**, and nothing in `lib/` or `test/` imports `latlong2` directly, so
+relaxing it costs nothing today.
 
-### What this means
+Relaxed, both raster packages resolve with no beta, no second downgrade, and no
+adapter code of our own. That is the correction: **an earlier version of this
+section claimed a raster path also meant writing our own `TileProvider`. It does
+not.**
 
-The spike was framed as "measure vector on a cheap phone, fall back to raster if
-it stutters". That framing no longer holds, because **raster is not the cheap
-fallback any more**:
+### What each option costs
 
-- `flutter_map_mbtiles` and `flutter_map_pmtiles` are both blocked by the same
-  `latlong2` conflict, so a raster path also means writing our own `TileProvider`.
-- Protomaps publishes **vector**. Raster still means paying for a source or
-  adding a rasterisation step, exactly as before.
+**Vector**, the only combination that renders vector tiles here today:
 
-So the three options, with what each actually costs:
+- `latlong2` ^0.10.1 → ^0.9.1.
+- `lottie` ^3.3.2 → 3.3.0. `pmtiles` 1.3.0 needs `archive ^3`, `lottie` from
+  3.3.1 needs `archive ^4`. `lottie` is unimported, so this costs nothing today,
+  but it is a real ceiling on a package we are keeping.
+- A **beta** renderer, `vector_map_tiles 9.0.0-beta.9` — and pinned there. The
+  betas from .10 onward moved to `latlong2` 0.10, which the `pmtiles` 1.x this
+  needs forbids. There is no upgrade path, only a rebuild on a different stack.
+- **Glue we own.** `vector_map_tiles_pmtiles` pins `vector_map_tiles ^8.0.0` and
+  cannot be used with the beta, so the adapter becomes ours to maintain.
+- Plus `unicode` 1.1.9 → 0.3.1 and `protobuf` held at 3.x.
 
-1. **Take the beta stack.** Two downgrades, a beta dependency, and ~60 lines of
-   glue we own. Keeps the chain free and keeps Protomaps. The spike then runs and
-   measures what it was always meant to measure.
-2. **Own the raster path.** `pmtiles ^2.2.0` resolves cleanly on its own, so we
-   read the archive ourselves and feed bytes to a plain `flutter_map`
-   `TileProvider` — the simplest code by far, no downgrades. But it needs raster
-   tiles, which Protomaps does not publish, so it adds a rasterisation step or a
-   paid source.
-3. **Wait.** `vector_map_tiles` 10.0.0-beta.2 tracks `flutter_map ^8.2.1`; when
-   its dependencies settle and a PMTiles adapter follows, options 1 and 2 both
-   get cheaper. Phase 3 is scheduled now, so this is only viable if the map
-   slips.
+**Raster**, either package: `latlong2` ^0.10.1 → ^0.9.1. That is the whole list.
 
-**No harness has been built**, deliberately: building one means committing to a
-stack in this table, and that is the decision this section exists to put in front
-of a human. Once it is made, the harness is a small job — a `FlutterMap`, a
-provider, and `SchedulerBinding.addTimingsCallback` for build and raster frame
-times.
+### Decided (2026-09-09): raster
 
-`scripts/extract-tiles.mjs` is unaffected and is in the repo now. The pack it
-produces is the same file under every option; only the renderer differs.
+See D-11. The reasoning, shortest first:
+
+1. **This map does not need vector.** It draws a basemap, pins, and one authored
+   polyline. No dynamic restyling, no feature filtering, no rotation-dependent
+   labels. Every advantage vector offers is one this app never uses.
+2. **The target hardware argues against it.** Vector rasterises geometry and
+   glyphs every frame; raster decodes an image and blits it. On the cheap Android
+   phones this app is for, that gap is where jank lives — and measuring it was
+   the spike's entire purpose.
+3. **Raster costs one downgrade and nothing else**, against a pinned beta, two
+   downgrades and an adapter we maintain.
+4. **The size argument that chose vector has weakened.** D-11 picked vector for
+   download size. The buffer union above already cut a town pack to single-digit
+   MB. Vector might halve it again, which does not decide a one-time download
+   over wifi.
+
+**The cost, stated plainly: a rasterisation step**, because Protomaps publishes
+vector. It is build-time, per town, and small — a few hundred tiles for a town at
+z16. `@maplibre/maplibre-gl-native` is maintained on npm and renders a style to
+tiles headlessly; `pmtiles convert` moves between MBTiles and PMTiles, so either
+package's format is reachable from one pipeline. This project already runs its
+tooling in Docker, which is where that step belongs.
+
+`flutter_map_pmtiles` over `flutter_map_mbtiles`: same one-line cost, and it
+keeps the PMTiles format `scripts/extract-tiles.mjs` already produces and that
+`docs/DATA_MODEL.md` already reserves a Storage path for. The two are
+interchangeable behind a `TileLayer` if that turns out wrong.
+
+**Still unanswered, and worth checking before the pipeline is built:** how a
+rasterised Protomaps basemap actually looks, which is a taste call for a tourism
+map, not a technical one.
+
+`scripts/extract-tiles.mjs` is unaffected. The pack it produces is the same file
+under every option; only the renderer differs.
 
 ## Still open
 

@@ -31,6 +31,10 @@ dependencies:
   flutter:
     sdk: flutter
   flutter_map: ^8.3.1
+  # Offline basemap tiles, read straight out of a PMTiles pack on disk — the
+  # `/tiles/{townId}/` shape docs/DATA_MODEL.md reserves and
+  # scripts/extract-tiles.mjs produces. Raster, per D-11.
+  flutter_map_pmtiles: ^1.0.5
   flutter_riverpod: ">=3.0.0 <4.0.0"
   flutter_tts: ^4.2.5
   freezed_annotation: ^3.1.0
@@ -40,7 +44,17 @@ dependencies:
   hive_ce_flutter: ^2.3.4
   json_annotation: ^4.12.0
   just_audio: ^0.10.6
-  latlong2: ^0.10.1
+  # ^0.9.1, not ^0.10.1, and this is load-bearing rather than laziness.
+  #
+  # Every offline tile package for flutter_map — flutter_map_pmtiles,
+  # flutter_map_mbtiles, and the whole vector_map_tiles chain — depends on
+  # latlong2 0.9.x. flutter_map itself accepts `>=0.9.1 <0.11.0` and does not
+  # care, so a ^0.10.1 pin here is what locks every one of them out. That was
+  # the single finding that decided D-11's renderer.
+  #
+  # Nothing in lib/ or test/ imports latlong2 directly; it arrives through
+  # flutter_map. Raise it only alongside a tile package that wants 0.10.
+  latlong2: ^0.9.1
   lottie: ^3.3.2
   path_provider: ^2.1.6
   riverpod_annotation: ^4.0.7
