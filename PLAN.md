@@ -56,8 +56,17 @@ and `flutter test` before committing; commit with `/commit`.
 ## Phase 3 · Weeks 7–10 — Core value  → Milestone **M2 (Beta)**
 - [ ] `features/maps`: map view (flutter_map), pins, tap-to-detail, pre-set routes
       *(wireframe 1d).*
-- [ ] `features/audio`: just_audio player + `flutter_tts` fallback; segment list UI
+- [x] `features/audio`: just_audio player + `flutter_tts` fallback; segment list UI
       *(wireframe 1e).*
+      *One `Narrator` interface over both engines, so the UI never asks which is
+      playing and a fake drives every widget test — neither plugin runs in a test
+      harness. Recording wins when a stop has both; a stop whose recording will
+      not resolve falls back to its script rather than going silent. Speech gets
+      no scrubber, because the engine reports no length and cannot seek, and
+      drawing one would be a fabrication. Auto-advance skips stops with nothing
+      to play. **Background and lock-screen playback are not wired** —
+      `audio_service` needs a foreground service and a background isolate; this
+      interface is what such a handler would delegate to.*
 - [ ] `features/offline`: `generateOfflineBundle(townId)` function; per-town download
       manager; offline tile packs; cache assets in Hive *(wireframe 1f;
       `docs/ARCHITECTURE.md` → offline).*
