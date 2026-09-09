@@ -47,6 +47,19 @@ class BrowseQuery extends _$BrowseQuery {
   void update(String value) => state = value;
 }
 
+/// The ◈ toggle in wireframe 1c: the same results as cards or as pins.
+///
+/// A provider rather than widget state so the choice survives a tab switch.
+/// Someone who has put the map up is working spatially; sending them back to a
+/// grid because they glanced at Explore would undo that each time.
+@riverpod
+class BrowseShowsMap extends _$BrowseShowsMap {
+  @override
+  bool build() => false;
+
+  void toggle() => state = !state;
+}
+
 /// Browse results: the category query from Firestore, then the search text
 /// applied in memory.
 ///

@@ -11,12 +11,15 @@ import "../../../core/theme/app_typography.dart";
 import "../../../core/theme/lakbayan_colors.dart";
 import "../../../core/widgets/lakbayan_badge.dart";
 import "../../../core/widgets/storage_image.dart";
+import "../../maps/presentation/map_view.dart";
 import "../domain/destination_providers.dart";
 
 /// Wireframe 1c, screen 4 — Search / Browse, the Map tab's landing screen.
 ///
-/// Search is debounced and filters the grid in place; category chips are
-/// single-select. The ◈ toggle to the full-screen map arrives in Phase 3.
+/// Search is debounced and filters the results in place; category chips are
+/// single-select. The ◈ toggle swaps the grid for a map of the same results —
+/// it stays inside the tab rather than pushing a route, because wireframe 1a
+/// keeps the bottom navigation on every screen but Splash, Auth, Player and AR.
 class BrowseScreen extends ConsumerStatefulWidget {
   const BrowseScreen({super.key});
 
@@ -49,6 +52,7 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
     final c = context.lakbayan;
     final selected = ref.watch(browseCategoryProvider);
     final results = ref.watch(browseResultsProvider);
+    final showsMap = ref.watch(browseShowsMapProvider);
 
     return Column(
       children: [
@@ -59,24 +63,39 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
             AppSpace.x4,
             AppSpace.x2,
           ),
-          child: TextField(
-            controller: _controller,
-            onChanged: _onSearchChanged,
-            textInputAction: TextInputAction.search,
-            decoration: InputDecoration(
-              hintText: "Search your destination",
-              prefixIcon: const Icon(Icons.search),
-              suffixIcon: _controller.text.isEmpty
-                  ? null
-                  : IconButton(
-                      icon: const Icon(Icons.close),
-                      onPressed: () {
-                        _controller.clear();
-                        ref.read(browseQueryProvider.notifier).update("");
-                        setState(() {});
-                      },
-                    ),
-            ),
+          child: Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _controller,
+                  onChanged: _onSearchChanged,
+                  textInputAction: TextInputAction.search,
+                  decoration: InputDecoration(
+                    hintText: "Search your destination",
+                    prefixIcon: const Icon(Icons.search),
+                    suffixIcon: _controller.text.isEmpty
+                        ? null
+                        : IconButton(
+                            icon: const Icon(Icons.close),
+                            onPressed: () {
+                              _controller.clear();
+                              ref.read(browseQueryProvider.notifier).update("");
+                              setState(() {});
+                            },
+                          ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: AppSpace.x2),
+              // Outside the field rather than as a suffix icon: it switches the
+              // whole view, and a control that lives inside the search box
+              // reads as something that acts on the search.
+              IconButton.filledTonal(
+                onPressed: ref.read(browseShowsMapProvider.notifier).toggle,
+                icon: Icon(showsMap ? Icons.grid_view : Icons.map_outlined),
+                tooltip: showsMap ? "Show as a list" : "Show on the map",
+              ),
+            ],
           ),
         ),
 
@@ -115,7 +134,12 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
                 style: AppTypography.body.copyWith(color: c.badgeErrorText),
               ),
             ),
-            data: (items) => items.isEmpty
+            // The map draws its own empty state over the basemap, so it takes
+            // the results whether or not there are any. A blank screen where a
+            // map should be would read as a failure to load.
+            data: (items) => showsMap
+                ? MapView(destinations: items)
+                : items.isEmpty
                 ? _NoResults(
                     hasFilters:
                         selected != null ||
