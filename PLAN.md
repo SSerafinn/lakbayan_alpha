@@ -73,18 +73,25 @@ and `flutter test` before committing; commit with `/commit`.
 - [ ] `features/itineraries`: create-your-own-tour + saved tours *(wireframe 1g).*
 - [ ] `features/profile` + global loading/empty/offline states *(wireframe 1h).*
 - **DoD:** download a town → maps + audio guides work fully offline.
-- [ ] **Spike first:** extract a Peñablanca PMTiles pack, render it with
-      `vector_map_tiles` (pin 8.x — v10 is beta) on the lowest-end phone
-      available, and measure pan/zoom frame times. Vector is decided (D-11);
-      this validates it before `features/maps` is built on top. If it stutters,
-      the fallback is raster and a paid tile source.
+- [x] **Spike — resolved without hardware, and it changed the renderer.**
+      `scripts/extract-tiles.mjs` builds a town pack from the destinations'
+      coords using D-11's buffer union (4.6× fewer tiles than a whole
+      municipality at z16). The vector stack turned out to be uninstallable
+      here; every tile package is locked out by *our own* `latlong2` pin, which
+      `flutter_map` never required. Relaxed, raster resolves with one downgrade
+      and no adapter code. **Renderer is now raster** — see D-11 and
+      `docs/research/map-tiles.md`. `flutter_map_pmtiles` is in `pubspec.yaml`.
+- [ ] **Tile pipeline:** rasterise a Protomaps pack per town. Build-time,
+      Docker, `@maplibre/maplibre-gl-native` plus `pmtiles convert`. Needed
+      before offline maps work end to end; not before `features/maps` starts,
+      which can use a network raster source in development.
 - [ ] Routes are authored polylines on the tour, not computed — `PolylineLayer`
       over the basemap, plus a `geo:` hand-off for driving directions (D-11).
 - **Biggest risk in the project.** Offline bundles alone are a Cloud Function
   manifest, a download manager, Hive tracking, version invalidation and tile
-  serving. Source and renderer are both settled (Protomaps, vector — D-11);
-  what is not settled is whether the renderer holds up on a cheap phone, and
-  that answer comes from the spike rather than from documentation.
+  serving. Source and renderer are both settled — Protomaps PMTiles, rendered
+  as raster (D-11). What remains unproven is the rasterisation step, which is
+  build-time tooling rather than app code, and how the result looks.
 
 ## Phase 4 · Weeks 11–12 — AR pilot *(stretch — only if on schedule)*
 - [ ] `features/ar`: ARCore Augmented Images native channel behind a Dart interface.

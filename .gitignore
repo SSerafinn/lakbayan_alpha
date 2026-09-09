@@ -47,6 +47,9 @@ test_rules/node_modules/
 test_rules/package-lock.json
 scripts/node_modules/
 functions/node_modules/
+# Offline map packs built by scripts/extract-tiles.mjs. Regenerable, and a
+# single town pack is several MB.
+tiles/
 # tsc output; the emulator container rebuilds it on every start.
 functions/lib/
 scripts/package-lock.json

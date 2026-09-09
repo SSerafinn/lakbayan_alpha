@@ -217,6 +217,7 @@ Email/password sign-in works without any of this.
 | Security-rules tests | `cd test_rules && npm test` |
 | Start / stop the backend | `docker compose up -d emulators` / `docker compose down` |
 | Seed content + an admin after a reset | `cd scripts && node seed-emulator.mjs` |
+| Plan an offline map pack for a town | `cd scripts && node extract-tiles.mjs "Peñablanca"` (add `--run` to build it) |
 | Add or remove an admin | CMS → **Users & roles** (first admin on a fresh project: `scripts/grant-admin.mjs`) |
 | Cloud Functions tests on the host | `cd functions && npm install && npm test` |
 | Find the emulator host for a phone | `node scripts/emulator-host.mjs` |
