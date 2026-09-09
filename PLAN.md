@@ -78,7 +78,7 @@ and `flutter test` before committing; commit with `/commit`.
       to play. **Background and lock-screen playback are not wired** —
       `audio_service` needs a foreground service and a background isolate; this
       interface is what such a handler would delegate to.*
-- [ ] `features/offline` — **the manifest half is done, the client half is not.**
+- [ ] `features/offline` — **the engine is done; nothing on screen uses it yet.**
       - [x] `generateOfflineBundle(town)` in `functions/`, plus the CMS screen
             that drives it. Writes `offlineBundles/{townId}`: which places, how
             many bytes, and a content fingerprint a phone can compare against.
