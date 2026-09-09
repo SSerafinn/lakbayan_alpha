@@ -81,7 +81,35 @@ services:
     stdin_open: true
     tty: true
 
+  # Tile pipeline. Not started by `up` — invoke per command:
+  #   docker compose --profile tiles run --rm tiles npm run smoke
+  #
+  # Its own image because MapLibre Native is a compiled OpenGL renderer whose
+  # prebuilt binaries target Ubuntu 24.04, and it does not run on the Windows
+  # hosts. See docker/tiles/Dockerfile and D-11.
+  tiles:
+    build:
+      # Root context: the Dockerfile copies scripts/lib as well, so the tile
+      # maths is shared with scripts/extract-tiles.mjs rather than duplicated.
+      context: .
+      dockerfile: docker/tiles/Dockerfile
+    profiles: ["tiles"]
+    # A real init to reap the Xvfb the entrypoint backgrounds. Without one the
+    # renderer's own child processes accumulate as zombies across a long run.
+    init: true
+    working_dir: /app/tools/tiles
+    volumes:
+      - ./tools/tiles:/app/tools/tiles
+      - ./scripts/lib:/app/scripts/lib:ro
+      # Packs land on the host here. Gitignored — they are regenerable and
+      # several MB each.
+      - ./tiles:/app/out
+      # Linux node_modules must not collide with anything the host installed,
+      # the same separation the toolchain image keeps for .dart_tool.
+      - tiles-modules:/app/tools/tiles/node_modules
+
 volumes:
+  tiles-modules:
   functions-modules:
   dart-tool:
   build-out:

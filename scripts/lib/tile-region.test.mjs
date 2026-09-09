@@ -9,7 +9,10 @@ import {
   lngToTileX,
   mergeBoxes,
   planRegion,
+  tileCentre,
+  tilesForBoxes,
   toRegionFeature,
+  xyzToTmsRow,
 } from "./tile-region.mjs";
 
 // Callao Cave, near enough.
@@ -175,5 +178,70 @@ describe("toRegionFeature", () => {
   it("carries the properties it was given", () => {
     const f = toRegionFeature([bufferBox(callao, 2)], { town: "Peñablanca" });
     assert.equal(f.properties.town, "Peñablanca");
+  });
+});
+
+describe("tileCentre", () => {
+  it("inverts the forward projection", () => {
+    // Round-trip: a point's tile, back to that tile's centre, must land in the
+    // same tile. This is the property the rasteriser depends on — it renders
+    // each tile by pointing the camera at this centre.
+    for (const z of [8, 12, 16]) {
+      const x = lngToTileX(callao.lng, z);
+      const y = latToTileY(callao.lat, z);
+      const c = tileCentre(z, x, y);
+      assert.equal(lngToTileX(c.lng, z), x, `x at z${z}`);
+      assert.equal(latToTileY(c.lat, z), y, `y at z${z}`);
+    }
+  });
+
+  it("puts the z0 centre on null island", () => {
+    const c = tileCentre(0, 0, 0);
+    assert.ok(Math.abs(c.lat) < 1e-9 && Math.abs(c.lng) < 1e-9);
+  });
+
+  it("keeps a Cagayan tile in Cagayan", () => {
+    const c = tileCentre(14, lngToTileX(121.8, 14), latToTileY(17.7, 14));
+    assert.ok(c.lng > 121 && c.lng < 122, `lng ${c.lng}`);
+    assert.ok(c.lat > 17 && c.lat < 18, `lat ${c.lat}`);
+  });
+});
+
+describe("xyzToTmsRow", () => {
+  it("flips top-down rows to bottom-up", () => {
+    assert.equal(xyzToTmsRow(0, 0), 0);
+    assert.equal(xyzToTmsRow(1, 0), 1);
+    assert.equal(xyzToTmsRow(1, 1), 0);
+  });
+
+  it("is its own inverse", () => {
+    // MBTiles writing and reading both use it; if it were not an involution
+    // the round trip would silently mirror the map.
+    for (const y of [0, 3, 17, 64]) {
+      assert.equal(xyzToTmsRow(8, xyzToTmsRow(8, y)), y);
+    }
+  });
+});
+
+describe("tilesForBoxes", () => {
+  it("returns exactly as many tiles as countTiles reports", () => {
+    // The rasteriser renders this list; the planner prints that number. If
+    // they ever disagree, one of the two is lying to the operator.
+    const boxes = mergeBoxes([
+      bufferBox({ lat: 17.7, lng: 121.8 }, 2),
+      bufferBox({ lat: 18.6, lng: 121.6 }, 2),
+    ]);
+    const listed = tilesForBoxes(boxes, 12);
+    assert.equal(listed.length, countTiles(boxes, 12).total);
+  });
+
+  it("emits no duplicates", () => {
+    const boxes = mergeBoxes([
+      bufferBox({ lat: 17.7, lng: 121.8 }, 2),
+      bufferBox({ lat: 17.75, lng: 121.9 }, 2),
+    ]);
+    const listed = tilesForBoxes(boxes, 14);
+    const keys = new Set(listed.map((t) => `${t.z}/${t.x}/${t.y}`));
+    assert.equal(keys.size, listed.length);
   });
 });

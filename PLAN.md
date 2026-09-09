@@ -92,10 +92,15 @@ and `flutter test` before committing; commit with `/commit`.
       `flutter_map` never required. Relaxed, raster resolves with one downgrade
       and no adapter code. **Renderer is now raster** — see D-11 and
       `docs/research/map-tiles.md`. `flutter_map_pmtiles` is in `pubspec.yaml`.
-- [ ] **Tile pipeline:** rasterise a Protomaps pack per town. Build-time,
-      Docker, `@maplibre/maplibre-gl-native` plus `pmtiles convert`. Needed
-      before offline maps work end to end; not before `features/maps` starts,
-      which can use a network raster source in development.
+- [x] **Tile pipeline:** rasterise a Protomaps pack per town.
+      *`docker/tiles` plus `tools/tiles/rasterise.mjs`. Renders each tile with
+      MapLibre Native at 512px, writes MBTiles, converts to PMTiles. Verified
+      end to end against the real Protomaps planet build — 23 tiles of
+      Peñablanca at z14, legible, correctly labelled. The source may be a URL:
+      PMTiles is range-readable, so no planet download is needed. Two traps are
+      documented in `docs/DOCKER.md` because both fail silently or
+      incomprehensibly: the renderer needs a virtual display, and `xvfb-run`
+      deadlocks as PID 1.*
 - **Biggest risk in the project.** Offline bundles alone are a Cloud Function
   manifest, a download manager, Hive tracking, version invalidation and tile
   serving. Source and renderer are both settled — Protomaps PMTiles, rendered

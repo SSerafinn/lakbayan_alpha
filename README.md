@@ -218,6 +218,7 @@ Email/password sign-in works without any of this.
 | Start / stop the backend | `docker compose up -d emulators` / `docker compose down` |
 | Seed content + an admin after a reset | `cd scripts && node seed-emulator.mjs` |
 | Plan an offline map pack for a town | `cd scripts && node extract-tiles.mjs "Peñablanca"` (add `--run` to build it) |
+| Rasterise that pack for the app | `docker compose --profile tiles run --rm tiles node rasterise.mjs …` — see [docs/DOCKER.md](docs/DOCKER.md#map-tile-packs) |
 | Add or remove an admin | CMS → **Users & roles** (first admin on a fresh project: `scripts/grant-admin.mjs`) |
 | Cloud Functions tests on the host | `cd functions && npm install && npm test` |
 | Find the emulator host for a phone | `node scripts/emulator-host.mjs` |
