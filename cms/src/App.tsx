@@ -9,6 +9,7 @@ import {
 import { AuthProvider } from "./auth/AuthProvider";
 import { useAuth } from "./auth/auth-context";
 import { LoginPage, NotAuthorised } from "./auth/LoginPage";
+import { BundlesPage } from "./pages/BundlesPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { DestinationsListPage } from "./pages/DestinationsListPage";
 import { DestinationEditorPage } from "./pages/DestinationEditorPage";
@@ -122,10 +123,7 @@ const router = createBrowserRouter([
       { path: "destinations/:id", element: <DestinationEditorPage /> },
       { path: "tours", element: <ToursPage /> },
       { path: "guides", element: <GuidesPage /> },
-      {
-        path: "bundles",
-        element: <PlaceholderPage title="Offline bundles" phase="CMS-3" />,
-      },
+      { path: "bundles", element: <BundlesPage /> },
       { path: "users", element: <UsersPage /> },
       {
         path: "settings",

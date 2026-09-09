@@ -40,8 +40,17 @@ destinations/{id}/segments/{sid}                               // audio guide st
   // `order` is written from list position by the CMS editor and is contiguous
   // from 1. Readers should still sort by it rather than assume the gap-free
   // sequence — a document written by hand or by a script need not honour it.
-offlineBundles/{townId}
-  name, destinationIds[], tilePackRef, size, version, status   // pending | ready | stale
+offlineBundles/{townId}                          // written only by a function
+  name          string    required   // the town's display name, exactly
+  destinationIds string[] required   // published + offlineEligible, sorted
+  tilePackRef   string    required   // tiles/{townId}/pack.pmtiles
+  size          number    required   // total bytes: assets + map pack
+  version       string    required   // content fingerprint; see below
+  status        string    required   // pending | ready  (never `stale` — below)
+  generatedAt              // serverTimestamp
+  // No asset list. A client already reads the destinations and their segments,
+  // so the image and audio paths are derivable; storing them twice would let
+  // the two drift.
 tours/{id}                        // id is slugify(title) — see below
   title         string    required
   description   string?
@@ -162,3 +171,26 @@ the importer does, which is what keeps `{segmentId}.{ext}` stable across
 re-imports.
 
 Denormalize for offline read patterns (a bundle carries what a town needs).
+
+### `offlineBundles` is written by a Cloud Function, never by a client
+
+`generateOfflineBundle(town)` in `functions/` builds it. Deciding whether a
+bundle is ready means statting every object in Storage, which a browser should
+neither be trusted to do nor made to wait for. The CMS triggers it from screen
+7 and reads the result; the app only ever reads.
+
+**`version` is a fingerprint of the content, not a counter.** It is a short hash
+of the destination ids and their `updatedAt`, so editing, adding or removing a
+place moves it and regenerating an unchanged town does not. That second half
+matters as much as the first: a version that changed on every build would send
+every phone off to re-download a town it already has.
+
+It deliberately does **not** cover the map pack. A pack is rendered by
+`tools/tiles` and uploaded once; replacing one is a deliberate act, and the
+person doing it should rebuild the bundle to move the version.
+
+**`stale` is a phone-side verdict, not a stored value.** The function only ever
+writes `pending` or `ready`. A client concludes "stale" by comparing the version
+it downloaded against the one in this document — which is also how the CMS's
+*Check* button reports it, by running the function in dry-run mode and comparing
+the version it would produce.
