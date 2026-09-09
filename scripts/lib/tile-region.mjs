@@ -125,6 +125,50 @@ export function latToTileY(lat, zoom) {
   );
 }
 
+/** The centre of a tile, in degrees. Inverse of the two functions above. */
+export function tileCentre(z, x, y) {
+  const n = 2 ** z;
+  const lng = ((x + 0.5) / n) * 360 - 180;
+  // The inverse Gudermannian. asinh/atan rather than the exp form: same
+  // result, and it reads as the mirror of latToTileY's asinh(tan(lat)).
+  const rad = Math.atan(Math.sinh(Math.PI * (1 - (2 * (y + 0.5)) / n)));
+  return { lat: (rad * 180) / Math.PI, lng };
+}
+
+/**
+ * MBTiles stores rows bottom-up (TMS); slippy map tiles count top-down (XYZ).
+ *
+ * One subtraction, and getting it wrong produces an archive that opens fine,
+ * reports the right tile count, and renders the world upside down in latitude
+ * bands. Worth a named function so the flip happens in exactly one place.
+ */
+export function xyzToTmsRow(z, y) {
+  return 2 ** z - 1 - y;
+}
+
+/** Every distinct tile covering [boxes] at one zoom. */
+export function tilesAtZoom(boxes, zoom) {
+  const seen = new Map();
+  for (const b of boxes) {
+    const x1 = lngToTileX(b.minLng, zoom);
+    const x2 = lngToTileX(b.maxLng, zoom);
+    // Tile Y grows southward, so the northern edge gives the smaller index.
+    const y1 = latToTileY(b.maxLat, zoom);
+    const y2 = latToTileY(b.minLat, zoom);
+    for (let x = x1; x <= x2; x++) {
+      for (let y = y1; y <= y2; y++) seen.set(`${x}/${y}`, { z: zoom, x, y });
+    }
+  }
+  return [...seen.values()];
+}
+
+/** Every tile from z0 to [maxZoom] inclusive, in ascending zoom order. */
+export function tilesForBoxes(boxes, maxZoom) {
+  const out = [];
+  for (let z = 0; z <= maxZoom; z++) out.push(...tilesAtZoom(boxes, z));
+  return out;
+}
+
 /**
  * Distinct tiles covering these boxes from z0 to [maxZoom], inclusive.
  *
@@ -137,19 +181,9 @@ export function countTiles(boxes, maxZoom) {
   const perZoom = [];
   let total = 0;
   for (let z = 0; z <= maxZoom; z++) {
-    const seen = new Set();
-    for (const b of boxes) {
-      const x1 = lngToTileX(b.minLng, z);
-      const x2 = lngToTileX(b.maxLng, z);
-      // Tile Y grows southward, so the northern edge gives the smaller index.
-      const y1 = latToTileY(b.maxLat, z);
-      const y2 = latToTileY(b.minLat, z);
-      for (let x = x1; x <= x2; x++) {
-        for (let y = y1; y <= y2; y++) seen.add(`${x}/${y}`);
-      }
-    }
-    perZoom.push({ zoom: z, tiles: seen.size });
-    total += seen.size;
+    const tiles = tilesAtZoom(boxes, z).length;
+    perZoom.push({ zoom: z, tiles });
+    total += tiles;
   }
   return { total, perZoom };
 }

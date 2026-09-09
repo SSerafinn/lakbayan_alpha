@@ -1,0 +1,15 @@
+{
+  "name": "lakbayan-tiles",
+  "private": true,
+  "type": "module",
+  "description": "Rasterises a Protomaps vector pack into the raster PMTiles the app ships. Runs in docker/tiles — MapLibre Native does not build on the team's Windows hosts. See docs/DECISIONS.md D-11.",
+  "scripts": {
+    "smoke": "node smoke.mjs"
+  },
+  "dependencies": {
+    "@maplibre/maplibre-gl-native": "^6.4.1",
+    "@protomaps/basemaps": "^5.7.2",
+    "pmtiles": "^4.4.0",
+    "pngjs": "^7.0.0"
+  }
+}

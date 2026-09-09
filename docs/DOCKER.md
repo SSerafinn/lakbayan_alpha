@@ -188,6 +188,52 @@ point at D-12 in `docs/DECISIONS.md`.
 **Deploying** needs the project on the Blaze plan — Cloud Functions are not
 available on Spark. Nothing in this repo deploys them yet.
 
+## Map tile packs
+
+D-11 settles the renderer as **raster**, and Protomaps publishes **vector**, so
+a pack has to be rasterised before the app can read it. That happens in the
+`tiles` image, behind its own profile:
+
+```bash
+docker compose --profile tiles build tiles
+```
+
+Plan the region on the host, then render it in the container:
+
+```bash
+cd scripts && node extract-tiles.mjs "Peñablanca" --maxzoom 16 --out ../tiles
+```
+
+```bash
+docker compose --profile tiles run --rm tiles node rasterise.mjs --source https://demo-bucket.protomaps.com/v4.pmtiles --region /app/out/penablanca.geojson --maxzoom 16
+```
+
+Output lands in `tiles/` on the host (gitignored): a `.raster.pmtiles` to upload
+to Storage at `/tiles/{townId}/`, and the intermediate `.mbtiles`, kept because
+it is what you check when a pack looks wrong.
+
+`--source` takes a local file **or an https URL**. PMTiles is range-readable, so
+the remote planet build works without downloading it — there is no need to run
+`pmtiles extract` first unless you want a vector pack of your own.
+
+**On Git Bash, prefix the command with `MSYS_NO_PATHCONV=1`.** Otherwise MSYS
+rewrites `/app/out/...` into `C:/Program Files/Git/app/out/...` before Docker
+ever sees it, and the error names a path you never typed. PowerShell is
+unaffected.
+
+Three things about this image worth knowing before you change it:
+
+- **It needs a virtual display.** MapLibre Native goes through GLFW and opens an
+  X display even rendering offscreen. Without one it core-dumps with
+  `Failed to open X display`.
+- **The entrypoint starts `Xvfb` itself rather than using `xvfb-run`.** That
+  wrapper deadlocks as PID 1 — it backgrounds the server and then waits while
+  also being the reaper, so the container hangs with no output at all.
+- **It is not in CI.** The renderer's prebuilt binaries are Linux-only and
+  several hundred MB, and this is operator tooling rather than shipped code.
+  The part that could silently go wrong — the tile arithmetic — lives in
+  `scripts/lib/tile-region.mjs`, which CI does test.
+
 ## Emulator data
 
 State lives in `.emulator-data/` (gitignored). It is written by
