@@ -78,16 +78,25 @@ and `flutter test` before committing; commit with `/commit`.
       to play. **Background and lock-screen playback are not wired** —
       `audio_service` needs a foreground service and a background isolate; this
       interface is what such a handler would delegate to.*
-- [ ] `features/offline` — **the manifest half is done, the client half is not.**
+- [ ] `features/offline` — **the engine is done; nothing on screen uses it yet.**
       - [x] `generateOfflineBundle(town)` in `functions/`, plus the CMS screen
             that drives it. Writes `offlineBundles/{townId}`: which places, how
             many bytes, and a content fingerprint a phone can compare against.
             Verified end to end against the emulator, including the status
             flipping to `ready` once a real rendered pack was uploaded.
-      - [ ] Per-town download manager: resolve the manifest's assets, fetch
+      - [x] Per-town download manager: resolve the manifest's assets, fetch
             them, report progress, survive a cancelled or failed download.
-      - [ ] Hive tracking of what is downloaded and at which version, so a
+            *Everything lands in a `.partial` directory and is moved into place
+            only when the last file arrives, so a failed, cancelled or killed
+            download leaves no trace that the town is present. The record is
+            dropped before the old directory is, so a crash mid-swap reads as
+            absent rather than downloaded-but-missing.*
+      - [x] Hive tracking of what is downloaded and at which version, so a
             stale town can be told from a missing one.
+            *JSON in a `Box<dynamic>`, matching `AppPreferences`. A record an
+            older build cannot decode reads as absent, which offers a
+            re-download rather than crashing the one screen whose job is to
+            work when nothing else does.*
       - [ ] Point `OfflinePackTiles` at the downloaded pack — the branch in
             `features/maps` that is deliberately unreachable today.
       - [ ] Wireframe 1f: the download screen itself.

@@ -56,6 +56,10 @@ dependencies:
   # flutter_map. Raise it only alongside a tile package that wants 0.10.
   latlong2: ^0.9.1
   lottie: ^3.3.2
+  # Declared rather than leant on transitively through path_provider:
+  # features/offline joins Storage paths to device paths, and a direct import
+  # of a package we do not list is one `pub upgrade` away from vanishing.
+  path: ^1.9.1
   path_provider: ^2.1.6
   riverpod_annotation: ^4.0.7
   smooth_sheets: ^1.1.2

@@ -1,0 +1,100 @@
+import "dart:io";
+
+import "package:cloud_firestore/cloud_firestore.dart";
+import "package:riverpod_annotation/riverpod_annotation.dart";
+
+import "../../destinations/domain/destination_providers.dart";
+import "../data/asset_fetcher.dart";
+import "../data/bundle_repository.dart";
+import "../data/download_store.dart";
+import "../data/town_downloader.dart";
+import "offline_bundle.dart";
+
+part "offline_providers.g.dart";
+
+@Riverpod(keepAlive: true)
+BundleRepository bundleRepository(Ref ref) =>
+    BundleRepository(FirebaseFirestore.instance);
+
+@Riverpod(keepAlive: true)
+AssetFetcher assetFetcher(Ref ref) => const StorageAssetFetcher();
+
+/// Overridden in `main()` once Hive is open, and in every test.
+///
+/// Defaults to an in-memory store rather than throwing, for the same reason
+/// `appPreferencesProvider` defaults to null: a widget test should not need a
+/// temp directory to render a screen. In-memory reads as "nothing downloaded",
+/// which is the safe default — it offers a download rather than claiming one.
+@Riverpod(keepAlive: true)
+DownloadStore downloadStore(Ref ref) => InMemoryDownloadStore();
+
+/// Where downloads land. Overridden in `main()` with the documents directory.
+@Riverpod(keepAlive: true)
+Directory downloadRoot(Ref ref) => throw UnimplementedError(
+  "downloadRootProvider must be overridden — main() supplies the "
+  "application documents directory, and tests supply a temp directory.",
+);
+
+@Riverpod(keepAlive: true)
+TownDownloader townDownloader(Ref ref) => TownDownloader(
+  fetcher: ref.watch(assetFetcherProvider),
+  root: ref.watch(downloadRootProvider),
+  store: ref.watch(downloadStoreProvider),
+);
+
+@riverpod
+Stream<List<OfflineBundle>> offlineBundles(Ref ref) =>
+    ref.watch(bundleRepositoryProvider).watchAll();
+
+@riverpod
+Stream<OfflineBundle?> offlineBundle(Ref ref, String townId) =>
+    ref.watch(bundleRepositoryProvider).watchById(townId);
+
+/// Every Storage object a town's bundle implies.
+///
+/// Derived here rather than read from the manifest: the app already has the
+/// destinations and their segments, and a second copy of the paths in Firestore
+/// would drift from the first. Mirrors `collectAssetPaths` in `functions/`.
+Future<List<String>> assetPathsFor(Ref ref, OfflineBundle bundle) async {
+  final repository = ref.read(destinationRepositoryProvider);
+  final paths = <String>{};
+
+  for (final id in bundle.destinationIds) {
+    final destination = await repository.watchById(id).first;
+    if (destination == null) continue;
+    paths.addAll(destination.images.where((p) => p.isNotEmpty));
+
+    final segments = await repository.watchSegments(id).first;
+    for (final segment in segments) {
+      final audio = segment.audioUrl;
+      if (audio != null && audio.isNotEmpty) paths.add(audio);
+    }
+  }
+
+  // Sorted so a download fetches objects in a stable order, which makes a
+  // progress log comparable between runs.
+  return paths.toList()..sort();
+}
+
+/// How each town on this device compares to its manifest.
+@riverpod
+Map<String, TownState> townStates(Ref ref) {
+  final bundles = ref.watch(offlineBundlesProvider).value ?? const [];
+  final store = ref.watch(downloadStoreProvider);
+  return {
+    for (final bundle in bundles)
+      bundle.townId: townStateFor(bundle, store.recordFor(bundle.townId)),
+  };
+}
+
+/// The pack for a town that is downloaded and current, if there is one.
+///
+/// Returns null for a stale town on purpose. Serving last month's map because
+/// it happens to be on disk is how an offline feature quietly starts lying;
+/// the download screen should say it is out of date instead.
+File? currentPackFor(DownloadStore store, OfflineBundle bundle) {
+  final record = store.recordFor(bundle.townId);
+  if (record == null || record.version != bundle.version) return null;
+  final file = File(record.packPath);
+  return file.existsSync() ? file : null;
+}
