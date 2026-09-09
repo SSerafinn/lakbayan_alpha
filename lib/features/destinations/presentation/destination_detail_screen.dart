@@ -8,6 +8,7 @@ import "../../../core/theme/app_typography.dart";
 import "../../../core/theme/lakbayan_colors.dart";
 import "../../../core/widgets/lakbayan_badge.dart";
 import "../../../core/widgets/storage_image.dart";
+import "../../audio/presentation/audio_guide_section.dart";
 import "../domain/destination_providers.dart";
 
 /// Wireframe 1d, screen 5 — Destination Detail.
@@ -103,19 +104,10 @@ class _Content extends ConsumerWidget {
                   "Couldn't load the audio guide.",
                   style: AppTypography.body.copyWith(color: c.badgeErrorText),
                 ),
-                data: (items) => items.isEmpty
-                    ? Text(
-                        "No audio guide for this stop yet.",
-                        style: AppTypography.body.copyWith(
-                          color: c.textSecondary,
-                        ),
-                      )
-                    : Column(
-                        children: [
-                          for (final (i, s) in items.indexed)
-                            _SegmentRow(index: i + 1, segment: s),
-                        ],
-                      ),
+                data: (items) => AudioGuideSection(
+                  destinationId: destination.id,
+                  segments: items,
+                ),
               ),
             ],
           ),
@@ -277,51 +269,6 @@ class _Practical extends StatelessWidget {
                 ],
               ),
             ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SegmentRow extends StatelessWidget {
-  const _SegmentRow({required this.index, required this.segment});
-
-  final int index;
-  final Segment segment;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.lakbayan;
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: AppSpace.x2),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text("$index · ${segment.title}", style: AppTypography.title),
-                if (segment.description case final d?
-                    when d.trim().isNotEmpty) ...[
-                  const SizedBox(height: 2),
-                  Text(
-                    d,
-                    style: AppTypography.body.copyWith(color: c.textSecondary),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ],
-            ),
-          ),
-          const SizedBox(width: AppSpace.x3),
-          // Playback is Phase 3. Disabled rather than hidden so the shape of
-          // the screen is honest about what is coming.
-          const IconButton.filledTonal(
-            onPressed: null,
-            icon: Icon(Icons.play_arrow),
-            tooltip: "Audio player arrives in Phase 3",
-          ),
         ],
       ),
     );

@@ -4,6 +4,18 @@
          would leave release builds unable to reach the network at all. -->
     <uses-permission android:name="android.permission.INTERNET"/>
 
+    <!-- Android 11 (API 30) package visibility: without this the device's
+         text-to-speech engine is invisible to us and flutter_tts finds no
+         engine at all. That is the audio guide's fallback for any stop with a
+         script but no recording, so on a modern phone those stops would simply
+         be silent — with no error, because nothing failed. The plugin does not
+         declare this itself; its own manifest is only a package tag. -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.TTS_SERVICE" />
+        </intent>
+    </queries>
+
     <application
         android:label="lakbayan"
         android:name="${applicationName}"
