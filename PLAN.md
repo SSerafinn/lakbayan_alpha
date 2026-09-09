@@ -64,11 +64,14 @@ and `flutter test` before committing; commit with `/commit`.
 - [ ] `features/itineraries`: create-your-own-tour + saved tours *(wireframe 1g).*
 - [ ] `features/profile` + global loading/empty/offline states *(wireframe 1h).*
 - **DoD:** download a town → maps + audio guides work fully offline.
-- [ ] **Spike first:** extract a Peñablanca PMTiles pack, render it with
-      `vector_map_tiles` (pin 8.x — v10 is beta) on the lowest-end phone
-      available, and measure pan/zoom frame times. Vector is decided (D-11);
-      this validates it before `features/maps` is built on top. If it stutters,
-      the fallback is raster and a paid tile source.
+- [ ] **Spike first**, and it is now **blocked on a decision, not on hardware.**
+      The extraction half is done — `scripts/extract-tiles.mjs` builds a town
+      pack from the destinations' coords, using D-11's buffer union (4.6× fewer
+      tiles than a whole municipality at z16). The rendering half cannot be
+      built: `vector_map_tiles` 8.x needs `flutter_map ^7`, and every PMTiles
+      adapter pins `latlong2 ^0.9.0`. One beta combination resolves, at the cost
+      of two downgrades and glue we own. Three priced options are in
+      `docs/research/map-tiles.md`; pick one, then the harness is a small job.
 - [ ] Routes are authored polylines on the tour, not computed — `PolylineLayer`
       over the basemap, plus a `geo:` hand-off for driving directions (D-11).
 - **Biggest risk in the project.** Offline bundles alone are a Cloud Function

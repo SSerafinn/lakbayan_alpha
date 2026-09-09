@@ -82,6 +82,28 @@ pan/zoom frame times. If it stutters there, the fallback is raster and the cost
 is a paid tile source, so it is worth knowing early rather than after
 `features/maps` is built on top.
 
+### Renderer reopened (2026-09-09) — the paragraph above is out of date
+
+**The source stands. The renderer is undecided again**, and the spike has not
+run because there is nothing it can currently be run against.
+
+Resolving the packages against this project — Flutter 3.47.2, `flutter_map
+^8.3.1` — shows the recommended stack **cannot be installed**.
+`vector_map_tiles` 8.x requires `flutter_map ^7.0.2`, and every version of
+`vector_map_tiles_pmtiles` pins `pmtiles ^1.2.0`, which pins `latlong2 ^0.9.0`.
+The raster packages fail the same way. Full evidence table in
+`docs/research/map-tiles.md`.
+
+One combination does resolve — `vector_map_tiles 9.0.0-beta.9` with `pmtiles
+^1.3.0` — and it costs: `latlong2` down to ^0.9.1, `lottie` down to 3.3.0, a
+beta renderer, and PMTiles glue we write ourselves because the adapter package
+pins the older renderer. Raster is no longer the cheap fallback either: it needs
+its own `TileProvider` *and* a rasterisation step or a paid source.
+
+**Three options, priced in the research doc.** This needs a human decision before
+`features/maps` starts. `scripts/extract-tiles.mjs` is unaffected and landed —
+the pack is the same file under every option.
+
 Routes are **authored polylines**, not computed. `CONVENTIONS.md` already
 specifies "map with pins + static route", so no routing engine is needed:
 `PolylineLayer` draws a tour's path over the basemap, fully offline. For "take

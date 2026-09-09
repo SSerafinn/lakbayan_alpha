@@ -132,6 +132,21 @@ bundle generator can build that shape from the destinations' `coords`.
 This is worth designing in from the start; retrofitting it after shipping
 whole-municipality packs means re-downloading everything.
 
+**Implemented** as `scripts/extract-tiles.mjs`. Measured on six destinations
+spread across one municipality, which is the realistic case:
+
+| maxzoom | buffer union | whole municipality |
+|---|---|---|
+| 15 | 208 tiles · 1.6–4.1 MB | 828 tiles · 6.5–16.2 MB |
+| 16 | 666 tiles · 5.2–13.0 MB | 3,037 tiles · 23.7–59.3 MB |
+| 17 | 2,421 tiles · 18.9–47.3 MB | 11,501 tiles · 89.9–224.6 MB |
+
+**4.6× fewer tiles at z16**, and the whole-municipality column reproduces the
+independently-calculated table above to within 3%, which is the cross-check that
+the script's tile arithmetic is right. Low-zoom context does come free: a z10
+tile spans ~40 km, so it covers the municipality whether or not the region asks
+for it. Figures are the raster bounds; a vector pack is materially smaller.
+
 ---
 
 ## Decided (2026-08-10)
@@ -178,6 +193,75 @@ measurement rather than on documentation, which is the part that cannot be
 researched from here.
 
 ---
+
+## Resolution findings (2026-09-09) — the renderer decision is reopened
+
+Before running the spike, the packages were resolved against this project as it
+actually stands (Flutter 3.47.2, `flutter_map ^8.3.1`, `latlong2 ^0.10.1`). **The
+stack D-11 recommended does not resolve**, and neither does anything else off the
+shelf. Every line below is a `flutter pub add --dry-run` result, not a reading of
+the pubspecs.
+
+| Attempt | Outcome |
+|---|---|
+| `vector_map_tiles_pmtiles` (the recommended path) | ❌ every version pins `pmtiles ^1.2.0` → `latlong2 ^0.9.0` |
+| `vector_map_tiles 9.0.0-beta.13` + `pmtiles ^2.2.0` | ❌ `pmtiles` 2.x wants `protobuf ^6`; `vector_tile_renderer` (**every** version, including 7.0.0-beta.1) wants `vector_tile ^2.0.0` → `protobuf ^3` |
+| `vector_map_tiles 9.0.0-beta.8` | ❌ `latlong2 ^0.9.1` against our `^0.10.1` |
+| `flutter_map_pmtiles` (the raster package) | ❌ same `pmtiles ^1.2.0` → `latlong2 ^0.9.0` |
+| `pmtiles ^2.2.0` alone | ✅ resolves |
+| **`vector_map_tiles 9.0.0-beta.9` + `pmtiles ^1.3.0` + downgrades** | ✅ **resolves** |
+
+### What the working combination costs
+
+The last row is the only way to render vector tiles here today. It requires, in
+the app's own `pubspec.yaml`:
+
+- **`latlong2` ^0.10.1 → ^0.9.1.** Not a `flutter_map` problem — 8.3.2 declares
+  `latlong2 >=0.9.1 <0.11.0` and is happy either way. The pin is ours.
+- **`lottie` ^3.3.2 → 3.3.0.** `pmtiles` 1.3.0 needs `archive ^3`, and `lottie`
+  from 3.3.1 needs `archive ^4`. `lottie` is currently unimported, so this costs
+  nothing today, but it is a real ceiling on a package we are keeping.
+- **A beta renderer**, `vector_map_tiles 9.0.0-beta.9`.
+- **Glue we write and own.** `vector_map_tiles_pmtiles` pins
+  `vector_map_tiles ^8.0.0` and so cannot be used with the beta. The interface is
+  small — `VectorTileProvider.provide(TileIdentity) → Future<Uint8List>` over
+  `PmTilesArchive.tile(ZXY(z,x,y).toTileId())` — but it becomes ours to maintain.
+- Plus `unicode` 1.1.9 → 0.3.1 and `protobuf` pinned to 3.x transitively.
+
+### What this means
+
+The spike was framed as "measure vector on a cheap phone, fall back to raster if
+it stutters". That framing no longer holds, because **raster is not the cheap
+fallback any more**:
+
+- `flutter_map_mbtiles` and `flutter_map_pmtiles` are both blocked by the same
+  `latlong2` conflict, so a raster path also means writing our own `TileProvider`.
+- Protomaps publishes **vector**. Raster still means paying for a source or
+  adding a rasterisation step, exactly as before.
+
+So the three options, with what each actually costs:
+
+1. **Take the beta stack.** Two downgrades, a beta dependency, and ~60 lines of
+   glue we own. Keeps the chain free and keeps Protomaps. The spike then runs and
+   measures what it was always meant to measure.
+2. **Own the raster path.** `pmtiles ^2.2.0` resolves cleanly on its own, so we
+   read the archive ourselves and feed bytes to a plain `flutter_map`
+   `TileProvider` — the simplest code by far, no downgrades. But it needs raster
+   tiles, which Protomaps does not publish, so it adds a rasterisation step or a
+   paid source.
+3. **Wait.** `vector_map_tiles` 10.0.0-beta.2 tracks `flutter_map ^8.2.1`; when
+   its dependencies settle and a PMTiles adapter follows, options 1 and 2 both
+   get cheaper. Phase 3 is scheduled now, so this is only viable if the map
+   slips.
+
+**No harness has been built**, deliberately: building one means committing to a
+stack in this table, and that is the decision this section exists to put in front
+of a human. Once it is made, the harness is a small job — a `FlutterMap`, a
+provider, and `SchedulerBinding.addTimingsCallback` for build and raster frame
+times.
+
+`scripts/extract-tiles.mjs` is unaffected and is in the repo now. The pack it
+produces is the same file under every option; only the renderer differs.
 
 ## Still open
 
