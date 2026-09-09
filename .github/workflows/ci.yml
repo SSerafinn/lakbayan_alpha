@@ -52,17 +52,20 @@ jobs:
       # gitignored but do exist once build_runner has run, and they are its
       # output rather than ours to format.
       #
-      # `flutter analyze` does not check formatting, which is how a de-indented
+      # `dart analyze` does not check formatting, which is how a de-indented
       # line with trailing whitespace once passed CI untouched.
       - run: dart format --output=none --set-exit-if-changed $(git ls-files '*.dart')
 
       # Generated sources are gitignored, so this must run before analyze.
       - run: dart run build_runner build
 
-      # Also runs riverpod_lint: since 3.1.4 it is a native analyzer plugin
-      # (analysis_options.yaml `plugins:`), so the old `dart run custom_lint`
-      # step is gone rather than merely optional.
-      - run: flutter analyze
+      # `dart analyze`, NOT `flutter analyze`. Both read the same
+      # analysis_options.yaml, but only `dart analyze` reliably loads the
+      # native analyzer plugin that riverpod_lint became in 3.1.4. On at least
+      # one developer machine `flutter analyze` reports a clean tree while
+      # `dart analyze` flags real violations of it — so the two commands
+      # disagree, and the one that catches more is the one to run.
+      - run: dart analyze
 
       - run: flutter test
 

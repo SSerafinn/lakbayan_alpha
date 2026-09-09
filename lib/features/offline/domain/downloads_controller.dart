@@ -33,8 +33,6 @@ class DownloadsController extends _$DownloadsController {
   @override
   Map<String, TownDownload> build() => const {};
 
-  bool get isBusy => state.values.any((d) => d.isRunning);
-
   void _set(String townId, TownDownload value) {
     if (!ref.mounted) return;
     state = {...state, townId: value};
