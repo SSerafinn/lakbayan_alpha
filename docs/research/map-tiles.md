@@ -277,9 +277,11 @@ keeps the PMTiles format `scripts/extract-tiles.mjs` already produces and that
 `docs/DATA_MODEL.md` already reserves a Storage path for. The two are
 interchangeable behind a `TileLayer` if that turns out wrong.
 
-**Still unanswered, and worth checking before the pipeline is built:** how a
-rasterised Protomaps basemap actually looks, which is a taste call for a tourism
-map, not a technical one.
+**Style flavour: `light`, confirmed 2026-09-09** after looking at a real
+rasterised tile of Peñablanca at z14. It is `tools/tiles/rasterise.mjs`'s
+default; `--flavour` takes the other Protomaps named flavours. Changing it means
+re-rendering every pack, so it is worth being deliberate about before towns are
+built in bulk.
 
 `scripts/extract-tiles.mjs` is unaffected. The pack it produces is the same file
 under every option; only the renderer differs.
