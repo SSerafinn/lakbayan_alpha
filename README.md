@@ -132,7 +132,7 @@ so a **hot restart will not pick up edits** to `config/dev.json` — stop and re
 You are ready when all of these pass:
 
 ```bash
-flutter analyze
+dart analyze
 ```
 
 ```bash
@@ -143,10 +143,12 @@ flutter test
 cd test_rules && npm install && npm test
 ```
 
-`flutter analyze` runs the riverpod_lint rules too — it is a native analyzer
-plugin (`plugins:` in `analysis_options.yaml`), so there is no second lint
-command. If you have an older checkout's habit of `dart run custom_lint`, that
-package is gone.
+**`dart analyze`, not `flutter analyze`.** Both read the same
+`analysis_options.yaml`, and riverpod_lint is a native analyzer plugin
+(`plugins:` in that file) rather than a separate command. But `flutter analyze`
+does not reliably load the plugin — on at least one machine here it reports a
+clean tree while `dart analyze` flags real violations, and CI catches them
+either way. Run the one that catches more.
 
 It does not check formatting, and CI does:
 
@@ -211,7 +213,7 @@ Email/password sign-in works without any of this.
 |---|---|
 | Run the app | `flutter run --dart-define-from-file=config/dev.json` |
 | Codegen after model/provider changes | `dart run build_runner build` (or `/gen`) |
-| Static analysis (includes riverpod_lint) | `flutter analyze` |
+| Static analysis (includes riverpod_lint) | `dart analyze` — not `flutter analyze`, see above |
 | Format Dart before pushing | `dart format $(git ls-files '*.dart')` |
 | Flutter tests | `flutter test` |
 | Security-rules tests | `cd test_rules && npm test` |
@@ -329,7 +331,7 @@ the context the next person needs and the hardest to reconstruct later.
 All three must pass. CI runs them anyway, but locally is faster than a red build:
 
 ```bash
-flutter analyze && flutter test
+dart analyze && flutter test
 ```
 
 ```bash

@@ -66,7 +66,7 @@ docker compose up emulators
 Run the exact checks CI runs:
 
 ```bash
-docker compose run --rm toolchain flutter analyze
+docker compose run --rm toolchain dart analyze
 ```
 
 ```bash

@@ -50,7 +50,7 @@ services:
       start_period: 40s
 
   # CI-parity toolchain. Not started by `up` — invoke per command:
-  #   docker compose run --rm toolchain flutter analyze
+  #   docker compose run --rm toolchain dart analyze
   #
   # NOTE: because this service sits behind a profile, a bare `docker compose
   # build` silently skips it. Build with `docker compose --profile tools build`.
