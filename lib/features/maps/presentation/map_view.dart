@@ -85,7 +85,25 @@ class _MapViewState extends ConsumerState<MapView> {
             onTap: (_, _) => setState(() => _selectedId = null),
           ),
           children: [
-            _tileLayer(source),
+            TileLayer(
+              urlTemplate: source.urlTemplate,
+              maxNativeZoom: source.maxZoom,
+              // Required by the OSM tile policy, and good manners on any
+              // source: it is how an operator tells our traffic apart from a
+              // scraper's.
+              userAgentPackageName: "ph.gov.cagayan.lakbayan",
+            ),
+            // Downloaded packs sit **above** the network layer. Where a town
+            // has been taken offline its tiles come off disk: instant, free,
+            // and unchanged imagery, so the seam is invisible. Everywhere else
+            // the network layer below still shows through.
+            for (final pack in ref.watch(openPacksProvider).value ?? const [])
+              TileLayer(
+                key: ValueKey("pack-${pack.townId}"),
+                tileProvider: pack.provider,
+                tileDimension: packTileDimension,
+                maxNativeZoom: packMaxZoom,
+              ),
             MarkerLayer(
               markers: [
                 for (final d in widget.destinations)
@@ -133,20 +151,6 @@ class _MapViewState extends ConsumerState<MapView> {
       ],
     );
   }
-
-  Widget _tileLayer(TileSource source) => switch (source) {
-    OnlineRasterTiles(:final urlTemplate) => TileLayer(
-      urlTemplate: urlTemplate,
-      maxNativeZoom: source.maxZoom,
-      // Required by the OSM tile policy, and good manners on any source: it is
-      // how an operator tells our traffic apart from a scraper's.
-      userAgentPackageName: "ph.gov.cagayan.lakbayan",
-    ),
-    // The pack path reaches the layer once `features/offline` reports a
-    // downloaded town. Until then this branch is unreachable, which is why the
-    // source provider never returns it.
-    OfflinePackTiles() => const SizedBox.shrink(),
-  };
 }
 
 class _Pin extends StatelessWidget {

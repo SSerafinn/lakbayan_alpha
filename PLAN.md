@@ -78,7 +78,7 @@ and `flutter test` before committing; commit with `/commit`.
       to play. **Background and lock-screen playback are not wired** —
       `audio_service` needs a foreground service and a background isolate; this
       interface is what such a handler would delegate to.*
-- [ ] `features/offline` — **the engine is done; nothing on screen uses it yet.**
+- [x] `features/offline` — manifest, download engine, screen, and packs on the map.
       - [x] `generateOfflineBundle(town)` in `functions/`, plus the CMS screen
             that drives it. Writes `offlineBundles/{townId}`: which places, how
             many bytes, and a content fingerprint a phone can compare against.
@@ -97,9 +97,19 @@ and `flutter test` before committing; commit with `/commit`.
             older build cannot decode reads as absent, which offers a
             re-download rather than crashing the one screen whose job is to
             work when nothing else does.*
-      - [ ] Point `OfflinePackTiles` at the downloaded pack — the branch in
-            `features/maps` that is deliberately unreachable today.
-      - [ ] Wireframe 1f: the download screen itself.
+      - [x] Downloaded packs render on the map.
+            *All current packs are layered **over** the network basemap rather
+            than one being chosen. A pack covers only its own town, so each
+            draws where it has coverage and nothing elsewhere — which sidesteps
+            "which town is the user in" and degrades correctly: with no signal
+            the downloaded towns appear and the rest is blank. `OfflinePackTiles`
+            is gone from the `TileSource` union; it had become a variant nothing
+            returned, which is dead code wearing a design's clothes.*
+      - [x] Wireframe 1f: the download screen itself.
+            *Reached from Profile, offered to guests too — wireframe 1b keeps
+            discovery open without an account, and taking a town with you is
+            discovery. A `pending` bundle is shown but not offered: downloading
+            one would produce a town with no map and no way to say why.*
 - [ ] `features/itineraries`: create-your-own-tour + saved tours *(wireframe 1g).*
 - [ ] `features/profile` + global loading/empty/offline states *(wireframe 1h).*
 - **DoD:** download a town → maps + audio guides work fully offline.

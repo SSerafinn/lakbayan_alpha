@@ -10,6 +10,7 @@ import "../../features/design_system/presentation/design_system_gallery.dart";
 import "../../features/destinations/presentation/destination_detail_screen.dart";
 import "../../features/explore/presentation/home_shell.dart";
 import "../../features/landing/presentation/landing_screen.dart";
+import "../../features/offline/presentation/downloads_screen.dart";
 import "../prefs/app_preferences.dart";
 
 abstract final class Routes {
@@ -18,6 +19,10 @@ abstract final class Routes {
   static const signIn = "/sign-in";
   static const home = "/";
   static const designSystem = "/design-system";
+
+  /// Wireframe 1f. Pushed from Profile rather than given a tab: downloading is
+  /// something you do once before a trip, not a place you spend time.
+  static const downloads = "/downloads";
 
   /// Destination Detail. Pushed, not replaced — wireframe 1d opens it as a
   /// sheet over whatever is beneath.
@@ -113,6 +118,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: "/destination/:id",
         builder: (context, state) =>
             DestinationDetailScreen(id: state.pathParameters["id"]!),
+      ),
+      GoRoute(
+        path: Routes.downloads,
+        builder: (context, state) => const DownloadsScreen(),
       ),
       // Debug-only: the living design system specimen. Excluded from release so
       // it cannot be reached in a shipped build.

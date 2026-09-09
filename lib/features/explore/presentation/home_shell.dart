@@ -3,6 +3,7 @@ import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
 
+import "../../../core/router/app_router.dart";
 import "../../../core/theme/app_dimens.dart";
 import "../../../core/theme/app_typography.dart";
 import "../../../core/theme/lakbayan_colors.dart";
@@ -124,6 +125,15 @@ class _ProfileTab extends ConsumerWidget {
           style: AppTypography.body.copyWith(color: c.textSecondary),
         ),
         const SizedBox(height: AppSpace.x6),
+        // Above the auth actions, and offered to guests too: wireframe 1b keeps
+        // discovery open without an account, and taking a town with you is
+        // discovery. Nothing here writes to a user document.
+        OutlinedButton.icon(
+          onPressed: () => context.push(Routes.downloads),
+          icon: const Icon(Icons.download_outlined),
+          label: const Text("Download a town"),
+        ),
+        const SizedBox(height: AppSpace.x3),
         if (isGuest)
           FilledButton(
             onPressed: () => ref.read(guestModeProvider.notifier).disable(),
