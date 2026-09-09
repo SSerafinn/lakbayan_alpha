@@ -5,3 +5,4 @@ import { initializeApp } from "firebase-admin/app";
 initializeApp();
 
 export { listAdmins, setAdminRole } from "./admin.js";
+export { generateOfflineBundle } from "./bundles.js";

@@ -78,9 +78,19 @@ and `flutter test` before committing; commit with `/commit`.
       to play. **Background and lock-screen playback are not wired** —
       `audio_service` needs a foreground service and a background isolate; this
       interface is what such a handler would delegate to.*
-- [ ] `features/offline`: `generateOfflineBundle(townId)` function; per-town download
-      manager; offline tile packs; cache assets in Hive *(wireframe 1f;
-      `docs/ARCHITECTURE.md` → offline).*
+- [ ] `features/offline` — **the manifest half is done, the client half is not.**
+      - [x] `generateOfflineBundle(town)` in `functions/`, plus the CMS screen
+            that drives it. Writes `offlineBundles/{townId}`: which places, how
+            many bytes, and a content fingerprint a phone can compare against.
+            Verified end to end against the emulator, including the status
+            flipping to `ready` once a real rendered pack was uploaded.
+      - [ ] Per-town download manager: resolve the manifest's assets, fetch
+            them, report progress, survive a cancelled or failed download.
+      - [ ] Hive tracking of what is downloaded and at which version, so a
+            stale town can be told from a missing one.
+      - [ ] Point `OfflinePackTiles` at the downloaded pack — the branch in
+            `features/maps` that is deliberately unreachable today.
+      - [ ] Wireframe 1f: the download screen itself.
 - [ ] `features/itineraries`: create-your-own-tour + saved tours *(wireframe 1g).*
 - [ ] `features/profile` + global loading/empty/offline states *(wireframe 1h).*
 - **DoD:** download a town → maps + audio guides work fully offline.
@@ -181,7 +191,13 @@ CMS consumes that contract; it does not redefine it.
       is a hard delete, which is how a withdrawn consent gets honoured.*
 
 ## CMS-3 · Weeks 10–12 — Operations
-- [ ] Offline Bundles: trigger `generateOfflineBundle`, show version and status *(screen 7)*.
+- [x] Offline Bundles: trigger `generateOfflineBundle`, show version and status *(screen 7)*.
+      *One row per town with publishable content, built or not — listing only
+      existing bundles would hide the towns that need one, which is the question
+      the screen exists to answer. **Check** runs the function in dry-run mode
+      and compares versions, so an admin can find out whether a rebuild is
+      needed without bumping the version and sending every phone off to
+      re-download. A bundle is `ready` only when the map pack is in Storage too.*
 - [x] Users + Admin team & roles *(screen 10)*. Replace `scripts/grant-admin.mjs`
       with a callable Cloud Function so promotion no longer needs a service account.
       *Two lists from two places: the admin team is whoever holds the custom

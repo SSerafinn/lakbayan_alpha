@@ -1,5 +1,5 @@
 {
-  "//": "Shared contract for slugify. Asserted from BOTH sides of the language boundary: scripts/lib/slug.test.mjs (JS) and cms/src/types/slug.test.ts (TypeScript). If the two implementations ever disagree, the importer stops recognising existing destinations and duplicates the province instead of updating it — so this file is the thing that stops that happening quietly.",
+  "//": "Shared contract for slugify. Asserted from all THREE implementations: scripts/lib/slug.test.mjs (JS), cms/src/types/slug.test.ts (TypeScript) and functions/src/bundle.test.ts (Cloud Functions, which derives a town's bundle id from its name). If the two implementations ever disagree, the importer stops recognising existing destinations and duplicates the province instead of updating it — so this file is the thing that stops that happening quietly.",
   "cases": [
     { "name": "Callao Cave", "slug": "callao-cave" },
     { "name": "Buntun Bridge", "slug": "buntun-bridge" },

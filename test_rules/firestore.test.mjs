@@ -291,6 +291,44 @@ describe("tours", () => {
   });
 });
 
+describe("offlineBundles", () => {
+  // A phone reads the manifest before it has an account — wireframe 1b keeps
+  // discovery open to guests, and downloading a town is discovery.
+  it("is readable by anyone, signed in or not", async () => {
+    const db = env.unauthenticatedContext().firestore();
+    await assertSucceeds(getDoc(doc(db, "offlineBundles/penablanca")));
+  });
+
+  it("refuses a write from a signed-in non-admin", async () => {
+    // The document says how big a download is and whether it is ready. A
+    // client that could write it could point every phone at anything.
+    const db = env.authenticatedContext("traveller").firestore();
+    await assertFails(
+      setDoc(doc(db, "offlineBundles/penablanca"), {
+        name: "Peñablanca",
+        status: "ready",
+      })
+    );
+  });
+
+  it("allows an admin to write", async () => {
+    // In practice only the generateOfflineBundle function writes these, and it
+    // uses the Admin SDK, which bypasses rules entirely. The rule still has to
+    // be right: it is what stops anyone else.
+    const db = env.authenticatedContext("boss", { admin: true }).firestore();
+    await assertSucceeds(
+      setDoc(doc(db, "offlineBundles/penablanca"), {
+        name: "Peñablanca",
+        destinationIds: ["published"],
+        tilePackRef: "tiles/penablanca/pack.pmtiles",
+        size: 1574547,
+        version: "7daa20e51fe1",
+        status: "ready",
+      })
+    );
+  });
+});
+
 describe("guides", () => {
   it("requires sign-in, since rows carry personal contact details", async () => {
     const db = env.unauthenticatedContext().firestore();
