@@ -9,6 +9,7 @@ import "../../../core/theme/lakbayan_colors.dart";
 import "../../../core/widgets/lakbayan_badge.dart";
 import "../../../core/widgets/storage_image.dart";
 import "../../audio/presentation/audio_guide_section.dart";
+import "../../itineraries/presentation/add_to_itinerary_sheet.dart";
 import "../domain/destination_providers.dart";
 
 /// Wireframe 1d, screen 5 — Destination Detail.
@@ -289,16 +290,27 @@ class _Actions extends StatelessWidget {
         color: Theme.of(context).colorScheme.surface,
         border: Border(top: BorderSide(color: c.line)),
       ),
-      child: const SafeArea(
+      child: SafeArea(
         top: false,
         child: Row(
           children: [
-            // Saving requires an account and itineraries; both land later. The
-            // wireframe pins these actions, so they stay visible but inert.
-            OutlinedButton(onPressed: null, child: Icon(Icons.favorite_border)),
-            SizedBox(width: AppSpace.x3),
+            // Favouriting a *destination* has nowhere to go: the data model
+            // has savedTourIds, not savedDestinationIds. Left inert rather
+            // than inventing a field the schema does not have.
+            const OutlinedButton(
+              onPressed: null,
+              child: Icon(Icons.favorite_border),
+            ),
+            const SizedBox(width: AppSpace.x3),
             Expanded(
-              child: FilledButton(onPressed: null, child: Text("Add Tour")),
+              child: FilledButton(
+                onPressed: () => showAddToItinerary(
+                  context,
+                  destinationId: destination.id,
+                  destinationName: destination.name,
+                ),
+                child: const Text("Add to itinerary"),
+              ),
             ),
           ],
         ),

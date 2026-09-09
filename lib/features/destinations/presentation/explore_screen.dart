@@ -9,6 +9,7 @@ import "../../../core/theme/lakbayan_colors.dart";
 import "../../../core/widgets/lakbayan_badge.dart";
 import "../../../core/widgets/lakbayan_list_row.dart";
 import "../../../core/widgets/storage_image.dart";
+import "../../explore/domain/home_tab.dart";
 import "../domain/destination_providers.dart";
 
 /// Wireframe 1c, screen 3 — Explore (tab 1).
@@ -46,11 +47,11 @@ class ExploreScreen extends ConsumerWidget {
   }
 }
 
-class _BuildATourCard extends StatelessWidget {
+class _BuildATourCard extends ConsumerWidget {
   const _BuildATourCard();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final c = context.lakbayan;
     return Container(
       margin: const EdgeInsets.fromLTRB(
@@ -96,11 +97,14 @@ class _BuildATourCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: AppSpace.x3),
-          const FilledButton(
-            // Itineraries are Phase 3; the hero stays visible because the
-            // wireframe says it is never dismissible.
-            onPressed: null,
-            child: Text("Create"),
+          FilledButton(
+            // Switches tabs rather than pushing a route: creating a tour is
+            // something you do *in* Itineraries, and the wireframe keeps the
+            // bottom navigation on screen throughout.
+            onPressed: () => ref
+                .read(selectedHomeTabProvider.notifier)
+                .select(HomeTab.itineraries),
+            child: const Text("Create"),
           ),
         ],
       ),

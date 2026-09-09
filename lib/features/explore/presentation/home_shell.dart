@@ -10,33 +10,32 @@ import "../../../core/theme/lakbayan_colors.dart";
 import "../../auth/domain/auth_providers.dart";
 import "../../destinations/presentation/browse_screen.dart";
 import "../../destinations/presentation/explore_screen.dart";
+import "../../itineraries/presentation/itineraries_tab.dart";
+import "../domain/home_tab.dart";
 
 /// The four-tab shell from wireframe 1a: *Explore · Map · Itineraries · Profile*,
 /// present on every screen except Splash, Auth, Player and AR View.
 ///
-/// Phase 1 stops at an empty shell — the tabs are placeholders until their
-/// features land in Phases 2 and 3.
-class HomeShell extends ConsumerStatefulWidget {
+/// The selected tab lives in a provider rather than in this widget, so a screen
+/// inside one tab can send somebody to another — see [SelectedHomeTab].
+class HomeShell extends ConsumerWidget {
   const HomeShell({super.key});
-
-  @override
-  ConsumerState<HomeShell> createState() => _HomeShellState();
-}
-
-class _HomeShellState extends ConsumerState<HomeShell> {
-  int _index = 0;
 
   static const _titles = ["Explore", "Map", "Itineraries", "Profile"];
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final isGuest = ref.watch(guestModeProvider);
+    final tab = ref.watch(selectedHomeTabProvider);
+    final index = tab.index;
 
     return Scaffold(
-      appBar: AppBar(title: Text(_titles[_index])),
+      appBar: AppBar(title: Text(_titles[index])),
       bottomNavigationBar: NavigationBar(
-        selectedIndex: _index,
-        onDestinationSelected: (i) => setState(() => _index = i),
+        selectedIndex: index,
+        onDestinationSelected: (i) => ref
+            .read(selectedHomeTabProvider.notifier)
+            .select(HomeTab.values[i]),
         destinations: const [
           NavigationDestination(
             icon: Icon(Icons.explore_outlined),
@@ -60,42 +59,13 @@ class _HomeShellState extends ConsumerState<HomeShell> {
           ),
         ],
       ),
-      body: switch (_index) {
-        0 => const ExploreScreen(),
-        1 => const BrowseScreen(),
-        3 => _ProfileTab(isGuest: isGuest),
-        // Itineraries land in Phase 3; the full-screen map replaces the Browse
-        // landing behind the ◈ toggle at the same time.
-        _ => _EmptyTab(title: _titles[_index]),
+      body: switch (tab) {
+        HomeTab.explore => const ExploreScreen(),
+        // Browse is the Map tab's landing; its ◈ toggle swaps in the map.
+        HomeTab.map => const BrowseScreen(),
+        HomeTab.itineraries => const ItinerariesTab(),
+        HomeTab.profile => _ProfileTab(isGuest: isGuest),
       },
-    );
-  }
-}
-
-class _EmptyTab extends StatelessWidget {
-  const _EmptyTab({required this.title});
-
-  final String title;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.lakbayan;
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpace.x8),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(title, style: AppTypography.h2),
-            const SizedBox(height: AppSpace.x2),
-            Text(
-              "Nothing here yet — this lands in a later phase.",
-              style: AppTypography.body.copyWith(color: c.textSecondary),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

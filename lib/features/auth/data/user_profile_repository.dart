@@ -56,6 +56,23 @@ class UserProfileRepository {
     });
   }
 
+  /// Save or unsave one of the province's tours.
+  ///
+  /// Records the **id**, not a copy of the tour. A tour the province later
+  /// edits then stays correct on the phone that saved it; a copy would quietly
+  /// become a different tour from the one everyone else is walking.
+  ///
+  /// `arrayUnion`/`arrayRemove` rather than read-modify-write: two phones
+  /// signed into the same account can both save something without one of them
+  /// losing the other's change.
+  Future<void> setTourSaved(String uid, String tourId, {required bool saved}) =>
+      _doc(uid).update({
+        "savedTourIds": saved
+            ? FieldValue.arrayUnion([tourId])
+            : FieldValue.arrayRemove([tourId]),
+        "updatedAt": FieldValue.serverTimestamp(),
+      });
+
   Map<String, dynamic> _withId(DocumentSnapshot<Map<String, dynamic>> snap) => {
     ...?snap.data(),
     "uid": snap.id,

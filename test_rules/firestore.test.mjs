@@ -291,6 +291,49 @@ describe("tours", () => {
   });
 });
 
+describe("itineraries", () => {
+  // A subcollection does NOT inherit its parent's rules. Without an explicit
+  // match these would be denied outright — safe, but not what we want — and
+  // with a careless one they would be readable by anybody. Both directions are
+  // worth pinning.
+  const mine = "users/ana/itineraries/weekend";
+  const theirs = "users/ben/itineraries/weekend";
+
+  it("lets the owner create, read and delete their own", async () => {
+    const db = env.authenticatedContext("ana").firestore();
+    await assertSucceeds(
+      setDoc(doc(db, mine), {
+        name: "Two days in Peñablanca",
+        destinationIds: ["published"],
+      })
+    );
+    await assertSucceeds(getDoc(doc(db, mine)));
+    await assertSucceeds(getDocs(collection(db, "users/ana/itineraries")));
+    await assertSucceeds(deleteDoc(doc(db, mine)));
+  });
+
+  it("hides one person's plans from another", async () => {
+    const db = env.authenticatedContext("ana").firestore();
+    await assertFails(getDoc(doc(db, theirs)));
+    await assertFails(setDoc(doc(db, theirs), { name: "Vandalised" }));
+    await assertFails(getDocs(collection(db, "users/ben/itineraries")));
+  });
+
+  it("hides them from an admin too", async () => {
+    // Deliberately unlike `users/{uid}` itself, which admins can read for the
+    // CMS Users screen. An itinerary is a private plan; the province has no
+    // business knowing what somebody is doing on Saturday.
+    const db = env.authenticatedContext("staff", { admin: true }).firestore();
+    await assertFails(getDoc(doc(db, mine)));
+    await assertFails(getDocs(collection(db, "users/ana/itineraries")));
+  });
+
+  it("refuses an anonymous reader", async () => {
+    const db = env.unauthenticatedContext().firestore();
+    await assertFails(getDoc(doc(db, mine)));
+  });
+});
+
 describe("offlineBundles", () => {
   // A phone reads the manifest before it has an account — wireframe 1b keeps
   // discovery open to guests, and downloading a town is discovery.
