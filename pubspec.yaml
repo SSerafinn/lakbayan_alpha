@@ -1,7 +1,10 @@
 name: lakbayan
 description: Self-guided tourism companion for the Province of Cagayan.
 publish_to: "none"
-version: 0.1.0+1
+# Bumped at each staging -> main promotion, alongside the tag README's
+# Releases section describes. It had drifted: v0.2.0-m1 was tagged while this
+# line still said 0.1.0+1, so the app reported a version no release used.
+version: 0.3.0+2
 
 environment:
   # The floor the dependency set actually needs — riverpod_lint 3.1.9 and
