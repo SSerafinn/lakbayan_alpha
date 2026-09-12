@@ -50,7 +50,11 @@ and `flutter test` before committing; commit with `/commit`.
       verified flowing end to end).*
 - [ ] Nearby Places by distance — needs location permission; deferred to the
       Phase 3 maps work. Explore currently shows Featured in that slot.
-- [ ] Hive caching of assets *(Phase 3, with offline bundles).*
+- [ ] Serve downloaded assets from disk. `TownDownloader` already saves every
+      photo and recording a town needs, but `storageUrlProvider` and
+      `audioUrlResolver` both still go to the network, so a downloaded town has
+      an offline map and online everything else. This is what stands between
+      Phase 3 and its DoD.
 - **DoD:** browse real destinations end-to-end from Firestore, images loading.
 
 ## Phase 3 · Weeks 7–10 — Core value  → Milestone **M2 (Beta)**
@@ -123,6 +127,12 @@ and `flutter test` before committing; commit with `/commit`.
       Itineraries without threading a callback through two widgets.*
 - [ ] `features/profile` + global loading/empty/offline states *(wireframe 1h).*
 - **DoD:** download a town → maps + audio guides work fully offline.
+      **Not met yet, and the missing piece is small.** A downloaded town's map
+      renders from its pack, but photos and audio still resolve through
+      `FirebaseStorage.getDownloadURL()` — a network call. The files are on
+      disk; nothing reads them. Point `audioUrlResolver` and `storageUrlProvider`
+      at `TownDownloader.localPathFor` when a record exists, and the DoD holds.
+      Until then a download buys the map and nothing else.
 - [x] **Spike — resolved without hardware, and it changed the renderer.**
       `scripts/extract-tiles.mjs` builds a town pack from the destinations'
       coords using D-11's buffer union (4.6× fewer tiles than a whole
