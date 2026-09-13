@@ -49,6 +49,11 @@ abstract class Itinerary with _$Itinerary {
     /// Destination ids, in visiting order — the same shape as [Tour.stops], so
     /// the map draws a route from either without caring which it was handed.
     @Default(<String>[]) List<String> destinationIds,
+
+    /// When the trip runs. Optional: a plan can exist before it has dates.
+    /// Requested in `my-docs/backend-requests/itinerary-dates.md`.
+    @TimestampConverter() DateTime? startDate,
+    @TimestampConverter() DateTime? endDate,
     @TimestampConverter() DateTime? createdAt,
     @TimestampConverter() DateTime? updatedAt,
   }) = _Itinerary;
