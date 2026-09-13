@@ -2,9 +2,10 @@ import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
 
+import "../../../core/theme/app_icons.dart";
+import "../../../core/router/app_router.dart";
 import "../../../core/theme/app_dimens.dart";
 import "../../../core/theme/app_typography.dart";
-import "../../../core/theme/lakbayan_colors.dart";
 import "../domain/app_user.dart";
 import "../domain/auth_providers.dart";
 import "auth_chrome.dart";
@@ -48,7 +49,6 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final c = context.lakbayan;
     final state = ref.watch(authControllerProvider);
     final busy = state.isLoading;
 
@@ -73,7 +73,17 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                 ),
                 Expanded(
                   child: AuthSheet(
-                    onDismiss: () => context.pop(),
+                    // Down always goes back to the landing pages, whichever
+                    // way this screen was reached. Pushed over them — the
+                    // first-launch path — popping returns to the page the user
+                    // left. Reached as the root route, which is every
+                    // returning visitor now that the introduction runs once
+                    // per device, there is nothing to pop, so go to them
+                    // instead; the router keeps /landing reachable while
+                    // signed out whether or not they have been seen.
+                    onDismiss: () => context.canPop()
+                        ? context.pop()
+                        : context.go(Routes.landing),
                     child: Form(
                       key: _formKey,
                       child: ListView(
@@ -89,8 +99,10 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                           Text(
                             "Kasabay sa Paglakbay, \nLakbayin ang Probinsiya ng Cagayan",
                             textAlign: TextAlign.center,
-                            style: AppTypography.body.copyWith(
-                              color: c.textSecondary,
+                            style: AppTypography.bodyMedium.copyWith(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant,
                             ),
                           ),
                           const SizedBox(height: AppSpace.x4),
@@ -141,9 +153,11 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                                     setState(() => _obscure = !_obscure),
                                 icon: Icon(
                                   _obscure
-                                      ? Icons.visibility_outlined
-                                      : Icons.visibility_off_outlined,
-                                  color: c.textSecondary,
+                                      ? AppIcons.visibility
+                                      : AppIcons.visibilityOff,
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurfaceVariant,
                                 ),
                                 tooltip: _obscure
                                     ? "Show password"
@@ -216,8 +230,10 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                                   : () => _continueAsGuest(context),
                               child: Text(
                                 "BROWSE AS GUEST",
-                                style: AppTypography.overline.copyWith(
-                                  color: c.textSecondary,
+                                style: AppTypography.labelMedium.copyWith(
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurfaceVariant,
                                 ),
                               ),
                             ),

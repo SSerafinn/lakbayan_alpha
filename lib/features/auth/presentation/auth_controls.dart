@@ -1,5 +1,6 @@
 import "package:flutter/material.dart";
 
+import "../../../core/theme/app_icons.dart";
 import "../../../core/theme/app_dimens.dart";
 import "../../../core/theme/app_typography.dart";
 import "../../../core/theme/lakbayan_colors.dart";
@@ -20,7 +21,9 @@ class FieldLabel extends StatelessWidget {
         Flexible(
           child: Text(
             text,
-            style: AppTypography.overline,
+            style: AppTypography.labelMedium.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
@@ -37,15 +40,20 @@ class OrDivider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = context.lakbayan;
+    final scheme = Theme.of(context).colorScheme;
     return Row(
       children: [
-        Expanded(child: Divider(color: c.line)),
+        Expanded(child: Divider(color: scheme.outlineVariant)),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: AppSpace.x3),
-          child: Text("OR", style: AppTypography.overline),
+          child: Text(
+            "OR",
+            style: AppTypography.labelMedium.copyWith(
+              color: scheme.onSurfaceVariant,
+            ),
+          ),
         ),
-        Expanded(child: Divider(color: c.line)),
+        Expanded(child: Divider(color: scheme.outlineVariant)),
       ],
     );
   }
@@ -86,7 +94,7 @@ class PrimaryAction extends StatelessWidget {
               children: [
                 Text(label),
                 const SizedBox(width: AppSpace.x2),
-                const Icon(Icons.arrow_forward_rounded, size: 18),
+                const Icon(AppIcons.arrowForward, size: 18),
               ],
             ),
     );
@@ -101,15 +109,15 @@ class ModeSwitch extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = context.lakbayan;
-
     return Wrap(
       alignment: WrapAlignment.center,
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
         Text(
           isSignUp ? "Already have an account?" : "New to Lakbayan?",
-          style: AppTypography.body.copyWith(color: c.textSecondary),
+          style: AppTypography.bodyMedium.copyWith(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
         ),
         TextButton(
           style: TextButton.styleFrom(
@@ -139,11 +147,11 @@ class ErrorNote extends StatelessWidget {
       ),
       decoration: BoxDecoration(
         color: c.badgeErrorFill,
-        borderRadius: AppRadius.mdAll,
+        borderRadius: AppRadii.smAll,
       ),
       child: Text(
         message,
-        style: AppTypography.body.copyWith(color: c.badgeErrorText),
+        style: AppTypography.bodyMedium.copyWith(color: c.badgeErrorText),
       ),
     );
   }
@@ -159,18 +167,19 @@ class ProviderRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = context.lakbayan;
     return Material(
       type: MaterialType.transparency,
       child: InkWell(
         onTap: onTap,
-        borderRadius: AppRadius.lgAll,
+        borderRadius: AppRadii.mdAll,
         child: Container(
           height: AppSize.formButton,
           padding: const EdgeInsets.symmetric(horizontal: AppSpace.x4),
           decoration: BoxDecoration(
-            borderRadius: AppRadius.lgAll,
-            border: Border.all(color: c.line),
+            borderRadius: AppRadii.mdAll,
+            border: Border.all(
+              color: Theme.of(context).colorScheme.outlineVariant,
+            ),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -180,16 +189,17 @@ class ProviderRow extends StatelessWidget {
                 width: _markSize,
                 height: _markSize,
                 errorBuilder: (context, error, stackTrace) => Icon(
-                  Icons.account_circle_outlined,
+                  AppIcons.account,
                   size: _markSize,
-                  color: c.textDisabled,
+                  color: Theme.of(context).colorScheme.onSurface
+                      .withValues(alpha: 0.38),
                 ),
               ),
               const SizedBox(width: AppSpace.x3),
               Flexible(
                 child: Text(
                   label,
-                  style: AppTypography.label,
+                  style: AppTypography.labelLarge,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
