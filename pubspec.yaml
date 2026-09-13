@@ -16,7 +16,7 @@ environment:
 
 dependencies:
   animated_text_kit: ^4.3.0
-  animations: ^2.2.0
+  animations: ^3.0.0
   audio_service: ^0.18.19
   cached_network_image: ^3.4.1
   cloud_firestore: ^6.9.0
@@ -33,6 +33,7 @@ dependencies:
   firebase_storage: ^13.5.0
   flutter:
     sdk: flutter
+  flutter_card_swiper: ^7.2.0
   flutter_map: ^8.3.1
   # Offline basemap tiles, read straight out of a PMTiles pack on disk — the
   # `/tiles/{townId}/` shape docs/DATA_MODEL.md reserves and
@@ -59,6 +60,7 @@ dependencies:
   # flutter_map. Raise it only alongside a tile package that wants 0.10.
   latlong2: ^0.9.1
   lottie: ^3.3.2
+  motor: ^1.1.0
   # Declared rather than leant on transitively through path_provider:
   # features/offline joins Storage paths to device paths, and a direct import
   # of a package we do not list is one `pub upgrade` away from vanishing.
@@ -66,6 +68,7 @@ dependencies:
   path_provider: ^2.1.6
   riverpod_annotation: ^4.0.7
   smooth_sheets: ^1.1.2
+  toggle_switch: ^2.3.0
 
 dev_dependencies:
   flutter_test:
@@ -89,15 +92,18 @@ flutter:
 
   # Bundled rather than fetched via google_fonts: offline-first is a hard
   # guardrail, and google_fonts downloads at first run by default.
-  # Both are variable fonts — see the FontVariation note in app_typography.dart.
+  # Satoshi is a variable font: see the FontVariation note in app_typography.dart.
   fonts:
-    - family: PlusJakartaSans
+    # The one UI voice: headings, body, labels, controls (D-13). Fontshare
+    # licence (FFL) ships beside it.
+    - family: Satoshi
       fonts:
-        - asset: assets/fonts/PlusJakartaSans.ttf
-    - family: Inter
-      fonts:
-        - asset: assets/fonts/Inter.ttf
-    # Display face, landing page only. Static OTF, so no `wght` axis to set.
+        - asset: assets/fonts/Satoshi/Fonts/TTF/Satoshi-Variable.ttf
+        - asset: assets/fonts/Satoshi/Fonts/TTF/Satoshi-VariableItalic.ttf
+          style: italic
+    # Brand voice: the landing greetings and the LAKBAYAN wordmark only. A
+    # Philippine tourism trademark face; never a ramp step. Static OTF, so
+    # no `wght` axis to set.
     - family: Barabara
       fonts:
         - asset: assets/fonts/Barabara/Barabara.otf
