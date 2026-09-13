@@ -2,6 +2,7 @@ import "package:flutter/foundation.dart";
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
+import "../theme/app_icons.dart";
 import "../config/app_config.dart";
 import "../firebase/firebase_bootstrap.dart";
 import "../firebase/firebase_status_provider.dart";
@@ -61,25 +62,25 @@ class _Strip extends StatelessWidget {
       FirebaseBootstrapStatus.emulators => (
         scheme.secondaryContainer,
         scheme.onSecondaryContainer,
-        Icons.developer_mode,
+        AppIcons.developer,
         "Emulators · ${AppConfig.emulatorHost}",
       ),
       FirebaseBootstrapStatus.emulatorsUnreachable => (
         scheme.errorContainer,
         scheme.onErrorContainer,
-        Icons.cloud_off,
+        AppIcons.offline,
         "No emulator at ${AppConfig.emulatorHost} — lists will look empty",
       ),
       FirebaseBootstrapStatus.unavailable => (
         scheme.errorContainer,
         scheme.onErrorContainer,
-        Icons.error_outline,
+        AppIcons.warning,
         "Firebase failed to start — nothing will load",
       ),
       FirebaseBootstrapStatus.live => (
         scheme.secondaryContainer,
         scheme.onSecondaryContainer,
-        Icons.cloud,
+        AppIcons.cloud,
         "Live project",
       ),
     };

@@ -1,378 +1,391 @@
 import "package:flutter/material.dart";
 
-import "../../../core/theme/app_colors.dart";
 import "../../../core/theme/app_dimens.dart";
+import "../../../core/theme/app_icons.dart";
 import "../../../core/theme/app_typography.dart";
 import "../../../core/theme/lakbayan_colors.dart";
-import "../../../core/widgets/destination_card.dart";
+import "../../../core/widgets/app_card.dart";
+import "../../../core/widgets/bar_item_group.dart";
+import "../../../core/widgets/grouped_section.dart";
 import "../../../core/widgets/lakbayan_badge.dart";
-import "../../../core/widgets/lakbayan_list_row.dart";
+import "../../../core/models/destination.dart";
+import "../../../core/widgets/media_tile.dart";
+import "../../../core/widgets/section_heading.dart";
+import "../../../core/widgets/storage_image.dart";
+import "../../../core/widgets/symbol_button.dart";
+import "../../destinations/data/sample_destinations.dart";
+import "../../destinations/presentation/save_heart.dart";
+import "../../itineraries/presentation/stop_picker.dart";
 
-/// A living specimen of the Lakbayan design system, rendered with the real
-/// theme and the real widgets.
+/// A living specimen of the design system, rendered with the real theme and
+/// the real widgets.
 ///
-/// This is the counterpart to the Claude Design HTML specimen: if the two ever
-/// diverge, one of them is wrong. Reachable at `/design-system` in debug builds
-/// so the team can eyeball a change without wiring it into a feature first.
-class DesignSystemGallery extends StatefulWidget {
+/// Reachable at `/design-system` in debug builds so a change can be eyeballed
+/// without wiring it into a feature first. If this and `docs/DESIGN_SYSTEM.md`
+/// ever disagree, one of them is wrong. The two home designs it once switched
+/// between now *are* Explore and Browse.
+class DesignSystemGallery extends StatelessWidget {
   const DesignSystemGallery({super.key});
 
   @override
-  State<DesignSystemGallery> createState() => _DesignSystemGalleryState();
+  Widget build(BuildContext context) => const Scaffold(body: _Tokens());
 }
 
-class _DesignSystemGalleryState extends State<DesignSystemGallery> {
+class _Tokens extends StatefulWidget {
+  const _Tokens();
+
+  @override
+  State<_Tokens> createState() => _TokensState();
+}
+
+/// The specimen draws from the same `sampleDestinations` the debug preview
+/// feeds the real screens, so the two can never show different content.
+final _hero = sampleDestinations.firstWhere((d) => d.featured);
+final _categories = [
+  "All",
+  for (final category in DestinationCategory.values)
+    if (category != DestinationCategory.unknown) category.label,
+];
+
+class _TokensState extends State<_Tokens> {
   String _category = "Nature";
-  int _navIndex = 0;
 
   @override
   Widget build(BuildContext context) {
-    final c = context.lakbayan;
+    final scheme = Theme.of(context).colorScheme;
+    final topInset = MediaQuery.viewPaddingOf(context).top;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text("Design system"),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(1),
-          child: Divider(color: c.line, height: 1),
-        ),
+    return ListView(
+      padding: EdgeInsets.fromLTRB(
+        AppSpace.x4,
+        topInset + AppSpace.x6,
+        AppSpace.x4,
+        AppSpace.x12,
       ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _navIndex,
-        onDestinationSelected: (i) => setState(() => _navIndex = i),
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.explore_outlined),
-            selectedIcon: Icon(Icons.explore),
-            label: "Explore",
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.map_outlined),
-            selectedIcon: Icon(Icons.map),
-            label: "Map",
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.route_outlined),
-            selectedIcon: Icon(Icons.route),
-            label: "Itineraries",
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.person_outline),
-            selectedIcon: Icon(Icons.person),
-            label: "Profile",
-          ),
-        ],
-      ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(
-          AppSpace.x4,
-          AppSpace.x4,
-          AppSpace.x4,
-          AppSpace.x8,
-        ),
-        children: [
-          _section("Colour"),
-          _ramp("Green — primary", const [
-            ("900", AppColors.green900),
-            ("700", AppColors.green700),
-            ("500", AppColors.green500),
-            ("300", AppColors.green300),
-            ("100", AppColors.green100),
-            ("50", AppColors.green50),
-          ]),
-          _ramp("Blue — secondary", const [
-            ("700", AppColors.blue700),
-            ("500", AppColors.blue500),
-            ("300", AppColors.blue300),
-            ("100", AppColors.blue100),
-            ("50", AppColors.blue50),
-          ]),
-          _ramp("Gold — accent", const [
-            ("700", AppColors.gold700),
-            ("500", AppColors.gold500),
-            ("300", AppColors.gold300),
-            ("100", AppColors.gold100),
-          ]),
-          _ramp("Neutrals", const [
-            ("ink900", AppColors.ink900),
-            ("ink700", AppColors.ink700),
-            ("slate500", AppColors.slate500),
-            ("slate300", AppColors.slate300),
-            ("line", AppColors.line),
-          ]),
-
-          _section("Type"),
-          _card(
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text("Discover Cagayan", style: AppTypography.display),
-                const SizedBox(height: AppSpace.x3),
-                Text("Callao Cave & the Pinacanauan", style: AppTypography.h1),
-                const SizedBox(height: AppSpace.x3),
-                Text("Nearby heritage stops", style: AppTypography.h2),
-                const SizedBox(height: AppSpace.x3),
-                Text("Basilica Minore de Piat", style: AppTypography.h3),
-                const SizedBox(height: AppSpace.x3),
-                Text(
-                  "Open daily · 7:00 AM – 5:00 PM",
-                  style: AppTypography.title,
-                ),
-                const SizedBox(height: AppSpace.x3),
-                Text(
-                  "The Pinacanauan River threads through limestone cliffs on "
-                  "its way to the Cagayan.",
-                  style: AppTypography.bodyLarge,
-                ),
-                const SizedBox(height: AppSpace.x3),
-                Text(
-                  "Guides meet visitors at the barangay hall. Tricycles run to "
-                  "the jump-off for a fixed fare.",
-                  style: AppTypography.body,
-                ),
-                const SizedBox(height: AppSpace.x3),
-                Text("Start the walking tour", style: AppTypography.label),
-                const SizedBox(height: AppSpace.x3),
-                Text(
-                  "Photo: Provincial Tourism Office · 2.4 km away",
-                  style: AppTypography.caption,
-                ),
-                const SizedBox(height: AppSpace.x3),
-                const Overline("Heritage trail"),
-              ],
-            ),
-          ),
-
-          _section("Buttons"),
-          _card(
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Wrap(
-                  spacing: AppSpace.x3,
-                  runSpacing: AppSpace.x3,
-                  children: [
-                    FilledButton(
-                      onPressed: () {},
-                      child: const Text("Start tour"),
-                    ),
-                    OutlinedButton(
-                      onPressed: () {},
-                      child: const Text("Open map"),
-                    ),
-                    TextButton(onPressed: () {}, child: const Text("Skip")),
-                    const FilledButton(
-                      onPressed: null,
-                      child: Text("Disabled"),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: AppSpace.x4),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton(
-                    onPressed: () {},
-                    style: FilledButton.styleFrom(
-                      minimumSize: const Size(0, 52),
-                      shape: const RoundedRectangleBorder(
-                        borderRadius: AppRadius.lgAll,
-                      ),
-                    ),
-                    child: const Text("Full-width primary — 16dp radius"),
-                  ),
-                ),
-                const SizedBox(height: AppSpace.x3),
-                Text(
-                  "Primary = green/500 fill. Secondary = blue/500 outline. "
-                  "Gold is never a button.",
-                  style: AppTypography.caption,
-                ),
-              ],
-            ),
-          ),
-
-          _section("Chips & badges"),
-          _card(
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Wrap(
-                  spacing: 10,
-                  runSpacing: 10,
-                  children: [
-                    for (final label in const [
-                      "All",
-                      "Nature",
-                      "Heritage",
-                      "Food",
-                      "Festivals",
-                    ])
-                      FilterChip(
-                        label: Text(label),
-                        selected: _category == label,
-                        onSelected: (_) => setState(() => _category = label),
-                        side: BorderSide(
-                          color: _category == label
-                              ? AppColors.green500
-                              : c.line,
-                        ),
-                      ),
-                  ],
-                ),
-                const Divider(height: AppSpace.x8),
-                const Wrap(
-                  spacing: 10,
-                  runSpacing: 10,
-                  children: [
-                    LakbayanBadge.ar(),
-                    LakbayanBadge.featured(),
-                    LakbayanBadge("Open now", kind: BadgeKind.neutral),
-                    LakbayanBadge("2.4 km", kind: BadgeKind.info),
-                    LakbayanBadge("Closed", kind: BadgeKind.closed),
-                  ],
-                ),
-              ],
-            ),
-          ),
-
-          _section("Destination card"),
-          const DestinationCard(
-            town: "Peñablanca",
-            name: "Callao Cave",
-            description:
-                "Seven limestone chambers and a chapel lit by a natural "
-                "skylight.",
-            hasAr: true,
-            status: "Open now",
-            meta: "2.4 km · 45 min drive",
-          ),
-
-          _section("List rows"),
-          _card(
-            const Column(
-              children: [
-                LakbayanListRow(
-                  title: "Buntun Bridge",
-                  subtitle: "Tuguegarao · Viewpoint",
-                ),
-                LakbayanListRow(
-                  title: "Palaui Island",
-                  subtitle: "Santa Ana · Protected landscape",
-                  selected: true,
-                  trailing: LakbayanBadge.featured(),
-                ),
-                LakbayanListRow(
-                  title: "Piat Basilica",
-                  subtitle: "Piat · Pilgrimage",
-                  showDivider: false,
-                ),
-              ],
-            ),
-          ),
-
-          _section("App bar"),
-          _card(
-            Column(
-              children: [
-                _appBarSample(
-                  background: AppColors.green500,
-                  foreground: Colors.white,
-                  title: "Callao Cave",
-                ),
-                const SizedBox(height: 14),
-                _appBarSample(
-                  background: AppColors.surface,
-                  foreground: AppColors.ink900,
-                  title: "Explore",
-                  border: true,
-                ),
-                const SizedBox(height: AppSpace.x3),
-                Text(
-                  "Green bar over photography-led detail screens; white bar "
-                  "over scrolling content.",
-                  style: AppTypography.caption,
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _section(String title) => Padding(
-    padding: const EdgeInsets.only(top: AppSpace.x6, bottom: AppSpace.x4),
-    child: Text(title, style: AppTypography.h2),
-  );
-
-  Widget _card(Widget child) => Builder(
-    builder: (context) => Container(
-      padding: const EdgeInsets.all(AppSpace.x5),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: AppRadius.lgAll,
-        border: Border.all(color: context.lakbayan.line),
-        boxShadow: AppShadow.card,
-      ),
-      child: child,
-    ),
-  );
-
-  Widget _ramp(String label, List<(String, Color)> swatches) => Padding(
-    padding: const EdgeInsets.only(bottom: AppSpace.x4),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Overline(label),
+        Text("Design system", style: AppTypography.titleLarge),
         const SizedBox(height: AppSpace.x2),
-        Row(
-          children: [
-            for (final (name, color) in swatches)
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.only(right: AppSpace.x1),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        height: 56,
-                        decoration: BoxDecoration(
-                          color: color,
-                          borderRadius: AppRadius.smAll,
-                          border: Border.all(color: AppColors.line),
-                        ),
-                      ),
-                      const SizedBox(height: AppSpace.x1),
-                      Text(name, style: AppTypography.caption),
-                    ],
-                  ),
+        Text(
+          "Tokens 2.1.0. Satoshi, white first; green is the action and the "
+          "selection, blue is spatial, red is closed and saved, gold is featured.",
+          style: AppTypography.bodyMedium.copyWith(
+            color: scheme.onSurfaceVariant,
+          ),
+        ),
+
+        const _Section("Surfaces"),
+        _Swatches([
+          ("surface", scheme.surface),
+          ("lowest", scheme.surfaceContainerLowest),
+          ("low", scheme.surfaceContainerLow),
+          ("container", scheme.surfaceContainer),
+          ("high", scheme.surfaceContainerHigh),
+          ("highest", scheme.surfaceContainerHighest),
+        ]),
+        const _Section("Roles"),
+        _Swatches([
+          ("primary", scheme.primary),
+          ("green text", context.lakbayan.textOnLightGreen),
+          ("spatial", context.lakbayan.spatial),
+          ("closed", context.lakbayan.closed),
+          ("save", context.lakbayan.save),
+          ("error", scheme.error),
+          ("featured", context.lakbayan.featured),
+        ]),
+        const SizedBox(height: AppSpace.x3),
+        _Swatches([
+          for (final category in DestinationCategory.values)
+            if (category != DestinationCategory.unknown)
+              (category.label, context.lakbayan.categoryColor(category)),
+        ]),
+
+        const _Section("Type"),
+        AppCard(
+          padding: const EdgeInsets.all(AppSpace.x5),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text("Cagayan", style: AppTypography.display),
+              const SizedBox(height: AppSpace.x3),
+              Text("Callao Cave", style: AppTypography.hero),
+              const SizedBox(height: AppSpace.x3),
+              Text("Itineraries", style: AppTypography.titleLarge),
+              const SizedBox(height: AppSpace.x3),
+              Text("Popular this week", style: AppTypography.titleMedium),
+              const SizedBox(height: AppSpace.x3),
+              Text("Saved tours", style: AppTypography.groupHeading),
+              const SizedBox(height: AppSpace.x3),
+              Text("Basilica Minore de Piat", style: AppTypography.titleSmall),
+              const SizedBox(height: AppSpace.x3),
+              Text(
+                "The Pinacanauan River threads through limestone cliffs on "
+                "its way to the Cagayan.",
+                style: AppTypography.bodyLarge,
+              ),
+              const SizedBox(height: AppSpace.x3),
+              Text(
+                "Guides meet visitors at the barangay hall. Tricycles run to "
+                "the jump-off for a fixed fare.",
+                style: AppTypography.bodyMedium,
+              ),
+              const SizedBox(height: AppSpace.x3),
+              Text("Start the walking tour", style: AppTypography.labelLarge),
+              const SizedBox(height: AppSpace.x3),
+              Text(
+                "Peñablanca, 24 km out",
+                style: AppTypography.secondLine.copyWith(
+                  color: scheme.onSurfaceVariant,
                 ),
               ),
+              const SizedBox(height: AppSpace.x3),
+              Text(
+                "Photo: Provincial Tourism Office",
+                style: AppTypography.labelSmall.copyWith(
+                  color: scheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        const _Section("Buttons"),
+        AppCard(
+          padding: const EdgeInsets.all(AppSpace.x5),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Wrap(
+                spacing: AppSpace.x3,
+                runSpacing: AppSpace.x3,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  FilledButton(
+                    onPressed: () {},
+                    child: const Text("Start tour"),
+                  ),
+                  FilledButton.tonal(
+                    onPressed: () {},
+                    child: const Text("Open map"),
+                  ),
+                  OutlinedButton(onPressed: () {}, child: const Text("Remove")),
+                  TextButton(onPressed: () {}, child: const Text("Skip")),
+                  const FilledButton(onPressed: null, child: Text("Disabled")),
+                ],
+              ),
+              const SizedBox(height: AppSpace.x4),
+              Wrap(
+                spacing: AppSpace.x3,
+                runSpacing: AppSpace.x3,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  SymbolButton(
+                    icon: AppIcons.search,
+                    tooltip: "Search",
+                    onTap: () {},
+                  ),
+                  SymbolButton(
+                    icon: AppIcons.back,
+                    tooltip: "Back",
+                    onTap: () {},
+                  ),
+                  SaveHeart(_hero.id, style: SaveHeartStyle.hero),
+                  SaveHeart(_hero.id, style: SaveHeartStyle.tile),
+                  const SelectionCircle(selected: true),
+                  const SelectionCircle(selected: false),
+                ],
+              ),
+              const SizedBox(height: AppSpace.x4),
+              Row(
+                children: [
+                  BarItemGroup(
+                    items: [
+                      BarItem(
+                        icon: AppIcons.search,
+                        tooltip: "Search",
+                        onPressed: () {},
+                      ),
+                      BarItem(
+                        icon: AppIcons.share,
+                        tooltip: "Share",
+                        onPressed: () {},
+                      ),
+                      BarItem(
+                        icon: AppIcons.favorite,
+                        tooltip: "Save",
+                        onPressed: () {},
+                      ),
+                    ],
+                  ),
+                  const SizedBox(width: AppSpace.x4),
+                  FloatingActionButton.extended(
+                    onPressed: () {},
+                    icon: const Icon(AppIcons.add),
+                    label: const Text("Plan a tour"),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+
+        const _Section("Chips and badges"),
+        AppCard(
+          padding: const EdgeInsets.all(AppSpace.x5),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Wrap(
+                spacing: AppSpace.x2,
+                runSpacing: AppSpace.x2,
+                children: [
+                  for (final label in _categories)
+                    ChoiceChip(
+                      label: Text(label),
+                      selected: _category == label,
+                      onSelected: (_) => setState(() => _category = label),
+                    ),
+                ],
+              ),
+              const SizedBox(height: AppSpace.x5),
+              const Wrap(
+                spacing: AppSpace.x2,
+                runSpacing: AppSpace.x2,
+                children: [
+                  LakbayanBadge.featured(),
+                  LakbayanBadge.ar(),
+                  LakbayanBadge("On this phone", kind: BadgeKind.neutral),
+                  LakbayanBadge("₱100 entry", kind: BadgeKind.info),
+                  LakbayanBadge("Closed", kind: BadgeKind.closed),
+                ],
+              ),
+            ],
+          ),
+        ),
+
+        const _Section("Field"),
+        const TextField(decoration: InputDecoration(hintText: "Your name")),
+
+        const _Section("Media tile"),
+        SectionHeading("Popular this week", onSeeAll: () {}),
+        const SizedBox(height: AppSpace.x2),
+        MediaTile(
+          media: _hero.coverImage == null
+              ? const ImagePlaceholder()
+              : StorageImage(path: _hero.coverImage!),
+          aspectRatio: 16 / 10,
+          title: _hero.name,
+          subtitle: "2.4 km away",
+          subtitleColor: context.lakbayan.spatial,
+          badge: const LakbayanBadge.ar(),
+          trailing: SaveHeart(_hero.id, style: SaveHeartStyle.tile),
+          onTap: () {},
+        ),
+        const SizedBox(height: AppSpace.x4),
+        MediaTile(
+          media: _hero.coverImage == null
+              ? const ImagePlaceholder()
+              : StorageImage(path: _hero.coverImage!),
+          aspectRatio: 16 / 10,
+          title: _hero.name,
+          subtitle: _hero.town,
+          overlay: true,
+          onTap: () {},
+        ),
+
+        const _Section("Grouped section"),
+        GroupedSection(
+          children: [
+            for (final place in sampleDestinations.take(2))
+              GroupedRow(
+                title: place.name,
+                subtitle: place.town,
+                leading: const ImagePlaceholder(),
+                trailing: SaveHeart(place.id, style: SaveHeartStyle.row),
+                onTap: () {},
+              ),
+            GroupedRow(
+              title: "Getting there",
+              subtitle: "24 km from Tuguegarao",
+              subtitleColor: context.lakbayan.spatial,
+              leadingGlyph: AppIcons.directions,
+              glyphColor: context.lakbayan.spatial,
+              onTap: () {},
+            ),
           ],
         ),
-      ],
-    ),
-  );
 
-  Widget _appBarSample({
-    required Color background,
-    required Color foreground,
-    required String title,
-    bool border = false,
-  }) => Container(
-    height: AppSize.appBarHeight,
-    padding: const EdgeInsets.symmetric(horizontal: AppSpace.x4),
-    decoration: BoxDecoration(
-      color: background,
-      borderRadius: AppRadius.mdAll,
-      border: border ? Border.all(color: AppColors.line) : null,
-    ),
-    child: Row(
-      children: [
-        Icon(Icons.arrow_back, color: foreground, size: 22),
-        const SizedBox(width: 14),
-        Text(title, style: AppTypography.h3.copyWith(color: foreground)),
+        const _Section("Nested card"),
+        AppCard(
+          padding: const EdgeInsets.all(AppSpace.x3),
+          color: scheme.surfaceContainer,
+          child: AppCard(
+            inset: AppSpace.x3,
+            padding: const EdgeInsets.all(AppSpace.x4),
+            child: Text(
+              "Inner radius derives from the outer one minus the inset, so "
+              "the gap stays even around the corner.",
+              style: AppTypography.bodyMedium,
+            ),
+          ),
+        ),
       ],
-    ),
+    );
+  }
+}
+
+class _Section extends StatelessWidget {
+  const _Section(this.title);
+
+  final String title;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(top: AppSpace.x8, bottom: AppSpace.x3),
+    child: Text(title, style: AppTypography.titleMedium),
   );
+}
+
+class _Swatches extends StatelessWidget {
+  const _Swatches(this.swatches);
+
+  final List<(String, Color)> swatches;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Row(
+      children: [
+        for (final (name, color) in swatches)
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.only(right: AppSpace.x1),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: color,
+                      borderRadius: AppRadii.xsAll,
+                      // Specimen only: white on white needs an edge to be
+                      // seen as a swatch. Not a pattern for the app.
+                      border: Border.all(color: scheme.outlineVariant),
+                    ),
+                  ),
+                  const SizedBox(height: AppSpace.x1),
+                  Text(
+                    name,
+                    style: AppTypography.labelSmall.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+          ),
+      ],
+    );
+  }
 }

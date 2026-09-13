@@ -39,6 +39,14 @@ class StorageImage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Sample photography is a bundled asset; nothing to resolve.
+    if (path.startsWith("assets/")) {
+      final asset = Image.asset(path, fit: fit);
+      return borderRadius == null
+          ? asset
+          : ClipRRect(borderRadius: borderRadius!, child: asset);
+    }
+
     final url = ref.watch(storageUrlProvider(path));
 
     final child = url.when(
@@ -58,4 +66,16 @@ class StorageImage extends ConsumerWidget {
         ? child
         : ClipRRect(borderRadius: borderRadius!, child: child);
   }
+}
+
+/// A cover photo by Storage path, or the placeholder when there is none.
+class CoverImage extends StatelessWidget {
+  const CoverImage(this.path, {super.key});
+
+  final String? path;
+
+  @override
+  Widget build(BuildContext context) => path == null
+      ? const ImagePlaceholder(borderRadius: BorderRadius.zero)
+      : StorageImage(path: path!);
 }
