@@ -1,231 +1,80 @@
+import "dart:math" show pi;
+
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
 
 import "../../../core/models/destination.dart";
+import "../../../core/router/app_router.dart";
 import "../../../core/theme/app_dimens.dart";
+import "../../../core/theme/app_icons.dart";
 import "../../../core/theme/app_typography.dart";
-import "../../../core/theme/lakbayan_colors.dart";
+import "../../../core/widgets/grouped_section.dart";
 import "../../../core/widgets/lakbayan_badge.dart";
-import "../../../core/widgets/lakbayan_list_row.dart";
+import "../../../core/widgets/media_tile.dart";
+import "../../../core/widgets/quiet_note.dart";
+import "../../../core/widgets/scroll_edge.dart";
+import "../../../core/widgets/section_heading.dart";
 import "../../../core/widgets/storage_image.dart";
 import "../../explore/domain/home_tab.dart";
 import "../domain/destination_providers.dart";
+import "../domain/recently_viewed.dart";
+import "category_strip.dart";
+import "home_hero.dart";
+import "places_list_screen.dart";
+import "save_heart.dart";
 
-/// Wireframe 1c, screen 3 — Explore (tab 1).
+/// Home (redesign 2a). **One job:** put a place in front of you that you
+/// could go to today. **Emotion:** quiet anticipation, the night before a trip.
 ///
-/// Order is fixed by the wireframe: the build-a-tour hero first and never
-/// dismissible, then Popular as a horizontal carousel, then Nearby as vertical
-/// rows.
+/// Top to bottom: the featured hero, edge to edge; the category strip; the
+/// way into swipe mode, a fan of covers; Popular this week, two tiles;
+/// Recently viewed; Pick a town. No greeting, no eyebrows. Search is the shell's circle pinned over
+/// the hero (`HomeChromeLayer`), not a row here.
 class ExploreScreen extends ConsumerWidget {
   const ExploreScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final popular = ref.watch(popularDestinationsProvider);
     final featured = ref.watch(featuredDestinationsProvider);
+    final category = ref.watch(homeCategoryProvider);
 
-    return ListView(
-      padding: const EdgeInsets.only(bottom: AppSpace.x8),
-      children: [
-        const _BuildATourCard(),
-
-        _SectionHeader(
-          title: "Popular Places",
-          onMore: () => context.go("/browse"),
-        ),
-        _HorizontalRail(state: popular),
-
-        _SectionHeader(title: "Featured", onMore: () => context.go("/browse")),
-        // Featured stands in for the wireframe's "Nearby Places" until location
-        // permission and distance sorting land with the maps work in Phase 3.
-        // Same vertical-row treatment, editorially chosen rather than by
-        // distance, so the section is useful rather than empty.
-        _VerticalRows(state: featured),
-      ],
+    final hero = featured.when(
+      loading: () => const SizedBox(
+        height: AppSize.heroHeight,
+        child: ImagePlaceholder(borderRadius: BorderRadius.zero),
+      ),
+      error: (error, _) => _ErrorNote(error: error),
+      data: (items) {
+        final destination = items.firstOrNull;
+        return destination == null
+            ? const _NoHero()
+            : HomeHero(destination: destination);
+      },
     );
-  }
-}
 
-class _BuildATourCard extends ConsumerWidget {
-  const _BuildATourCard();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final c = context.lakbayan;
-    return Container(
-      margin: const EdgeInsets.fromLTRB(
-        AppSpace.x4,
-        AppSpace.x4,
-        AppSpace.x4,
-        AppSpace.x2,
-      ),
-      padding: const EdgeInsets.all(AppSpace.x3),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: AppRadius.lgAll,
-        border: Border.all(color: c.line),
-        boxShadow: AppShadow.card,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(
-                width: 88,
-                height: 70,
-                child: ImagePlaceholder(borderRadius: AppRadius.smAll),
-              ),
-              const SizedBox(width: AppSpace.x3),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text("Create your own tour", style: AppTypography.title),
-                    const SizedBox(height: AppSpace.x1),
-                    Text(
-                      "Pick the stops you want and we'll route them for you.",
-                      style: AppTypography.body.copyWith(
-                        color: c.textSecondary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpace.x3),
-          FilledButton(
-            // Switches tabs rather than pushing a route: creating a tour is
-            // something you do *in* Itineraries, and the wireframe keeps the
-            // bottom navigation on screen throughout.
-            onPressed: () => ref
-                .read(selectedHomeTabProvider.notifier)
-                .select(HomeTab.itineraries),
-            child: const Text("Create"),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({required this.title, this.onMore});
-
-  final String title;
-  final VoidCallback? onMore;
-
-  @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.fromLTRB(
-      AppSpace.x4,
-      AppSpace.x5,
-      AppSpace.x2,
-      AppSpace.x2,
-    ),
-    child: Row(
-      children: [
-        Text(title, style: AppTypography.h3),
-        const Spacer(),
-        if (onMore != null)
-          TextButton(onPressed: onMore, child: const Text("More")),
-      ],
-    ),
-  );
-}
-
-class _HorizontalRail extends StatelessWidget {
-  const _HorizontalRail({required this.state});
-
-  final AsyncValue<List<Destination>> state;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 208,
-      child: state.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => _ErrorNote(error: e),
-        data: (items) => items.isEmpty
-            ? const _EmptyNote("Nothing here yet.")
-            : ListView.separated(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: AppSpace.x4),
-                itemCount: items.length,
-                separatorBuilder: (_, _) => const SizedBox(width: AppSpace.x3),
-                itemBuilder: (context, i) => SizedBox(
-                  width: 168,
-                  child: _RailCard(destination: items[i]),
-                ),
-              ),
-      ),
-    );
-  }
-}
-
-class _RailCard extends StatelessWidget {
-  const _RailCard({required this.destination});
-
-  final Destination destination;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.lakbayan;
-    final cover = destination.coverImage;
-
-    return InkWell(
-      onTap: () => context.push("/destination/${destination.id}"),
-      borderRadius: AppRadius.lgAll,
-      child: Container(
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface,
-          borderRadius: AppRadius.lgAll,
-          border: Border.all(color: c.line),
-          boxShadow: AppShadow.card,
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Stack(
-              children: [
-                SizedBox(
-                  height: 110,
-                  width: double.infinity,
-                  child: cover == null
-                      ? const ImagePlaceholder(borderRadius: BorderRadius.zero)
-                      : StorageImage(path: cover),
-                ),
-                if (destination.hasAR)
-                  const Positioned(
-                    top: AppSpace.x2,
-                    left: AppSpace.x2,
-                    child: LakbayanBadge.ar(),
-                  ),
-              ],
+    return Scaffold(
+      extendBody: true,
+      body: ScrollEdge(
+        bottom: ScrollEdge.homeBarHeight(context),
+        child: CustomScrollView(
+          slivers: [
+            SliverToBoxAdapter(child: hero),
+            const SliverPadding(
+              padding: EdgeInsets.only(top: AppSpace.section),
+              sliver: SliverToBoxAdapter(child: CategoryStrip()),
             ),
-            Padding(
-              padding: const EdgeInsets.all(AppSpace.x3),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    destination.name,
-                    style: AppTypography.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    destination.town,
-                    style: AppTypography.caption,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
+            SliverPadding(
+              padding: EdgeInsets.fromLTRB(
+                AppSpace.gutter,
+                AppSpace.section,
+                AppSpace.gutter,
+                ScrollEdge.homeBarHeight(context) + AppSpace.section,
+              ),
+              sliver: SliverToBoxAdapter(
+                child: category != null
+                    ? _Matches(category: category)
+                    : _Feed(featured: featured.value ?? const []),
               ),
             ),
           ],
@@ -235,56 +84,318 @@ class _RailCard extends StatelessWidget {
   }
 }
 
-class _VerticalRows extends StatelessWidget {
-  const _VerticalRows({required this.state});
-
-  final AsyncValue<List<Destination>> state;
+/// Nothing is featured yet: just the title.
+class _NoHero extends StatelessWidget {
+  const _NoHero();
 
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.symmetric(horizontal: AppSpace.x4),
-    child: state.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => _ErrorNote(error: e),
-      data: (items) => items.isEmpty
-          ? const _EmptyNote("Nothing featured yet.")
-          : Column(
-              children: [
-                for (final d in items)
-                  LakbayanListRow(
-                    title: d.name,
-                    subtitle: "${d.town} · ${d.category.label}",
-                    leading: d.coverImage == null
-                        ? null
-                        : StorageImage(
-                            path: d.coverImage!,
-                            borderRadius: AppRadius.mdAll,
-                          ),
-                    trailing: d.featured
-                        ? const LakbayanBadge.featured()
-                        : null,
-                    showDivider: d != items.last,
-                    onTap: () => context.push("/destination/${d.id}"),
-                  ),
-              ],
-            ),
-    ),
+    padding: const EdgeInsets.symmetric(horizontal: AppSpace.gutter),
+    child: Text("Explore", style: AppTypography.titleLarge),
   );
 }
 
-class _EmptyNote extends StatelessWidget {
-  const _EmptyNote(this.message);
+/// One grouped section of matches for the active category.
+class _Matches extends ConsumerWidget {
+  const _Matches({required this.category});
 
-  final String message;
+  final DestinationCategory category;
 
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.all(AppSpace.x4),
-    child: Text(
-      message,
-      style: AppTypography.body.copyWith(color: context.lakbayan.textSecondary),
-    ),
+  Widget build(BuildContext context, WidgetRef ref) {
+    final results = ref.watch(homeResultsProvider);
+    final loading = ref.watch(allDestinationsProvider).isLoading;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SectionHeading(category.label),
+        const SizedBox(height: AppSpace.x3),
+        if (results.isNotEmpty)
+          PlaceRows(items: results)
+        else if (!loading)
+          const QuietNote("Nothing matches. Try another word or category."),
+      ],
+    );
+  }
+}
+
+/// The full feed under the strip.
+class _Feed extends StatelessWidget {
+  const _Feed({required this.featured});
+
+  final List<Destination> featured;
+
+  @override
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      if (featured.isNotEmpty) ...[
+        _SwipeEntry(covers: featured),
+        const SizedBox(height: AppSpace.section),
+      ],
+      const _Popular(),
+      const _RecentlyViewed(),
+      const SizedBox(height: AppSpace.section),
+      const SectionHeading("Pick a town"),
+      const SizedBox(height: AppSpace.x3),
+      const _Towns(),
+    ],
   );
+}
+
+/// The way into swipe mode: a fan of three covers, tilted the way the deck
+/// is, so the row looks like the thing it opens. A tap opens it; so does a
+/// sideways swipe, the gesture the screen behind it is built on.
+class _SwipeEntry extends StatelessWidget {
+  const _SwipeEntry({required this.covers});
+
+  final List<Destination> covers;
+
+  static const _fanHeight = 64.0;
+  static const _fanWidth = 96.0;
+  static const _cardWidth = 48.0;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    void open() => context.push(Routes.swipe);
+    final fanned = covers.take(3).toList();
+
+    return GestureDetector(
+      onHorizontalDragEnd: (_) => open(),
+      child: Material(
+        color: scheme.surfaceContainerLow,
+        shape: const RoundedRectangleBorder(borderRadius: AppRadii.mdAll),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: open,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpace.x3,
+              AppSpace.x3,
+              AppSpace.rowPad,
+              AppSpace.x3,
+            ),
+            child: Row(
+              children: [
+                SizedBox(
+                  width: _fanWidth,
+                  height: _fanHeight,
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      for (final (index, place) in fanned.indexed)
+                        Positioned(
+                          left: index * (_fanWidth - _cardWidth) / 2,
+                          top: 0,
+                          bottom: 0,
+                          width: _cardWidth,
+                          child: Transform.rotate(
+                            angle: (index - 1) * 8 * pi / 180,
+                            child: ClipRRect(
+                              borderRadius: AppRadii.xsAll,
+                              child: CoverImage(place.coverImage),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: AppSpace.x3),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        "Not sure where to go?",
+                        style: AppTypography.titleSmall,
+                      ),
+                      Text(
+                        "Flip through places one at a time",
+                        style: AppTypography.secondLine.copyWith(
+                          color: scheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: AppSpace.x2),
+                SizedBox(
+                  width: AppSize.minTouchTarget,
+                  height: AppSize.minTouchTarget,
+                  child: Icon(
+                    AppIcons.chevron,
+                    size: 18,
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Two tiles side by side. The heading is the way to the rest.
+class _Popular extends ConsumerWidget {
+  const _Popular();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final popular = ref.watch(popularDestinationsProvider);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SectionHeading(
+          "Popular this week",
+          onSeeAll: () => context.push(Routes.popular),
+        ),
+        const SizedBox(height: AppSpace.x2),
+        popular.when(
+          loading: () => const Row(
+            children: [
+              Expanded(
+                child: AspectRatio(
+                  aspectRatio: 4 / 3,
+                  child: ImagePlaceholder(borderRadius: AppRadii.tileAll),
+                ),
+              ),
+              SizedBox(width: AppSpace.x3),
+              Expanded(
+                child: AspectRatio(
+                  aspectRatio: 4 / 3,
+                  child: ImagePlaceholder(borderRadius: AppRadii.tileAll),
+                ),
+              ),
+            ],
+          ),
+          error: (error, _) => _ErrorNote(error: error),
+          data: (items) => items.isEmpty
+              ? const QuietNote("Nothing here yet.")
+              : Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    for (final (index, place) in items.take(2).indexed) ...[
+                      if (index > 0) const SizedBox(width: AppSpace.x3),
+                      Expanded(child: _PopularTile(place)),
+                    ],
+                  ],
+                ),
+        ),
+      ],
+    );
+  }
+}
+
+class _PopularTile extends StatelessWidget {
+  const _PopularTile(this.place);
+
+  final Destination place;
+
+  @override
+  Widget build(BuildContext context) => MediaTile(
+    media: Hero(tag: place.popularHeroTag, child: CoverImage(place.coverImage)),
+    aspectRatio: 4 / 3,
+    title: place.name,
+    subtitle: place.town,
+    badge: place.hasAR ? const LakbayanBadge.ar() : null,
+    trailing: SaveHeart(place.id, style: SaveHeartStyle.tile),
+    onTap: () => context.push(Routes.destination(place.id)),
+  );
+}
+
+/// Small square thumbnails, name and town under each. A history, so the
+/// section simply is not there until there is one.
+class _RecentlyViewed extends ConsumerWidget {
+  const _RecentlyViewed();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final recent = ref.watch(recentlyViewedDestinationsProvider);
+    if (recent.isEmpty) return const SizedBox.shrink();
+
+    final title = AppTypography.titleSmall;
+    final line = AppTypography.secondLine;
+    final captionHeight = MediaQuery.textScalerOf(context).scale(
+      title.fontSize! * title.height! +
+          line.fontSize! * line.height! +
+          AppSpace.x2,
+    );
+
+    return Padding(
+      padding: const EdgeInsets.only(top: AppSpace.section),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SectionHeading("Recently viewed"),
+          const SizedBox(height: AppSpace.x2),
+          SizedBox(
+            height: AppSize.thumbnail + captionHeight,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: recent.length,
+              separatorBuilder: (_, _) => const SizedBox(width: AppSpace.x3),
+              itemBuilder: (context, index) {
+                final place = recent[index];
+                return SizedBox(
+                  width: AppSize.thumbnail,
+                  child: MediaTile(
+                    media: CoverImage(place.coverImage),
+                    aspectRatio: 1,
+                    title: place.name,
+                    subtitle: place.town,
+                    radius: AppRadii.sm,
+                    onTap: () => context.push(Routes.destination(place.id)),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// One row per municipality. The second line names the places, so the row
+/// says what is there rather than how many.
+class _Towns extends ConsumerWidget {
+  const _Towns();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final towns = ref.watch(townsProvider);
+    final loading = ref.watch(allDestinationsProvider).isLoading;
+
+    if (towns.isEmpty) {
+      return loading
+          ? const SizedBox.shrink()
+          : const QuietNote("No towns published yet.");
+    }
+
+    return GroupedSection(
+      children: [
+        for (final town in towns)
+          GroupedRow(
+            title: town.name,
+            subtitle: town.places.take(3).map((p) => p.name).join(", "),
+            leading: CoverImage(town.cover),
+            onTap: () {
+              // Browse lives in the Map tab, so a town is a tab switch with
+              // its name pre-filled.
+              ref.read(browseQueryProvider.notifier).update(town.name);
+              ref.read(browseCategoryProvider.notifier).select(null);
+              ref.read(selectedHomeTabProvider.notifier).select(HomeTab.map);
+            },
+          ),
+      ],
+    );
+  }
 }
 
 /// Surfaces the actual error rather than a generic message: a permission-denied
@@ -297,17 +408,12 @@ class _ErrorNote extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = context.lakbayan;
-    return Container(
-      margin: const EdgeInsets.all(AppSpace.x4),
-      padding: const EdgeInsets.all(AppSpace.x4),
-      decoration: BoxDecoration(
-        color: c.badgeErrorFill,
-        borderRadius: AppRadius.mdAll,
-      ),
+    final scheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.all(AppSpace.gutter),
       child: Text(
         "Couldn't load destinations.\n$error",
-        style: AppTypography.body.copyWith(color: c.badgeErrorText),
+        style: AppTypography.bodyMedium.copyWith(color: scheme.error),
       ),
     );
   }
