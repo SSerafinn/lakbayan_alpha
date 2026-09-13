@@ -1,19 +1,23 @@
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
+import "package:go_router/go_router.dart";
 
 import "../../../core/theme/app_dimens.dart";
+import "../../../core/theme/app_icons.dart";
 import "../../../core/theme/app_typography.dart";
-import "../../../core/theme/lakbayan_colors.dart";
+import "../../../core/widgets/app_card.dart";
 import "../../../core/widgets/lakbayan_badge.dart";
+import "../../../core/widgets/symbol_button.dart";
 import "../domain/downloads_controller.dart";
 import "../domain/offline_bundle.dart";
 import "../domain/offline_providers.dart";
 
-/// Wireframe 1f — download a town for offline use.
+/// Wireframe 1f, download a town for offline use, on the 2.1 tokens.
 ///
 /// The offline-first guardrail in `CLAUDE.md` is about *reads* working from
 /// cache. This screen is the other half: the deliberate act of taking a town
-/// with you before there is no signal to fetch it with.
+/// with you before there is no signal to fetch it with. Layout unchanged by
+/// the redesign; each town is one tonal card with its state as a badge.
 class DownloadsScreen extends ConsumerWidget {
   const DownloadsScreen({super.key});
 
@@ -22,28 +26,61 @@ class DownloadsScreen extends ConsumerWidget {
     final bundles = ref.watch(offlineBundlesProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text("Download a town")),
-      body: bundles.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => _Message(
-          "Couldn't load the list of towns.\n\n"
-          "This screen needs a connection the first time. Towns you have "
-          "already downloaded still work.\n\n$e",
-        ),
-        data: (items) => items.isEmpty
-            ? const _Message(
-                "No towns are ready to download yet.\n\n"
-                "The province builds these; one will appear here once a town "
-                "has been prepared.",
-              )
-            : ListView.separated(
-                padding: const EdgeInsets.all(AppSpace.x4),
-                itemCount: items.length + 1,
-                separatorBuilder: (_, _) => const SizedBox(height: AppSpace.x3),
-                itemBuilder: (context, i) => i == 0
-                    ? const _Explainer()
-                    : _TownTile(bundle: items[i - 1]),
+      body: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpace.x2,
+                AppSpace.x2,
+                AppSpace.gutter,
+                0,
               ),
+              child: Row(
+                children: [
+                  SymbolButton(
+                    icon: AppIcons.back,
+                    tooltip: "Back",
+                    onTap: () => context.pop(),
+                  ),
+                  const SizedBox(width: AppSpace.x2),
+                  Expanded(
+                    child: Text(
+                      "Download a town",
+                      style: AppTypography.titleLarge,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: bundles.when(
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (e, _) => _Message(
+                  "Couldn't load the list of towns.\n\n"
+                  "This screen needs a connection the first time. Towns you "
+                  "have already downloaded still work.\n\n$e",
+                ),
+                data: (items) => items.isEmpty
+                    ? const _Message(
+                        "No towns are ready to download yet.\n\n"
+                        "The province builds these; one will appear here once "
+                        "a town has been prepared.",
+                      )
+                    : ListView.separated(
+                        padding: const EdgeInsets.all(AppSpace.gutter),
+                        itemCount: items.length + 1,
+                        separatorBuilder: (_, _) =>
+                            const SizedBox(height: AppSpace.x3),
+                        itemBuilder: (context, i) => i == 0
+                            ? const _Explainer()
+                            : _TownCard(bundle: items[i - 1]),
+                      ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -53,31 +90,26 @@ class _Explainer extends StatelessWidget {
   const _Explainer();
 
   @override
-  Widget build(BuildContext context) {
-    final c = context.lakbayan;
-    return Container(
-      padding: const EdgeInsets.all(AppSpace.x3),
-      decoration: BoxDecoration(
-        color: c.greenSubtle,
-        borderRadius: AppRadius.mdAll,
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(bottom: AppSpace.x2),
+    child: Text(
+      "A download keeps a town's map, photos and audio guides on this phone, "
+      "so they work with no signal. Use Wi-Fi if you can.",
+      style: AppTypography.bodyMedium.copyWith(
+        color: Theme.of(context).colorScheme.onSurfaceVariant,
       ),
-      child: Text(
-        "A download keeps a town's map, photos and audio guides on this phone, "
-        "so they work with no signal. Use Wi-Fi if you can.",
-        style: AppTypography.body,
-      ),
-    );
-  }
+    ),
+  );
 }
 
-class _TownTile extends ConsumerWidget {
-  const _TownTile({required this.bundle});
+class _TownCard extends ConsumerWidget {
+  const _TownCard({required this.bundle});
 
   final OfflineBundle bundle;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final c = context.lakbayan;
+    final scheme = Theme.of(context).colorScheme;
     final controller = ref.read(downloadsControllerProvider.notifier);
     final downloads = ref.watch(downloadsControllerProvider);
     final store = ref.watch(downloadStoreProvider);
@@ -85,35 +117,33 @@ class _TownTile extends ConsumerWidget {
     final active = downloads[bundle.townId];
     final record = store.recordFor(bundle.townId);
     final townState = townStateFor(bundle, record);
+    final places = bundle.destinationIds.length;
 
-    return Container(
-      padding: const EdgeInsets.all(AppSpace.x3),
-      decoration: BoxDecoration(
-        borderRadius: AppRadius.mdAll,
-        border: Border.all(color: c.line),
-      ),
+    return AppCard(
+      padding: const EdgeInsets.all(AppSpace.x4),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(bundle.name, style: AppTypography.title),
-                    const SizedBox(height: 2),
+                    Text(bundle.name, style: AppTypography.titleSmall),
+                    const SizedBox(height: AppSpace.x1),
                     Text(
-                      [
-                        "${bundle.destinationIds.length} place"
-                            "${bundle.destinationIds.length == 1 ? "" : "s"}",
-                        _megabytes(bundle.size),
-                      ].join(" · "),
-                      style: AppTypography.caption,
+                      "$places place${places == 1 ? "" : "s"}, "
+                      "${_megabytes(bundle.size)}",
+                      style: AppTypography.secondLine.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
                     ),
                   ],
                 ),
               ),
+              const SizedBox(width: AppSpace.x2),
               _StateBadge(bundle: bundle, townState: townState),
             ],
           ),
@@ -126,7 +156,7 @@ class _TownTile extends ConsumerWidget {
                   // worked out. Indeterminate is honest about that.
                   ? null
                   : active.progress.fraction,
-              borderRadius: AppRadius.smAll,
+              borderRadius: capsuleRadius,
             ),
             const SizedBox(height: AppSpace.x2),
             Row(
@@ -137,7 +167,9 @@ class _TownTile extends ConsumerWidget {
                         ? "Working out what to fetch…"
                         : "${active.progress.filesDone} of "
                               "${active.progress.filesTotal} files",
-                    style: AppTypography.caption,
+                    style: AppTypography.secondLine.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
                   ),
                 ),
                 TextButton(
@@ -153,7 +185,7 @@ class _TownTile extends ConsumerWidget {
                 // Nothing was kept, so the honest instruction is "try again"
                 // rather than anything about repairing a partial download.
                 "That download didn't finish, and nothing was kept. $message",
-                style: AppTypography.caption.copyWith(color: c.badgeErrorText),
+                style: AppTypography.secondLine.copyWith(color: scheme.error),
               ),
             ],
             const SizedBox(height: AppSpace.x3),
@@ -185,7 +217,7 @@ class _StateBadge extends StatelessWidget {
       return const LakbayanBadge("Not ready", kind: BadgeKind.closed);
     }
     return switch (townState) {
-      // `neutral` is the design system's green "downloaded, available" — the
+      // `neutral` is the design system's green "downloaded, available", the
       // exact case its own comment names.
       TownState.current => const LakbayanBadge(
         "On this phone",
@@ -220,13 +252,15 @@ class _Actions extends StatelessWidget {
     if (!bundle.isDownloadable) {
       return Text(
         "The province is still preparing this town.",
-        style: AppTypography.caption,
+        style: AppTypography.secondLine.copyWith(
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+        ),
       );
     }
 
     // The primary action flexes and Remove keeps its natural width. A Spacer
-    // between two intrinsic-width buttons overflowed by 20px at 400dp — an
-    // ordinary phone — once both were on screen with the longest label.
+    // between two intrinsic-width buttons overflowed by 20px at 400dp, an
+    // ordinary phone, once both were on screen with the longest label.
     return Row(
       children: [
         if (townState != TownState.absent) ...[
@@ -263,7 +297,11 @@ class _Message extends StatelessWidget {
   Widget build(BuildContext context) => Center(
     child: Padding(
       padding: const EdgeInsets.all(AppSpace.x8),
-      child: Text(text, style: AppTypography.body, textAlign: TextAlign.center),
+      child: Text(
+        text,
+        style: AppTypography.bodyMedium,
+        textAlign: TextAlign.center,
+      ),
     ),
   );
 }

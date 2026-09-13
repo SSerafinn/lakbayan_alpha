@@ -150,7 +150,7 @@ void main() {
       // it would download a town with no map and no way to say why.
       await pump(tester, [notReady]);
 
-      expect(find.text("Not ready"), findsOneWidget);
+      expect(find.text("NOT READY"), findsOneWidget);
       expect(find.widgetWithText(FilledButton, "Download"), findsNothing);
       expect(
         find.text("The province is still preparing this town."),
@@ -176,7 +176,7 @@ void main() {
     testWidgets("a current town says it is on the phone", (tester) async {
       await pump(tester, [ready], downloaded: [recordAt("v1")]);
 
-      expect(find.text("On this phone"), findsOneWidget);
+      expect(find.text("ON THIS PHONE"), findsOneWidget);
       expect(find.widgetWithText(OutlinedButton, "Remove"), findsOneWidget);
       expect(
         find.widgetWithText(FilledButton, "Download again"),
@@ -188,7 +188,7 @@ void main() {
       // The province changed something since this phone downloaded it.
       await pump(tester, [ready], downloaded: [recordAt("v0")]);
 
-      expect(find.text("Update available"), findsOneWidget);
+      expect(find.text("UPDATE AVAILABLE"), findsOneWidget);
       expect(find.widgetWithText(FilledButton, "Update"), findsOneWidget);
     });
   });
@@ -202,7 +202,7 @@ void main() {
       await tapAndFinish(tester, find.widgetWithText(FilledButton, "Download"));
 
       expect(store.recordFor("penablanca"), isNotNull);
-      expect(find.text("On this phone"), findsOneWidget);
+      expect(find.text("ON THIS PHONE"), findsOneWidget);
     });
 
     testWidgets("a failure says nothing was kept, and keeps nothing", (
@@ -222,12 +222,12 @@ void main() {
     testWidgets("removing a town clears it", (tester) async {
       await pump(tester, [ready]);
       await tapAndFinish(tester, find.widgetWithText(FilledButton, "Download"));
-      expect(find.text("On this phone"), findsOneWidget);
+      expect(find.text("ON THIS PHONE"), findsOneWidget);
 
       await tapAndFinish(tester, find.widgetWithText(OutlinedButton, "Remove"));
 
       expect(store.recordFor("penablanca"), isNull);
-      expect(find.text("On this phone"), findsNothing);
+      expect(find.text("ON THIS PHONE"), findsNothing);
     });
   });
 }
