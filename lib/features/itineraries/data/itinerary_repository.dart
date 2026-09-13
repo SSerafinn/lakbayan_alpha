@@ -65,15 +65,31 @@ class ItineraryRepository {
     String uid, {
     required String name,
     List<String> destinationIds = const [],
+    DateTime? startDate,
+    DateTime? endDate,
   }) async {
     final ref = await _col(uid).add({
       "name": name,
       "destinationIds": destinationIds,
+      if (startDate != null) "startDate": Timestamp.fromDate(startDate),
+      if (endDate != null) "endDate": Timestamp.fromDate(endDate),
       "createdAt": FieldValue.serverTimestamp(),
       "updatedAt": FieldValue.serverTimestamp(),
     });
     return ref.id;
   }
+
+  /// Both dates at once; `null` clears one.
+  Future<void> setDates(
+    String uid,
+    String id, {
+    required DateTime? startDate,
+    required DateTime? endDate,
+  }) => _col(uid).doc(id).update({
+    "startDate": startDate == null ? null : Timestamp.fromDate(startDate),
+    "endDate": endDate == null ? null : Timestamp.fromDate(endDate),
+    "updatedAt": FieldValue.serverTimestamp(),
+  });
 
   Future<void> rename(String uid, String id, String name) =>
       _col(uid)
