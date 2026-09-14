@@ -24,12 +24,36 @@ class FakeItineraryRepository implements ItineraryRepository {
     String uid, {
     required String name,
     List<String> destinationIds = const [],
+    DateTime? startDate,
+    DateTime? endDate,
   }) async {
     final id = "it-${_nextId++}";
     _byUid
         .putIfAbsent(uid, () => [])
-        .add(Itinerary(id: id, name: name, destinationIds: destinationIds));
+        .add(
+          Itinerary(
+            id: id,
+            name: name,
+            destinationIds: destinationIds,
+            startDate: startDate,
+            endDate: endDate,
+          ),
+        );
     return id;
+  }
+
+  @override
+  Future<void> setDates(
+    String uid,
+    String id, {
+    required DateTime? startDate,
+    required DateTime? endDate,
+  }) async {
+    _replace(
+      uid,
+      id,
+      (it) => it.copyWith(startDate: startDate, endDate: endDate),
+    );
   }
 
   @override

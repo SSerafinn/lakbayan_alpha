@@ -1,3 +1,4 @@
+import "package:flutter/material.dart" show ThemeMode;
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:hive_ce_flutter/hive_flutter.dart";
 
@@ -15,13 +16,35 @@ abstract interface class AppPreferences {
   bool get hasSeenLanding;
 
   Future<void> markLandingSeen();
+
+  /// System, light or dark. Defaults to following the phone.
+  ThemeMode get themeMode;
+
+  Future<void> setThemeMode(ThemeMode mode);
+
+  /// Destination ids most recently opened, newest first, at most
+  /// [recentlyViewedCap]. A history, not user data: it does not sync.
+  List<String> get recentlyViewedIds;
+
+  Future<void> markViewed(String destinationId);
+
+  static const recentlyViewedCap = 10;
 }
+
+/// [ids] with [id] moved to the front, capped. Shared by both stores so the
+/// two cannot disagree on the order.
+List<String> _pushRecent(List<String> ids, String id) => [
+  id,
+  ...ids.where((other) => other != id),
+].take(AppPreferences.recentlyViewedCap).toList();
 
 class HivePreferences implements AppPreferences {
   const HivePreferences(this._box);
 
   static const boxName = "preferences";
   static const _seenLanding = "seenLanding";
+  static const _themeMode = "themeMode";
+  static const _recentlyViewed = "recentlyViewed";
 
   final Box<dynamic> _box;
 
@@ -37,6 +60,26 @@ class HivePreferences implements AppPreferences {
 
   @override
   Future<void> markLandingSeen() => _box.put(_seenLanding, true);
+
+  @override
+  ThemeMode get themeMode {
+    final name = _box.get(_themeMode) as String?;
+    return ThemeMode.values.firstWhere(
+      (mode) => mode.name == name,
+      orElse: () => ThemeMode.system,
+    );
+  }
+
+  @override
+  Future<void> setThemeMode(ThemeMode mode) => _box.put(_themeMode, mode.name);
+
+  @override
+  List<String> get recentlyViewedIds =>
+      (_box.get(_recentlyViewed) as List?)?.cast<String>() ?? const [];
+
+  @override
+  Future<void> markViewed(String destinationId) =>
+      _box.put(_recentlyViewed, _pushRecent(recentlyViewedIds, destinationId));
 }
 
 /// In-memory stand-in for tests and for the case where Hive failed to open.
@@ -45,12 +88,27 @@ class InMemoryPreferences implements AppPreferences {
     : _seenLanding = hasSeenLanding;
 
   bool _seenLanding;
+  ThemeMode _themeMode = ThemeMode.system;
+  List<String> _recentlyViewed = const [];
 
   @override
   bool get hasSeenLanding => _seenLanding;
 
   @override
   Future<void> markLandingSeen() async => _seenLanding = true;
+
+  @override
+  ThemeMode get themeMode => _themeMode;
+
+  @override
+  Future<void> setThemeMode(ThemeMode mode) async => _themeMode = mode;
+
+  @override
+  List<String> get recentlyViewedIds => _recentlyViewed;
+
+  @override
+  Future<void> markViewed(String destinationId) async =>
+      _recentlyViewed = _pushRecent(_recentlyViewed, destinationId);
 }
 
 /// Overridden in `main()` with the real Hive-backed instance.

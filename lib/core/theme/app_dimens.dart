@@ -1,6 +1,8 @@
 import "package:flutter/material.dart";
 
-import "app_colors.dart";
+// Shape lives in its own file; re-exported so a screen importing dimens gets
+// radii and the capsule from the same place.
+export "app_shape.dart";
 
 /// Spacing scale (`space.*` in tokens.json). 4dp base grid.
 abstract final class AppSpace {
@@ -10,44 +12,69 @@ abstract final class AppSpace {
   static const x4 = 16.0;
   static const x5 = 20.0;
   static const x6 = 24.0;
+  static const x7 = 28.0;
   static const x8 = 32.0;
+  static const x10 = 40.0;
+  static const x12 = 48.0;
+
+  // The compact rhythm. Off the 4dp grid on purpose: a phone screen reads
+  // as empty at the desktop-derived 20/28.
+  static const gutter = 14.0;
+  static const section = 16.0;
+
+  /// Grouped section edge to row edge, and a row's own padding.
+  static const groupInset = 4.0;
+  static const rowPad = 8.0;
 }
 
-/// Corner radii (`radius.*`). The design system's rule is 12–16dp everywhere,
-/// with the pill reserved for chips since the 2026-08 rebrand.
-abstract final class AppRadius {
-  static const sm = 8.0;
-  static const md = 12.0; // cards, inputs, large chips
-  static const lg = 16.0; // cards, sheets, buttons
-  static const pill = 999.0; // chips only, since the 2026-08 rebrand
-
-  /// A sheet drawn up over content behind it. Larger than [lg] so the corners
-  /// read as a separate surface rather than a rounded box.
-  static const sheet = 28.0;
-
-  static const smAll = BorderRadius.all(Radius.circular(sm));
-  static const mdAll = BorderRadius.all(Radius.circular(md));
-  static const lgAll = BorderRadius.all(Radius.circular(lg));
-  static const pillAll = BorderRadius.all(Radius.circular(pill));
-}
-
-/// Fixed sizes (`size.*`).
-///
-/// The first three come from the design system. The rest were added for the
-/// landing and auth screens: they are layout sizes those screens share, kept
-/// here rather than inline so the two stay in step with each other.
+/// Fixed sizes (`size.*`). Layout sizes two screens share live here rather
+/// than inline so they stay in step.
 abstract final class AppSize {
   /// Android accessibility minimum. Every tappable target must meet this.
   static const minTouchTarget = 48.0;
   static const appBarHeight = 56.0;
-  static const bottomNav = 64.0;
 
-  /// Primary form buttons. At the touch-target minimum: a full-width action
-  /// does not need extra height to be found.
+  /// The floating tab bar at rest: 5 inset, 8 pad, 21 glyph, 2 gap, 13
+  /// label, 8 pad, 5 inset. Collapsed it is glyphs only, one touch target.
+  static const bottomNav = 60.0;
+  static const bottomNavCollapsed = minTouchTarget;
+
+  /// Smaller than Material's 24 so the Cupertino stroke sits light against
+  /// the 11pt label under it.
+  static const tabGlyph = 21.0;
+
+  /// Taller than the touch minimum so the capsule reads as the one focal
+  /// action on a surface (design doc 02, size classes).
+  static const primaryButton = 50.0;
+
+  static const chip = 38.0;
+  static const badge = 24.0;
+
+  /// A symbol-only control over photography: search, back, close.
+  static const symbolButton = 44.0;
+
+  /// The save heart over a hero photo, and at the top-right of a media tile.
+  static const heroSave = 48.0;
+  static const tileSave = 32.0;
+
+  /// A category glyph circle on Home's strip.
+  static const glyphCircle = 56.0;
+
+  /// A recently-viewed thumbnail.
+  static const thumbnail = 112.0;
+
+  static const heroHeight = 412.0;
+  static const detailHero = 392.0;
+  static const routePreview = 196.0;
+
+  /// What the Map's places sheet shows above the tab bar at rest: the
+  /// handle, the area's name and two rows.
+  static const mapSheetRest = 220.0;
+
+  /// Primary form buttons: a full-width action needs no extra height.
   static const formButton = 48.0;
 
   /// A large standalone icon, such as the landing page's swipe affordance.
-  /// Inline icons stay at Material's default and do not need a token.
   static const iconLarge = 40.0;
 
   /// The colour wash behind the shoreline. Taller than the band itself so the
@@ -66,14 +93,12 @@ abstract final class AppSize {
   /// give the form room without covering the lighthouse behind it.
   static const authCardOverlap = 96.0;
 
-  /// Two lines of [AppTypography.brandDisplay], with headroom for the tall
-  /// caps of a display face. Reserved so copy does not shift while a heading
-  /// animates in.
+  /// Two lines of [AppTypography.brandDisplay] with headroom, reserved so
+  /// copy does not shift while a heading animates in.
   static const brandDisplayBlock = 124.0;
 
-  /// Three lines of [AppTypography.bodyLarge], the longest the landing copy
-  /// runs. A floor rather than a fixed height: the pages are centred, so
-  /// without it a page whose body wraps shorter sits lower than the rest.
+  /// Three lines of [AppTypography.bodyLarge], a floor so centred landing
+  /// pages with shorter copy do not sit lower than the rest.
   static const landingBodyBlock = 72.0;
 }
 
@@ -87,24 +112,3 @@ const int shorelinePages = 3;
 
 double shorelineBand(BuildContext context) =>
     MediaQuery.sizeOf(context).width * shorelinePages / shorelineAspectRatio;
-
-/// Shadows (`elevation.*`). Expressed as explicit [BoxShadow] lists rather than
-/// Material elevation numbers — the design system specifies exact colours and
-/// offsets, and Material's elevation overlay would tint them.
-abstract final class AppShadow {
-  static const card = <BoxShadow>[
-    BoxShadow(color: Color(0x141E2733), blurRadius: 3, offset: Offset(0, 1)),
-    BoxShadow(color: Color(0x0A1E2733), blurRadius: 2, offset: Offset(0, 1)),
-  ];
-
-  static const raised = <BoxShadow>[
-    BoxShadow(color: Color(0x1A123D24), blurRadius: 14, offset: Offset(0, 4)),
-  ];
-
-  static const nav = <BoxShadow>[
-    BoxShadow(color: Color(0x0F1E2733), blurRadius: 8, offset: Offset(0, -1)),
-  ];
-}
-
-/// A hairline border in the design system's divider colour.
-BoxBorder get appHairline => Border.all(color: AppColors.line);

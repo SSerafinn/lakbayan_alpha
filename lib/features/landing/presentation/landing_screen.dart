@@ -48,6 +48,12 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
     if (_leaving) return;
     setState(() => _leaving = true);
 
+    // Spend the pull that got us here. It is otherwise only cleared by a
+    // ScrollEndNotification, so a hand-off that outlives the gesture would
+    // leave the counter primed and bounce the user straight back out of the
+    // landing pages on their next pixel of overscroll.
+    _pastEnd = 0;
+
     // Recorded on the way out rather than on first paint: someone who opens
     // the app and kills it on page one has not read the introduction, and
     // should get it again. Reaching sign-in is what counts as having seen it.
@@ -158,25 +164,25 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
   }
 
   List<LandingPage> _pagesFor(BuildContext context) {
-    final colors = context.lakbayan;
+    final scheme = Theme.of(context).colorScheme;
 
     return [
       LandingPage(
-        wash: colors.blueTint,
+        wash: scheme.secondaryContainer,
         greeting: "MADDULO\nKAMU",
         body:
             "The welcome that met every traveller at the old provincial arch. "
             "Rivers, mountains and coast, and the stories that come with them.",
       ),
       LandingPage(
-        wash: colors.greenTint,
+        wash: scheme.primaryContainer,
         greeting: "YENA TAM\nNGAMIN",
         body:
             "Mother of us all. At Piat, the pilgrimage centre of the valley, "
             "faith and heritage have always shared the same road.",
       ),
       LandingPage(
-        wash: colors.goldContainer,
+        wash: context.lakbayan.goldContainer,
         greeting: "TULOY PO\nKAYO",
         body:
             "Come in. Download a town before you set out and the province "

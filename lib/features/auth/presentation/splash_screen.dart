@@ -2,7 +2,6 @@ import "package:flutter/material.dart";
 
 import "../../../core/theme/app_dimens.dart";
 import "../../../core/theme/app_typography.dart";
-import "../../../core/theme/lakbayan_colors.dart";
 
 /// Wireframe 1b · Splash.
 ///
@@ -15,7 +14,6 @@ class SplashScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.lakbayan;
     final scheme = Theme.of(context).colorScheme;
 
     return Scaffold(
@@ -34,10 +32,10 @@ class SplashScreen extends StatelessWidget {
             SizedBox(
               width: AppSize.progressBar,
               child: ClipRRect(
-                borderRadius: AppRadius.pillAll,
+                borderRadius: capsuleRadius,
                 child: LinearProgressIndicator(
                   minHeight: 3,
-                  backgroundColor: colors.line,
+                  backgroundColor: scheme.outlineVariant,
                   valueColor: AlwaysStoppedAnimation<Color>(scheme.primary),
                 ),
               ),

@@ -1,9 +1,9 @@
 import "package:animated_text_kit/animated_text_kit.dart";
 import "package:flutter/material.dart";
 
+import "../../../core/theme/app_icons.dart";
 import "../../../core/theme/app_dimens.dart";
 import "../../../core/theme/app_typography.dart";
-import "../../../core/theme/lakbayan_colors.dart";
 
 class LandingPage {
   const LandingPage({
@@ -25,7 +25,6 @@ class LandingPageContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.lakbayan;
     final scheme = Theme.of(context).colorScheme;
 
     return Padding(
@@ -76,7 +75,7 @@ class LandingPageContent extends StatelessWidget {
             child: Text(
               page.body,
               style: AppTypography.bodyLarge.copyWith(
-                color: colors.textSecondary,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
           ),
@@ -174,15 +173,13 @@ class SwipeHintState extends State<SwipeHint>
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.lakbayan;
-
     return Padding(
       padding: const EdgeInsets.only(right: AppSpace.x3, bottom: AppSpace.x1),
       child: Align(
         alignment: Alignment.centerRight,
         child: InkWell(
           onTap: widget.onTap,
-          borderRadius: AppRadius.pillAll,
+          borderRadius: capsuleRadius,
           child: SizedBox(
             height: AppSize.minTouchTarget,
             child: Row(
@@ -195,8 +192,8 @@ class SwipeHintState extends State<SwipeHint>
                     padding: const EdgeInsets.only(right: AppSpace.x2),
                     child: Text(
                       "GET STARTED",
-                      style: AppTypography.overline.copyWith(
-                        color: colors.textSecondary,
+                      style: AppTypography.labelMedium.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
                   ),
@@ -206,9 +203,9 @@ class SwipeHintState extends State<SwipeHint>
                   builder: (context, _) => Transform.translate(
                     offset: Offset(AppSpace.x2 * _nudge.value, 0),
                     child: Icon(
-                      Icons.chevron_right_rounded,
+                      AppIcons.chevron,
                       size: AppSize.iconLarge,
-                      color: colors.textSecondary,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
                 ),

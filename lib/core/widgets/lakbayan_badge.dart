@@ -6,37 +6,42 @@ import "../theme/lakbayan_colors.dart";
 
 /// Which meaning a [LakbayanBadge] carries.
 ///
-/// Gold is reserved for [ar] and [featured]. The design system is explicit that
-/// gold never signals status, so there is deliberately no gold "warning" case —
-/// use [closed] or [neutral] instead of reaching for the accent.
+/// Every badge is a solid, high-contrast capsule with an all-caps label, so
+/// it reads at a glance on a photo and on white alike. Colour is one of the
+/// signals, never the only one: the label says what the colour means.
+///
+/// Gold is reserved for [featured]. The design system is explicit that gold
+/// never signals status, so there is deliberately no gold "warning" case.
 enum BadgeKind {
-  /// Solid gold — this destination has AR content.
+  /// Solid ink, white text. This destination has AR content. Blue stays
+  /// spatial for text and glyphs; on a photo the ink capsule reads first.
   ar,
 
-  /// Soft gold — editorially promoted.
+  /// Solid deep gold, white text. Editorially promoted.
   featured,
 
-  /// Green tint — open now, downloaded, available.
+  /// White with a hairline, green text. Open now, downloaded, available.
   neutral,
 
-  /// Blue tint — factual metadata such as distance.
+  /// White with a hairline, ink text. Factual metadata such as distance.
   info,
 
-  /// Red tint — closed, failed, unavailable.
+  /// Solid red, white text. Closed, failed, unavailable.
   closed,
 }
 
-/// The small pill-less badge from the design system: 24dp tall, 6dp radius.
+/// A read-only annotation stamped on a photo, a card or a row.
 ///
-/// Distinct from a [Chip], which is interactive, pill-shaped and 36dp tall.
-/// Badges are read-only annotations stamped on cards and rows.
+/// 24dp capsule, all caps, 11/800 with wide tracking. Distinct from a [Chip],
+/// which is interactive and 38dp tall. A badge never receives a tap. The
+/// label always says what the colour means.
 class LakbayanBadge extends StatelessWidget {
   const LakbayanBadge(this.label, {required this.kind, super.key});
 
   const LakbayanBadge.ar({super.key}) : label = "AR", kind = BadgeKind.ar;
 
   const LakbayanBadge.featured({super.key})
-    : label = "FEATURED",
+    : label = "Featured",
       kind = BadgeKind.featured;
 
   final String label;
@@ -45,61 +50,46 @@ class LakbayanBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.lakbayan;
+    final scheme = Theme.of(context).colorScheme;
 
-    final (Color fill, Color text) = switch (kind) {
-      BadgeKind.ar => (c.gold, const Color(0xFF1E2733)),
-      BadgeKind.featured => (c.goldContainer, c.goldText),
-      BadgeKind.neutral => (c.badgeNeutralFill, c.badgeNeutralText),
-      BadgeKind.info => (c.blueTint, const Color(0xFF0C4A7C)),
-      BadgeKind.closed => (c.badgeErrorFill, c.badgeErrorText),
+    final (Color fill, Color text, Color? side) = switch (kind) {
+      BadgeKind.ar => (scheme.onSurface, scheme.surface, null),
+      BadgeKind.featured => (c.featured, c.onFeatured, null),
+      BadgeKind.neutral => (
+        scheme.surface,
+        c.textOnLightGreen,
+        scheme.outlineVariant,
+      ),
+      BadgeKind.info => (
+        scheme.surface,
+        scheme.onSurface,
+        scheme.outlineVariant,
+      ),
+      BadgeKind.closed => (scheme.error, scheme.onError, null),
     };
 
-    // AR and FEATURED are set in caps with wide tracking; status badges are not.
-    final isAccent = kind == BadgeKind.ar || kind == BadgeKind.featured;
-
     return Container(
-      height: 24,
-      padding: const EdgeInsets.symmetric(horizontal: 10),
-      decoration: BoxDecoration(
+      height: AppSize.badge,
+      padding: const EdgeInsets.symmetric(horizontal: AppSpace.x3),
+      decoration: ShapeDecoration(
         color: fill,
-        borderRadius: BorderRadius.circular(6),
+        shape: side == null
+            ? capsule
+            : StadiumBorder(side: BorderSide(color: side)),
       ),
-      // `Center(widthFactor: 1)` rather than `Container(alignment:)` — a
+      // `Center(widthFactor: 1)` rather than `Container(alignment:)`: a
       // Container with an alignment expands to fill its loose constraints, so
       // the badge would stretch to the full row width instead of hugging its
       // label. widthFactor pins the width to the child.
       child: Center(
         widthFactor: 1,
         child: Text(
-          isAccent ? label.toUpperCase() : label,
-          style: AppTypography.caption.copyWith(
-            fontSize: 11,
-            fontWeight: FontWeight.w600,
-            fontVariations: const [FontVariation("wght", 600)],
-            letterSpacing: isAccent ? 1.2 : 0.6,
-            height: 1,
-            color: text,
-          ),
+          label.toUpperCase(),
+          style: AppTypography.caps.copyWith(color: text),
         ),
       ),
     );
   }
-}
-
-/// Section label — 12sp, semibold, uppercase, +1.2 tracking.
-class Overline extends StatelessWidget {
-  const Overline(this.text, {this.color, super.key});
-
-  final String text;
-  final Color? color;
-
-  @override
-  Widget build(BuildContext context) => Text(
-    text.toUpperCase(),
-    style: AppTypography.overline.copyWith(
-      color: color ?? context.lakbayan.textSecondary,
-    ),
-  );
 }
 
 /// Rounded placeholder used wherever a photo has not loaded yet. Mirrors the
@@ -118,17 +108,14 @@ class ImagePlaceholder extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = context.lakbayan;
     return Container(
       height: height,
       width: width,
+      // A flat surface tier, not a gradient: a placeholder is a photo that has
+      // not arrived, and the space should read as quiet rather than decorated.
       decoration: BoxDecoration(
-        borderRadius: borderRadius ?? AppRadius.mdAll,
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [c.greenSubtle, c.greenTint],
-        ),
+        borderRadius: borderRadius ?? AppRadii.smAll,
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
       ),
     );
   }

@@ -1,7 +1,9 @@
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
+import "package:lakbayan/core/models/destination.dart";
 import "package:lakbayan/core/models/itinerary.dart";
+import "package:lakbayan/core/theme/app_icons.dart";
 import "package:lakbayan/core/theme/app_theme.dart";
 import "package:lakbayan/features/auth/domain/app_user.dart";
 import "package:lakbayan/features/auth/domain/auth_providers.dart";
@@ -45,8 +47,15 @@ void main() {
           tourRepositoryProvider.overrideWithValue(tours),
           destinationRepositoryProvider.overrideWithValue(
             FakeDestinationRepository([
+              // Two points, not one: the route preview fits the map to the
+              // stops, and a zero-area fit has no finite zoom.
               testDestination(id: "callao", name: "Callao Cave"),
-              testDestination(id: "palaui", name: "Palaui Island"),
+              testDestination(
+                id: "palaui",
+                name: "Palaui Island",
+                town: "Santa Ana",
+                coords: const GeoPoint2(lat: 18.55, lng: 122.15),
+              ),
             ]),
           ),
         ],
@@ -78,28 +87,33 @@ void main() {
       await pump(tester, const Scaffold(body: ItinerariesTab()));
 
       expect(find.textContaining("Nothing planned yet"), findsOneWidget);
-      expect(find.widgetWithText(FilledButton, "New"), findsOneWidget);
+      expect(
+        find.widgetWithText(FloatingActionButton, "New itinerary"),
+        findsOneWidget,
+      );
     });
 
-    testWidgets("lists itineraries with their stop count", (tester) async {
+    testWidgets("lists itineraries with their dates", (tester) async {
       itineraries = FakeItineraryRepository({
         "ana": [
-          const Itinerary(
+          Itinerary(
             id: "it-1",
             name: "Two days in Peñablanca",
-            destinationIds: ["callao", "palaui"],
+            destinationIds: const ["callao", "palaui"],
+            startDate: DateTime(2026, 10, 14),
+            endDate: DateTime(2026, 10, 15),
           ),
         ],
       });
       await pump(tester, const Scaffold(body: ItinerariesTab()));
 
       expect(find.text("Two days in Peñablanca"), findsOneWidget);
-      expect(find.textContaining("2 stops"), findsOneWidget);
+      expect(find.text("14 to 15 Oct"), findsOneWidget);
     });
 
-    testWidgets("nudges a one-stop itinerary, which cannot be a route", (
-      tester,
-    ) async {
+    testWidgets("puts nothing under a name that has no dates", (tester) async {
+      // A stop count under a name is a dangling number and "no dates yet" is
+      // a hint dressed as metadata, so an undated trip is just its name.
       itineraries = FakeItineraryRepository({
         "ana": [
           const Itinerary(
@@ -111,10 +125,8 @@ void main() {
       });
       await pump(tester, const Scaffold(body: ItinerariesTab()));
 
-      expect(
-        find.textContaining("add one more to draw a route"),
-        findsOneWidget,
-      );
+      expect(find.text("Just one"), findsOneWidget);
+      expect(find.textContaining("stop"), findsNothing);
     });
 
     testWidgets("separates saved province tours from the user's own", (
@@ -124,8 +136,12 @@ void main() {
       // admin-written, so a visitor's plan could never live there.
       await pump(tester, const Scaffold(body: ItinerariesTab()));
 
-      expect(find.text("My itineraries"), findsOneWidget);
+      expect(find.text("Itineraries"), findsOneWidget);
       expect(find.text("Saved tours"), findsOneWidget);
+      expect(
+        find.textContaining("Tours you save from the province's list"),
+        findsOneWidget,
+      );
     });
   });
 
@@ -145,18 +161,31 @@ void main() {
       });
     });
 
-    testWidgets("numbers the stops, because the order is the route", (
+    /// The move and remove controls only appear while reordering; at rest
+    /// the rows are plain so the list reads as the route, not as a form.
+    Future<void> startReordering(WidgetTester tester) async {
+      await tester.tap(find.widgetWithText(TextButton, "Reorder"));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets("keeps the stops in order, because the order is the route", (
       tester,
     ) async {
       await pumpScreen(tester);
 
-      expect(find.text("1."), findsOneWidget);
-      expect(find.text("2."), findsOneWidget);
       expect(find.text("Callao Cave"), findsOneWidget);
+      expect(find.text("Palaui Island"), findsOneWidget);
+      expect(
+        tester.getTopLeft(find.text("Callao Cave")).dy,
+        lessThan(tester.getTopLeft(find.text("Palaui Island")).dy),
+      );
+      // Two stops can be reordered; the control is there to say so.
+      expect(find.widgetWithText(TextButton, "Reorder"), findsOneWidget);
     });
 
     testWidgets("moving a stop rewrites the whole order", (tester) async {
       await pumpScreen(tester);
+      await startReordering(tester);
 
       await tester.tap(find.byTooltip("Move later").first);
       await tester.pumpAndSettle();
@@ -169,15 +198,17 @@ void main() {
 
     testWidgets("the first stop cannot move earlier", (tester) async {
       await pumpScreen(tester);
+      await startReordering(tester);
 
       final up = tester.widget<IconButton>(
-        find.widgetWithIcon(IconButton, Icons.arrow_upward).first,
+        find.widgetWithIcon(IconButton, AppIcons.chevronUp).first,
       );
       expect(up.onPressed, isNull);
     });
 
     testWidgets("removing a stop takes it out", (tester) async {
       await pumpScreen(tester);
+      await startReordering(tester);
 
       await tester.tap(find.byTooltip("Remove this stop").first);
       await tester.pumpAndSettle();
@@ -208,7 +239,10 @@ void main() {
     testWidgets("deleting asks first", (tester) async {
       await pumpScreen(tester);
 
-      await tester.tap(find.byTooltip("Delete this itinerary"));
+      // Delete sits behind the overflow menu, so it is two taps away.
+      await tester.tap(find.byTooltip("More"));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(MenuItemButton, "Delete"));
       await tester.pumpAndSettle();
       expect(find.text("Delete Weekend?"), findsOneWidget);
 
