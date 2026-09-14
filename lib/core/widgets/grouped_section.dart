@@ -57,8 +57,8 @@ class GroupedSection extends StatelessWidget {
 /// One row of a [GroupedSection]: leading media or glyph, title, second
 /// line, trailing accessory (a chevron when the row navigates). The whole row
 /// is the target; a trailing accessory is its own 48dp target only when it
-/// does something distinct, and every accessory sits centred in one 48dp slot
-/// so they share an axis down the section. A glyph only where it maps to an
+/// does something distinct, and every accessory sits centred in one slot at
+/// least 48dp wide so they share an axis down the section. A glyph only where it maps to an
 /// established action (save, download, play).
 class GroupedRow extends StatelessWidget {
   const GroupedRow({
@@ -180,9 +180,15 @@ class GroupedRow extends StatelessWidget {
             ),
             if (accessory != null) ...[
               const SizedBox(width: AppSpace.x2),
-              SizedBox(
-                width: AppSize.minTouchTarget,
-                height: AppSize.minTouchTarget,
+              // One 48dp slot, and no narrower, so lone accessories share an
+              // axis; a cluster of controls (a stop row while reordering)
+              // widens it rather than overflowing the row.
+              ConstrainedBox(
+                constraints: const BoxConstraints(
+                  minWidth: AppSize.minTouchTarget,
+                  minHeight: AppSize.minTouchTarget,
+                  maxHeight: AppSize.minTouchTarget,
+                ),
                 child: Center(child: accessory),
               ),
             ],
