@@ -125,7 +125,41 @@ and `flutter test` before committing; commit with `/commit`.
       the province later edits stays correct. The selected tab moved into a
       provider so Explore's "Create your own tour" hero can send somebody to
       Itineraries without threading a callback through two widgets.*
-- [ ] `features/profile` + global loading/empty/offline states *(wireframe 1h).*
+- [x] `features/profile` *(wireframe 1h, on the 2.1 redesign: brand block,
+      Saved places, Downloaded towns, Appearance, Sign out)*. Global
+      loading/empty/offline states exist per screen; a shared pass is still
+      Phase 5 work.
+- [x] **Redesign 2a–2k (D-14)** across Home, swipe mode, Map, Place detail,
+      Itineraries, Profile, on tokens 2.1.0.
+- [x] **Motion on one vocabulary.** `motor` added; `AppMotion` is two
+      `CupertinoMotion` springs (`chrome`, `arrive`) and one fade, in
+      `lib/core/theme/app_motion.dart`. The tab bar, search capsule, swipe
+      flight, thumbnail pop-in and save heart all ride them; the hand-tuned
+      `SpringDescription`, the tab bar's `AnimationController` and the
+      `easeOutBack` tweens are gone. Bring-back flights run concurrently, so
+      spam-tapping the skipped stack never waits.
+- [x] **Explore search rebuilt** as a 48dp circle pinned top-right over the
+      hero (`HomeChromeLayer`), growing leftward into a field with a scrim and
+      a results panel under it; the tab bar hides while it is open. Search
+      logic (`homeQuery`, `homeResults`) unchanged. The swipe entry row is a
+      fan of three featured covers, no longer a text row.
+- [x] **Place detail expanded**: category and tags as badges, history folded
+      to four lines, audio guide inline (stops and player, no longer behind a
+      row), Plan your visit (hours, entry, best time, getting around, See it
+      on the map), More in the town. Every field shown is already editable in
+      the CMS. Sample data carries history, practical facts, tags and TTS
+      stops for four places so the full screen previews.
+- [x] **Density and type tightened**: section 16, row pad 8, group inset 4;
+      `titleLarge` 24/800, `titleMedium` 19/800, `hero` 28/800, mirrored in
+      `design/tokens.json` and `docs/DESIGN_SYSTEM.md`.
+- [ ] **Tests behind the redesign.** 25 widget tests still assert
+      pre-redesign copy and widgets (`audio_guide_test`, `auth_sheet_test`,
+      `destinations_test`, `itineraries_test`, `landing_test`,
+      `map_view_test`, `widget_test`). Not touched by the frontend lead's
+      sessions by rule; they need a rewrite against the 2.1 screens.
+- [ ] **Explore hero**: FEATURED and AR badges sit under the status bar; the
+      hero draws from y = 0 and insets them by the gutter only.
+- [ ] **Share on Place detail** is a placeholder snackbar.
 - **DoD:** download a town → maps + audio guides work fully offline.
       **Not met yet, and the missing piece is small.** A downloaded town's map
       renders from its pack, but photos and audio still resolve through
