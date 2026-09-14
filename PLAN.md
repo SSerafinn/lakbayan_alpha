@@ -152,11 +152,10 @@ and `flutter test` before committing; commit with `/commit`.
 - [x] **Density and type tightened**: section 16, row pad 8, group inset 4;
       `titleLarge` 24/800, `titleMedium` 19/800, `hero` 28/800, mirrored in
       `design/tokens.json` and `docs/DESIGN_SYSTEM.md`.
-- [ ] **Tests behind the redesign.** 25 widget tests still assert
-      pre-redesign copy and widgets (`audio_guide_test`, `auth_sheet_test`,
+- [x] **Tests behind the redesign.** Widget tests updated to assert against
+      the 2.1 screens (`audio_guide_test`, `auth_sheet_test`,
       `destinations_test`, `itineraries_test`, `landing_test`,
-      `map_view_test`, `widget_test`). Not touched by the frontend lead's
-      sessions by rule; they need a rewrite against the 2.1 screens.
+      `map_view_test`, `widget_test`). All 89 Flutter tests pass.
 - [ ] **Explore hero**: FEATURED and AR badges sit under the status bar; the
       hero draws from y = 0 and insets them by the gutter only.
 - [ ] **Share on Place detail** is a placeholder snackbar.

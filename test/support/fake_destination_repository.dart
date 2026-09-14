@@ -12,6 +12,7 @@ Destination testDestination({
   bool featured = false,
   bool hasAR = false,
   DestinationStatus status = DestinationStatus.published,
+  GeoPoint2 coords = const GeoPoint2(lat: 17.7, lng: 121.8),
 }) => Destination(
   id: id,
   name: name ?? id,
@@ -21,7 +22,7 @@ Destination testDestination({
   description: "A place in Cagayan.",
   // No images: StorageImage would reach for Firebase Storage, which is not
   // bound in a widget test. The placeholder path is what renders.
-  coords: const GeoPoint2(lat: 17.7, lng: 121.8),
+  coords: coords,
   popular: popular,
   featured: featured,
   hasAR: hasAR,

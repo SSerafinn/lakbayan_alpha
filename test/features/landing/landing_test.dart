@@ -2,6 +2,7 @@ import "package:animated_text_kit/animated_text_kit.dart";
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
+import "package:lakbayan/core/theme/app_icons.dart";
 import "package:lakbayan/app.dart";
 import "package:lakbayan/core/prefs/app_preferences.dart";
 import "package:lakbayan/core/theme/app_theme.dart";
@@ -73,7 +74,7 @@ void main() {
       expect(prefs.hasSeenLanding, isFalse);
 
       for (var i = 0; i < 3; i++) {
-        await tester.tap(find.byIcon(Icons.chevron_right_rounded));
+        await tester.tap(find.byIcon(AppIcons.chevron));
         await settle(tester);
       }
 

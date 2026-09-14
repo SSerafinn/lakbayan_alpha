@@ -1,6 +1,7 @@
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
+import "package:lakbayan/core/theme/app_icons.dart";
 import "package:lakbayan/core/models/destination.dart";
 import "package:lakbayan/core/theme/app_theme.dart";
 import "package:lakbayan/features/audio/domain/audio_providers.dart";
@@ -188,7 +189,7 @@ void main() {
     ) async {
       final container = await pump(tester, const [recorded]);
       await tapStop(tester, "s1");
-      expect(find.byIcon(Icons.skip_next), findsOneWidget);
+      expect(find.byIcon(AppIcons.skipNext), findsOneWidget);
 
       // Same container, a different destination's sheet: audio keeps playing,
       // but this screen must not present transport for it.
@@ -208,7 +209,7 @@ void main() {
       );
       await settle(tester);
 
-      expect(find.byIcon(Icons.skip_next), findsNothing);
+      expect(find.byIcon(AppIcons.skipNext), findsNothing);
     });
   });
 
@@ -239,25 +240,25 @@ void main() {
     testWidgets("clears the player at the end of the guide", (tester) async {
       await pump(tester, const [recorded]);
       await tapStop(tester, "s1");
-      expect(find.byIcon(Icons.skip_next), findsOneWidget);
+      expect(find.byIcon(AppIcons.skipNext), findsOneWidget);
 
       narrator.complete();
       await settle(tester);
 
       // Not left looking paused on the last stop, which would invite a tap
       // that restarts the whole guide.
-      expect(find.byIcon(Icons.skip_next), findsNothing);
+      expect(find.byIcon(AppIcons.skipNext), findsNothing);
     });
 
     testWidgets("skip next and previous walk the stops", (tester) async {
       await pump(tester, const [recorded, spoken]);
       await tapStop(tester, "s1");
 
-      await tester.tap(find.byIcon(Icons.skip_next));
+      await tester.tap(find.byIcon(AppIcons.skipNext));
       await settle(tester);
       expect(narrator.played.last, isA<SpokenNarration>());
 
-      await tester.tap(find.byIcon(Icons.skip_previous));
+      await tester.tap(find.byIcon(AppIcons.skipPrevious));
       await settle(tester);
       expect(narrator.played.last, isA<RecordedNarration>());
     });
@@ -266,11 +267,11 @@ void main() {
       await pump(tester, const [recorded]);
       await tapStop(tester, "s1");
 
-      await tester.tap(find.byIcon(Icons.stop));
+      await tester.tap(find.byIcon(AppIcons.stop));
       await settle(tester);
 
       expect(narrator.stopCount, greaterThan(0));
-      expect(find.byIcon(Icons.skip_next), findsNothing);
+      expect(find.byIcon(AppIcons.skipNext), findsNothing);
     });
   });
 

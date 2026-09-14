@@ -48,17 +48,21 @@ void main() {
       expect(find.text("Buntun Bridge"), findsNothing);
     });
 
-    testWidgets("keeps the build-a-tour hero even with no content", (
-      tester,
-    ) async {
-      // The wireframe is explicit that the hero is never dismissible.
+    testWidgets("keeps its frame even with no content", (tester) async {
+      // With nothing published the screen still has to say where things
+      // will go, rather than paint a blank scroll. The swipe entry is the one
+      // block that hides: it fans real covers and has none to show.
       await pump(
         tester,
         const ExploreScreen(),
         repo: FakeDestinationRepository([]),
       );
 
-      expect(find.text("Create your own tour"), findsOneWidget);
+      expect(find.text("Popular this week"), findsOneWidget);
+      expect(find.text("Nothing here yet."), findsOneWidget);
+      expect(find.text("Pick a town"), findsOneWidget);
+      expect(find.text("No towns published yet."), findsOneWidget);
+      expect(find.text("Not sure where to go?"), findsNothing);
     });
   });
 
@@ -81,7 +85,7 @@ void main() {
       expect(find.text("Callao Cave"), findsOneWidget);
       expect(find.text("Piat Basilica"), findsOneWidget);
 
-      await tester.tap(find.widgetWithText(FilterChip, "Churches"));
+      await tester.tap(find.widgetWithText(ChoiceChip, "Churches"));
       await tester.pumpAndSettle();
 
       expect(find.text("Piat Basilica"), findsOneWidget);
@@ -189,8 +193,14 @@ void main() {
       );
 
       expect(find.text("Callao Cave"), findsOneWidget);
-      expect(find.text("1 · History"), findsOneWidget);
-      expect(find.text("2 · The Chapel"), findsOneWidget);
+      // The stop number is spoken, not printed, so the row shows the bare
+      // title and the order is carried by where the rows sit.
+      expect(find.text("History"), findsOneWidget);
+      expect(find.text("The Chapel"), findsOneWidget);
+      expect(
+        tester.getTopLeft(find.text("History")).dy,
+        lessThan(tester.getTopLeft(find.text("The Chapel")).dy),
+      );
     });
 
     testWidgets("handles a destination that is gone or unpublished", (

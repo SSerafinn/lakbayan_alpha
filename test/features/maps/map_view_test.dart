@@ -5,8 +5,8 @@ import "package:flutter_test/flutter_test.dart";
 import "package:lakbayan/core/models/destination.dart";
 import "package:lakbayan/core/theme/app_theme.dart";
 import "package:lakbayan/features/destinations/domain/destination_providers.dart";
-import "package:lakbayan/features/destinations/presentation/browse_screen.dart";
 import "package:lakbayan/features/maps/domain/tile_source.dart";
+import "package:lakbayan/features/maps/presentation/map_screen.dart";
 import "package:lakbayan/features/maps/presentation/map_view.dart";
 
 import "../../support/fake_destination_repository.dart";
@@ -63,31 +63,36 @@ void main() {
       expect(pins(), findsNWidgets(2));
     });
 
-    testWidgets("tapping a pin opens its card, dismissing closes it", (
+    testWidgets("tapping a pin names it, tapping the basemap clears it", (
       tester,
     ) async {
+      // Selection is the pin growing and carrying its name; there is no card
+      // on the map itself, the places sheet does that job.
       await pumpMap(tester, [at("callao", lat: 17.70, lng: 121.80)]);
 
-      expect(find.text("Open"), findsNothing);
+      expect(find.text("callao"), findsNothing);
 
       await tester.tap(
         find.byKey(const Key("pin-callao")),
         warnIfMissed: false,
       );
       await tester.pump(const Duration(milliseconds: 50));
-      expect(find.text("Open"), findsOneWidget);
+      expect(find.text("callao"), findsOneWidget);
 
-      await tester.tap(find.byIcon(Icons.close));
-      await tester.pump(const Duration(milliseconds: 50));
-      expect(find.text("Open"), findsNothing);
+      // The same gesture that dismisses a sheet: a tap on the empty map. The
+      // map waits out its double-tap window before it calls a tap a tap.
+      await tester.tapAt(const Offset(20, 700));
+      await tester.pump(const Duration(milliseconds: 400));
+      expect(find.text("callao"), findsNothing);
     });
 
-    testWidgets("says so when the filters match nothing", (tester) async {
+    testWidgets("still draws the map when there is nothing to pin", (
+      tester,
+    ) async {
       // Deliberately still a map, not a blank panel: an empty screen where a
       // map belongs reads as a failure to load rather than an empty result.
       await pumpMap(tester, const []);
 
-      expect(find.text("Nothing matches those filters."), findsOneWidget);
       expect(find.byType(FlutterMap), findsOneWidget);
       expect(pins(), findsNothing);
     });
@@ -105,8 +110,10 @@ void main() {
     });
   });
 
-  group("the Browse toggle", () {
-    Future<void> pumpBrowse(
+  group("the Map tab", () {
+    /// The tab lands on the map; `MapScreen` is the host that swaps it for
+    /// the Browse grid and back.
+    Future<void> pumpTab(
       WidgetTester tester,
       FakeDestinationRepository repo,
     ) async {
@@ -123,34 +130,44 @@ void main() {
           ],
           child: MaterialApp(
             theme: buildAppTheme(),
-            home: const Scaffold(body: BrowseScreen()),
+            home: const Scaffold(body: MapScreen()),
           ),
         ),
       );
       await tester.pump(const Duration(milliseconds: 50));
     }
 
-    testWidgets("swaps the grid for a map and back", (tester) async {
-      await pumpBrowse(
+    testWidgets("says so when the filters match nothing", (tester) async {
+      // The map stays; the sheet under it carries the message.
+      await pumpTab(tester, FakeDestinationRepository([]));
+
+      expect(find.byType(FlutterMap), findsOneWidget);
+      expect(find.text("Nothing matches those filters."), findsOneWidget);
+      expect(pins(), findsNothing);
+    });
+
+    testWidgets("swaps the map for the grid and back", (tester) async {
+      await pumpTab(
         tester,
         FakeDestinationRepository([at("callao", lat: 17.70, lng: 121.80)]),
       );
 
+      expect(find.byType(FlutterMap), findsOneWidget);
+
+      await tester.tap(find.byTooltip("Show as a grid"));
+      await tester.pump(const Duration(milliseconds: 50));
       expect(find.byType(FlutterMap), findsNothing);
+      expect(find.text("Browse"), findsOneWidget);
 
       await tester.tap(find.byTooltip("Show on the map"));
       await tester.pump(const Duration(milliseconds: 50));
       expect(find.byType(FlutterMap), findsOneWidget);
-
-      await tester.tap(find.byTooltip("Show as a list"));
-      await tester.pump(const Duration(milliseconds: 50));
-      expect(find.byType(FlutterMap), findsNothing);
     });
 
     testWidgets("the map obeys the category filter", (tester) async {
       // The toggle changes how results are drawn, not which results they are.
       // If the two views ever disagree, the toggle stops being a view switch.
-      await pumpBrowse(
+      await pumpTab(
         tester,
         FakeDestinationRepository([
           testDestination(
@@ -164,11 +181,9 @@ void main() {
         ]),
       );
 
-      await tester.tap(find.byTooltip("Show on the map"));
-      await tester.pump(const Duration(milliseconds: 50));
       expect(pins(), findsNWidgets(2));
 
-      await tester.tap(find.widgetWithText(FilterChip, "Churches"));
+      await tester.tap(find.widgetWithText(ChoiceChip, "Churches"));
       await tester.pump(const Duration(milliseconds: 50));
       expect(pins(), findsOneWidget);
     });
