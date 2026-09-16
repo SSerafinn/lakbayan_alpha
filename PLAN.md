@@ -50,11 +50,15 @@ and `flutter test` before committing; commit with `/commit`.
       verified flowing end to end).*
 - [ ] Nearby Places by distance — needs location permission; deferred to the
       Phase 3 maps work. Explore currently shows Featured in that slot.
-- [ ] Serve downloaded assets from disk. `TownDownloader` already saves every
-      photo and recording a town needs, but `storageUrlProvider` and
-      `audioUrlResolver` both still go to the network, so a downloaded town has
-      an offline map and online everything else. This is what stands between
-      Phase 3 and its DoD.
+- [x] Serve downloaded assets from disk.
+      *`localAssetFor` asks each downloaded town whether it holds a given
+      Storage path. The downloader already mirrors the path under the town, so
+      the local one is derivable — no second index to keep in step with the
+      files. `StorageImage` reads the file directly and `audioUrlResolver`
+      returns a `file://` URI, so neither a photo nor a recording touches the
+      network once its town is on the phone. Deliberately **not** gated on the
+      town being current, unlike the map pack: every upload gets a fresh path,
+      so whatever sits on disk under one is still the right bytes for it.*
 - **DoD:** browse real destinations end-to-end from Firestore, images loading.
 
 ## Phase 3 · Weeks 7–10 — Core value  → Milestone **M2 (Beta)**
@@ -159,13 +163,10 @@ and `flutter test` before committing; commit with `/commit`.
 - [ ] **Explore hero**: FEATURED and AR badges sit under the status bar; the
       hero draws from y = 0 and insets them by the gutter only.
 - [ ] **Share on Place detail** is a placeholder snackbar.
-- **DoD:** download a town → maps + audio guides work fully offline.
-      **Not met yet, and the missing piece is small.** A downloaded town's map
-      renders from its pack, but photos and audio still resolve through
-      `FirebaseStorage.getDownloadURL()` — a network call. The files are on
-      disk; nothing reads them. Point `audioUrlResolver` and `storageUrlProvider`
-      at `TownDownloader.localPathFor` when a record exists, and the DoD holds.
-      Until then a download buys the map and nothing else.
+- **DoD:** download a town → maps + audio guides work fully offline. **Met.**
+      The pack draws the basemap, and photos and recordings now come off disk
+      through `localAssetFor`, so a downloaded town needs no network at all.
+      The files had been written since #65; for three PRs nothing read them.
 - [x] **Spike — resolved without hardware, and it changed the renderer.**
       `scripts/extract-tiles.mjs` builds a town pack from the destinations'
       coords using D-11's buffer union (4.6× fewer tiles than a whole

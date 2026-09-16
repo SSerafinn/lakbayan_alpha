@@ -3,6 +3,11 @@ import "package:firebase_storage/firebase_storage.dart";
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
+// core reaching into a feature, which the layout otherwise avoids — the same
+// exception `core/router` makes. Every photo in the app is drawn by the widget
+// below, so this is the one place the offline lookup has to happen; pushing it
+// out to the eleven screens that use it would be worse in every way.
+import "../../features/offline/domain/local_assets.dart";
 import "lakbayan_badge.dart";
 
 /// Resolves a Cloud Storage path to a download URL.
@@ -22,9 +27,15 @@ final storageUrlProvider = FutureProvider.family<String, String>((
 /// Displays an image stored as a Storage **path** (see `docs/DATA_MODEL.md`).
 ///
 /// Documents hold paths rather than download URLs because a path survives token
-/// rotation. The cost is this extra resolve step, after which
-/// `cached_network_image` caches the bytes on disk — which is also what makes a
-/// downloaded town's photos work offline.
+/// rotation. The cost is a resolve step, after which `cached_network_image`
+/// caches the bytes on disk.
+///
+/// A downloaded town short-circuits all of that: [localAssetProvider] finds the
+/// file `TownDownloader` already wrote and it is read straight off disk. That
+/// path involves no network call at all, which is the difference between a
+/// downloaded town working in a cave and merely having been downloaded. The
+/// HTTP cache is not a substitute — it only holds what this phone happened to
+/// have looked at.
 class StorageImage extends ConsumerWidget {
   const StorageImage({
     required this.path,
@@ -45,6 +56,22 @@ class StorageImage extends ConsumerWidget {
       return borderRadius == null
           ? asset
           : ClipRRect(borderRadius: borderRadius!, child: asset);
+    }
+
+    // Downloaded: read it off disk and never mention the network.
+    final local = ref.watch(localAssetProvider(path));
+    if (local != null) {
+      final file = Image.file(
+        local,
+        fit: fit,
+        // The file existed a moment ago and could still be unreadable — a
+        // half-written byte range, or a town removed between the check and the
+        // decode. Falling back to the placeholder keeps the card intact.
+        errorBuilder: (_, _, _) => ImagePlaceholder(borderRadius: borderRadius),
+      );
+      return borderRadius == null
+          ? file
+          : ClipRRect(borderRadius: borderRadius!, child: file);
     }
 
     final url = ref.watch(storageUrlProvider(path));
