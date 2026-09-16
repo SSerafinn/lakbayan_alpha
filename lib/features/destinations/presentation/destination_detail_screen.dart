@@ -20,6 +20,7 @@ import "../../../core/widgets/symbol_button.dart";
 import "../../audio/presentation/audio_guide_section.dart";
 import "../../explore/domain/home_tab.dart";
 import "../../itineraries/presentation/add_to_itinerary_sheet.dart";
+import "../../maps/domain/directions.dart";
 import "../domain/destination_providers.dart";
 import "../domain/recently_viewed.dart";
 import "save_heart.dart";
@@ -402,6 +403,28 @@ class _PlanYourVisit extends ConsumerWidget {
             ref.read(browseShowsGridProvider.notifier).set(false);
             ref.read(selectedHomeTabProvider.notifier).select(HomeTab.map);
             context.go(Routes.home);
+          },
+        ),
+        GroupedRow(
+          title: "Take me there",
+          subtitle: "Opens your map app",
+          leadingGlyph: AppIcons.drive,
+          glyphColor: brand.spatial,
+          onTap: () async {
+            // Resolved before the await: this is a ConsumerWidget, so there
+            // is no `mounted` to check afterwards.
+            final messenger = ScaffoldMessenger.of(context);
+            final opened = await openDirections(
+              lat: destination.coords.lat,
+              lng: destination.coords.lng,
+              label: destination.name,
+            );
+            if (opened) return;
+            messenger.showSnackBar(
+              const SnackBar(
+                content: Text("Couldn't open a map app for directions."),
+              ),
+            );
           },
         ),
       ],

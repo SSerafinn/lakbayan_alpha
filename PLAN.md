@@ -72,9 +72,25 @@ and `flutter test` before committing; commit with `/commit`.
       pack; it returns the network one until the rasterisation step exists, and
       never falls back silently, because a missing pack must be loud rather than
       invisible. ODbL attribution is on the map, which the licence requires.*
-- [ ] Pre-set routes: `PolylineLayer` over the basemap for a tour's stops, plus
-      the `geo:` hand-off for driving directions (D-11). Needs the tour a map is
-      being shown *for*, which arrives with `features/itineraries`.
+- [x] Pre-set routes: a tour's stops joined over the basemap, plus the `geo:`
+      hand-off for driving directions (D-11).
+      *`ActiveMapRoute` holds an ordered list of destination **ids** and the
+      name they came from. The map resolves them against every destination
+      rather than the filtered results, so a category chip cannot quietly
+      redraw a trip as a shorter one. Stops carry their number — the order
+      **is** the route, and a bare line does not say which end you start from.
+      Only the banner's dismiss clears it, because panning and tapping are
+      things you do *while* reading a route. A province tour is openable from
+      Saved tours, where the row had previously been something you could only
+      delete.*
+      *"Take me there" leaves for the device's map app: directions need live
+      traffic and a routing engine, which no offline pack can provide. It asks
+      for `geo:lat,lng?q=…` rather than a bare coordinate, since the bare form
+      centres a map without marking anything to be taken **to**, and falls back
+      to a web map when nothing claims `geo:`. Both schemes need a `<queries>`
+      entry in `AndroidManifest.xml` or `canLaunchUrl` answers false on API 30+
+      with nothing thrown. `url_launcher` arriving also wires the ODbL
+      copyright link the map attribution had been deferring for want of it.*
 - [x] `features/audio`: just_audio player + `flutter_tts` fallback; segment list UI
       *(wireframe 1e).*
       *One `Narrator` interface over both engines, so the UI never asks which is

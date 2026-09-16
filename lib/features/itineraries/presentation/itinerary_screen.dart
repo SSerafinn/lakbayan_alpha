@@ -22,6 +22,7 @@ import "../../../core/widgets/symbol_button.dart";
 import "../../auth/domain/auth_providers.dart";
 import "../../destinations/domain/destination_providers.dart";
 import "../../explore/domain/home_tab.dart";
+import "../../maps/domain/map_route.dart";
 import "../../maps/domain/tile_source.dart";
 import "../domain/itinerary_copy.dart";
 import "../domain/itinerary_providers.dart";
@@ -106,12 +107,17 @@ class _OverviewState extends ConsumerState<_Overview> {
   }
 
   void _openOnMap() {
-    final first = itinerary.destinationIds.firstOrNull;
     ref.read(browseQueryProvider.notifier).update("");
     ref.read(browseCategoryProvider.notifier).select(null);
     ref.read(mapShowsSavedProvider.notifier).set(false);
     ref.read(browseShowsGridProvider.notifier).set(false);
-    ref.read(mapSelectedIdProvider.notifier).select(first);
+    // Deliberately no selected pin. The route frames the whole trip; selecting
+    // a stop would move the camera to that one pin in the same frame, and
+    // whichever listener ran last would decide what you saw.
+    ref.read(mapSelectedIdProvider.notifier).select(null);
+    ref
+        .read(activeMapRouteProvider.notifier)
+        .show(itinerary.name, itinerary.destinationIds);
     ref.read(selectedHomeTabProvider.notifier).select(HomeTab.map);
     context.go(Routes.home);
   }
