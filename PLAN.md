@@ -183,6 +183,14 @@ and `flutter test` before committing; commit with `/commit`.
       The pack draws the basemap, and photos and recordings now come off disk
       through `localAssetFor`, so a downloaded town needs no network at all.
       The files had been written since #65; for three PRs nothing read them.
+- **M2 (Beta) cut at `v0.4.0-m2`.** The DoD above is what the milestone turns
+  on, and it holds. Said plainly because the tag is slightly ahead of the
+  checklist: **Nearby Places** (Phase 2's last box, which needs the location
+  permission), the **Explore hero** insets and **Share** are all still open.
+  None of them is what Beta means here — an offline town is — but a reader
+  comparing the tag against the ticks deserves to know which is which.
+  Neither hardware check has been run either: the airplane-mode pass (#71) and
+  the `geo:` hand-off (#72) are both still tests-only.
 - [x] **Spike — resolved without hardware, and it changed the renderer.**
       `scripts/extract-tiles.mjs` builds a town pack from the destinations'
       coords using D-11's buffer union (4.6× fewer tiles than a whole
