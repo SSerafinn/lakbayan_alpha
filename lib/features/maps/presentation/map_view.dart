@@ -1,7 +1,10 @@
+import "dart:async";
+
 import "package:flutter/material.dart";
 import "package:flutter_map/flutter_map.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:latlong2/latlong.dart";
+import "package:url_launcher/url_launcher.dart";
 
 import "../../../core/models/destination.dart";
 import "../../../core/theme/app_dimens.dart";
@@ -9,6 +12,7 @@ import "../../../core/theme/app_typography.dart";
 import "../../../core/theme/lakbayan_colors.dart";
 import "../../destinations/domain/destination_providers.dart";
 import "../../destinations/domain/saved_destinations.dart";
+import "../domain/map_route.dart";
 import "../domain/tile_source.dart";
 
 /// Roughly the middle of Cagayan, used when there is nothing to fit.
@@ -62,13 +66,76 @@ class _MapViewState extends ConsumerState<MapView> {
     _controller.move(LatLng(place.coords.lat, place.coords.lng), zoom);
   }
 
+  /// Frame a route that has just been opened, so the whole trip is on screen.
+  ///
+  /// Opening a route deliberately does *not* also select a stop: both would
+  /// move the camera, and the last one to run would win by accident.
+  void _onRoute(MapRoute? previous, MapRoute? next) {
+    if (next == null) return;
+    final points = _currentPointsFor(next);
+    if (points.length < 2) return;
+    _controller.fitCamera(
+      CameraFit.coordinates(
+        coordinates: points,
+        padding: const EdgeInsets.fromLTRB(
+          AppSpace.x8,
+          AppSpace.x12 * 4,
+          AppSpace.x8,
+          AppSpace.x12 * 5,
+        ),
+        maxZoom: 14,
+      ),
+    );
+  }
+
+  /// A route's stops as coordinates, in order.
+  ///
+  /// Resolved against every destination rather than [MapView.destinations]:
+  /// the visible list is filtered by the search box and the category chips,
+  /// and a line that silently loses a stop to a filter would draw a trip that
+  /// nobody planned.
+  static List<LatLng> _pointsFor(
+    MapRoute route,
+    Map<String, Destination> byId,
+  ) => [
+    for (final id in route.destinationIds)
+      if (byId[id] case final d?) LatLng(d.coords.lat, d.coords.lng),
+  ];
+
+  /// The same, for the camera listener, which has no build to read from.
+  ///
+  /// `read` is right *here* and wrong in [build]: a listener fires once, at a
+  /// moment the user chose, whereas the line has to appear when the
+  /// destinations finish loading — which is a rebuild, not an event.
+  List<LatLng> _currentPointsFor(MapRoute route) => _pointsFor(route, {
+    for (final d in ref.read(allDestinationsProvider).value ?? const [])
+      d.id: d,
+  });
+
   @override
   Widget build(BuildContext context) {
     final source = ref.watch(tileSourceProvider);
     final selectedId = ref.watch(mapSelectedIdProvider);
     final saved = ref.watch(savedDestinationsProvider);
+    final route = ref.watch(activeMapRouteProvider);
     final bounds = _bounds;
     ref.listen<String?>(mapSelectedIdProvider, _onSelected);
+    ref.listen<MapRoute?>(activeMapRouteProvider, _onRoute);
+
+    // Where each stop falls in the route, so its pin can carry the number.
+    // The order *is* the route (`docs/DATA_MODEL.md`), and a bare line does
+    // not say which end you start from.
+    final order = <String, int>{
+      if (route != null)
+        for (final (index, id) in route.destinationIds.indexed) id: index + 1,
+    };
+    // Watched, not read: the route is usually opened before the destination
+    // list has arrived, and the line has to appear when it does.
+    final all =
+        ref.watch(allDestinationsProvider).value ?? const <Destination>[];
+    final routePoints = route == null
+        ? const <LatLng>[]
+        : _pointsFor(route, {for (final d in all) d.id: d});
 
     return FlutterMap(
       mapController: _controller,
@@ -114,6 +181,21 @@ class _MapViewState extends ConsumerState<MapView> {
             tileDimension: packTileDimension,
             maxNativeZoom: packMaxZoom,
           ),
+        // Under the pins: the line joins the stops, the pins are the stops.
+        // An authored polyline, not a computed road route (D-11) — it draws
+        // from the pack with no signal, which a routing engine could not.
+        if (routePoints.length > 1)
+          PolylineLayer(
+            polylines: [
+              Polyline(
+                points: routePoints,
+                color: context.lakbayan.spatial,
+                strokeWidth: 4,
+                borderColor: Theme.of(context).colorScheme.surface,
+                borderStrokeWidth: 1.5,
+              ),
+            ],
+          ),
         MarkerLayer(
           markers: [
             for (final d in widget.destinations)
@@ -131,6 +213,7 @@ class _MapViewState extends ConsumerState<MapView> {
                   destination: d,
                   selected: d.id == selectedId,
                   saved: saved.contains(d.id),
+                  stopNumber: order[d.id],
                   onTap: () =>
                       ref.read(mapSelectedIdProvider.notifier).select(d.id),
                 ),
@@ -151,12 +234,17 @@ class _Pin extends StatelessWidget {
     required this.selected,
     required this.saved,
     required this.onTap,
+    this.stopNumber,
     super.key,
   });
 
   final Destination destination;
   final bool selected;
   final bool saved;
+
+  /// Its 1-based position when a route is being shown, else null.
+  final int? stopNumber;
+
   final VoidCallback onTap;
 
   static const _dot = 22.0;
@@ -171,12 +259,17 @@ class _Pin extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final brand = context.lakbayan;
-    final size = selected ? _dotSelected : _dot;
+    final size = selected || stopNumber != null ? _dotSelected : _dot;
+    final number = stopNumber;
 
     return Semantics(
       button: true,
       selected: selected,
-      label: destination.name,
+      // "Stop 2, Callao Cave" rather than a number a screen reader has to
+      // infer from a line it cannot see.
+      label: number == null
+          ? destination.name
+          : "Stop $number, ${destination.name}",
       excludeSemantics: true,
       child: GestureDetector(
         onTap: onTap,
@@ -220,7 +313,20 @@ class _Pin extends StatelessWidget {
                       side: BorderSide(color: scheme.surface, width: _ring),
                     ),
                   ),
-                  child: selected
+                  // The number outranks the centre dot: both say "this one
+                  // matters", and only one of them says where it comes in the
+                  // trip.
+                  child: number != null
+                      ? Center(
+                          child: Text(
+                            "$number",
+                            style: AppTypography.labelMedium.copyWith(
+                              color: scheme.surface,
+                              height: 1,
+                            ),
+                          ),
+                        )
+                      : selected
                       ? Center(
                           child: Container(
                             width: AppSpace.x2,
@@ -249,15 +355,31 @@ class _Attribution extends StatelessWidget {
   final TileSource source;
 
   @override
-  Widget build(BuildContext context) => RichAttributionWidget(
-    alignment: AttributionAlignment.bottomLeft,
-    attributions: [
-      // Text only, with no tap handler. The credit itself is what ODbL
-      // requires; the customary link to the copyright page needs a URL
-      // launcher this app does not yet depend on, and an `onTap` that does
-      // nothing is worse than none. [TileSource.attributionUrl] carries the
-      // address for when that dependency arrives.
-      TextSourceAttribution(source.attribution),
-    ],
-  );
+  Widget build(BuildContext context) {
+    // The credit is what ODbL requires; the link to the copyright page is the
+    // customary courtesy, and now that `url_launcher` is here for the `geo:`
+    // hand-off it costs nothing. Still only wired when the source actually
+    // carries an address — `attributionUrl` is nullable, and a tap target that
+    // does nothing is worse than no tap target.
+    final url = source.attributionUrl;
+
+    return RichAttributionWidget(
+      alignment: AttributionAlignment.bottomLeft,
+      attributions: [
+        TextSourceAttribution(
+          source.attribution,
+          // Failure is swallowed: there is nothing useful to tell somebody
+          // whose phone has no browser, and the credit is on screen regardless.
+          onTap: url == null
+              ? null
+              : () => unawaited(
+                  launchUrl(
+                    Uri.parse(url),
+                    mode: LaunchMode.externalApplication,
+                  ).catchError((_) => false),
+                ),
+        ),
+      ],
+    );
+  }
 }

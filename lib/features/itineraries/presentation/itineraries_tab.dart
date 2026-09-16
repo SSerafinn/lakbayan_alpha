@@ -11,6 +11,9 @@ import "../../../core/widgets/grouped_section.dart";
 import "../../../core/widgets/quiet_note.dart";
 import "../../../core/widgets/scroll_edge.dart";
 import "../../auth/domain/auth_providers.dart";
+import "../../destinations/domain/destination_providers.dart";
+import "../../explore/domain/home_tab.dart";
+import "../../maps/domain/map_route.dart";
 import "../domain/itinerary_copy.dart";
 import "../domain/itinerary_providers.dart";
 import "new_itinerary_sheet.dart";
@@ -147,9 +150,28 @@ class _TourRow extends ConsumerWidget {
 
   final Tour tour;
 
+  /// Draw the province's tour on the map — the same gesture an itinerary's
+  /// "Open on the map" performs, and the only way to see one. A saved tour
+  /// used to be a row you could do nothing with but delete, even though its
+  /// stops are an ordered route.
+  void _openOnMap(BuildContext context, WidgetRef ref) {
+    ref.read(browseQueryProvider.notifier).update("");
+    ref.read(browseCategoryProvider.notifier).select(null);
+    ref.read(mapShowsSavedProvider.notifier).set(false);
+    ref.read(browseShowsGridProvider.notifier).set(false);
+    ref.read(mapSelectedIdProvider.notifier).select(null);
+    ref.read(activeMapRouteProvider.notifier).show(tour.title, tour.stops);
+    ref.read(selectedHomeTabProvider.notifier).select(HomeTab.map);
+    context.go(Routes.home);
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) => GroupedRow(
     title: tour.title,
+    subtitle: tour.stops.isEmpty ? null : stopsPhrase(tour.stops.length),
+    // A tour with no stops has no route to draw, so the row stays inert
+    // rather than sending somebody to an empty map.
+    onTap: tour.stops.isEmpty ? null : () => _openOnMap(context, ref),
     // A distinct action, so it is its own 48 target.
     trailing: IconButton(
       icon: const Icon(AppIcons.close, size: 18),

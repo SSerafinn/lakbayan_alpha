@@ -20,6 +20,7 @@ import "../../destinations/domain/saved_destinations.dart";
 import "../../destinations/presentation/browse_screen.dart";
 import "../../destinations/presentation/save_heart.dart";
 import "../../explore/domain/home_chrome.dart";
+import "../domain/map_route.dart";
 import "map_view.dart";
 
 /// The Map tab (redesign 2c).
@@ -214,7 +215,79 @@ class _TopControlsState extends ConsumerState<_TopControls> {
             ],
           ),
         ),
+        const _RouteBanner(),
       ],
+    );
+  }
+}
+
+/// Names the route on the map, and is the only way to dismiss it.
+///
+/// A route survives the filters and a tap on the basemap — both are things
+/// you do *while* reading a route, and losing the trip to either would be
+/// its own small betrayal. So dismissal is explicit and lives here.
+class _RouteBanner extends ConsumerWidget {
+  const _RouteBanner();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final route = ref.watch(activeMapRouteProvider);
+    if (route == null) return const SizedBox.shrink();
+
+    final scheme = Theme.of(context).colorScheme;
+    final brand = context.lakbayan;
+    final stops = route.destinationIds.length;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpace.gutter,
+        AppSpace.x2,
+        AppSpace.gutter,
+        0,
+      ),
+      child: Material(
+        color: scheme.surface,
+        shape: StadiumBorder(side: BorderSide(color: scheme.outlineVariant)),
+        child: Padding(
+          padding: const EdgeInsets.only(left: AppSpace.x4),
+          child: Row(
+            children: [
+              Icon(AppIcons.directions, size: 18, color: brand.spatial),
+              const SizedBox(width: AppSpace.x2),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      route.label,
+                      style: AppTypography.labelLarge,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Text(
+                      route.isDrawable
+                          ? "$stops stops, in order"
+                          // One stop draws no line, and saying "1 stop, in
+                          // order" over a map with nothing joined would read
+                          // as a rendering failure.
+                          : "One stop",
+                      style: AppTypography.secondLine.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              IconButton(
+                icon: const Icon(AppIcons.close, size: 18),
+                tooltip: "Stop showing this route",
+                onPressed: ref.read(activeMapRouteProvider.notifier).clear,
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

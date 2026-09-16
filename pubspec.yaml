@@ -69,6 +69,11 @@ dependencies:
   riverpod_annotation: ^4.0.7
   smooth_sheets: ^1.1.2
   toggle_switch: ^2.3.0
+  # Two jobs, both of which hand off rather than embed: the `geo:` URI that
+  # opens driving directions in the device's map app (D-11 — live traffic is
+  # something no offline pack can provide), and the ODbL copyright link the
+  # map's attribution owes OpenStreetMap.
+  url_launcher: ^6.3.1
 
 dev_dependencies:
   flutter_test:
