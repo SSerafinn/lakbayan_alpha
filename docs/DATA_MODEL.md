@@ -83,9 +83,18 @@ users/{uid}                                                    // no role field 
 users/{uid}/itineraries/{id}                  // tours somebody built themselves
   name          string    required   // what they called it
   destinationIds string[] required   // ordered; the order IS the route
+  startDate     timestamp?           // when the trip runs. Both optional and
+  endDate       timestamp?           // independently clearable — a plan can
+                                     // exist long before it has dates.
   createdAt, updatedAt                // serverTimestamp
   // Owner-only in both directions — not admin-readable, unlike the parent.
   // These are private plans; the CMS has no business in them.
+  //
+  // The rule is `allow read, write: if isOwner(uid)` with no field validation,
+  // so nothing rejects a document that does not match this block. That is a
+  // deliberate trade — a private subcollection nobody else can read does not
+  // earn the cost of a per-field rule — but it does mean this list is kept by
+  // hand. `startDate`/`endDate` reached Firestore before they reached here.
 ```
 
 `users/{uid}` is implemented as `UserProfile`
@@ -168,7 +177,7 @@ Two deliberate calls:
 /destinations/{id}/audio/{segmentId}.{ext}
 /tours/{id}/cover.{ext}
 /ar/{destId}/markers/{n}.jpg
-/tiles/{townId}/pack.mbtiles
+/tiles/{townId}/pack.pmtiles
 ```
 
 **`storage.rules` enumerates these paths one by one and denies everything else**,
