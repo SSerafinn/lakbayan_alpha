@@ -50,11 +50,15 @@ and `flutter test` before committing; commit with `/commit`.
       verified flowing end to end).*
 - [ ] Nearby Places by distance — needs location permission; deferred to the
       Phase 3 maps work. Explore currently shows Featured in that slot.
-- [ ] Serve downloaded assets from disk. `TownDownloader` already saves every
-      photo and recording a town needs, but `storageUrlProvider` and
-      `audioUrlResolver` both still go to the network, so a downloaded town has
-      an offline map and online everything else. This is what stands between
-      Phase 3 and its DoD.
+- [x] Serve downloaded assets from disk.
+      *`localAssetFor` asks each downloaded town whether it holds a given
+      Storage path. The downloader already mirrors the path under the town, so
+      the local one is derivable — no second index to keep in step with the
+      files. `StorageImage` reads the file directly and `audioUrlResolver`
+      returns a `file://` URI, so neither a photo nor a recording touches the
+      network once its town is on the phone. Deliberately **not** gated on the
+      town being current, unlike the map pack: every upload gets a fresh path,
+      so whatever sits on disk under one is still the right bytes for it.*
 - **DoD:** browse real destinations end-to-end from Firestore, images loading.
 
 ## Phase 3 · Weeks 7–10 — Core value  → Milestone **M2 (Beta)**
@@ -68,9 +72,25 @@ and `flutter test` before committing; commit with `/commit`.
       pack; it returns the network one until the rasterisation step exists, and
       never falls back silently, because a missing pack must be loud rather than
       invisible. ODbL attribution is on the map, which the licence requires.*
-- [ ] Pre-set routes: `PolylineLayer` over the basemap for a tour's stops, plus
-      the `geo:` hand-off for driving directions (D-11). Needs the tour a map is
-      being shown *for*, which arrives with `features/itineraries`.
+- [x] Pre-set routes: a tour's stops joined over the basemap, plus the `geo:`
+      hand-off for driving directions (D-11).
+      *`ActiveMapRoute` holds an ordered list of destination **ids** and the
+      name they came from. The map resolves them against every destination
+      rather than the filtered results, so a category chip cannot quietly
+      redraw a trip as a shorter one. Stops carry their number — the order
+      **is** the route, and a bare line does not say which end you start from.
+      Only the banner's dismiss clears it, because panning and tapping are
+      things you do *while* reading a route. A province tour is openable from
+      Saved tours, where the row had previously been something you could only
+      delete.*
+      *"Take me there" leaves for the device's map app: directions need live
+      traffic and a routing engine, which no offline pack can provide. It asks
+      for `geo:lat,lng?q=…` rather than a bare coordinate, since the bare form
+      centres a map without marking anything to be taken **to**, and falls back
+      to a web map when nothing claims `geo:`. Both schemes need a `<queries>`
+      entry in `AndroidManifest.xml` or `canLaunchUrl` answers false on API 30+
+      with nothing thrown. `url_launcher` arriving also wires the ODbL
+      copyright link the map attribution had been deferring for want of it.*
 - [x] `features/audio`: just_audio player + `flutter_tts` fallback; segment list UI
       *(wireframe 1e).*
       *One `Narrator` interface over both engines, so the UI never asks which is
@@ -159,13 +179,18 @@ and `flutter test` before committing; commit with `/commit`.
 - [ ] **Explore hero**: FEATURED and AR badges sit under the status bar; the
       hero draws from y = 0 and insets them by the gutter only.
 - [ ] **Share on Place detail** is a placeholder snackbar.
-- **DoD:** download a town → maps + audio guides work fully offline.
-      **Not met yet, and the missing piece is small.** A downloaded town's map
-      renders from its pack, but photos and audio still resolve through
-      `FirebaseStorage.getDownloadURL()` — a network call. The files are on
-      disk; nothing reads them. Point `audioUrlResolver` and `storageUrlProvider`
-      at `TownDownloader.localPathFor` when a record exists, and the DoD holds.
-      Until then a download buys the map and nothing else.
+- **DoD:** download a town → maps + audio guides work fully offline. **Met.**
+      The pack draws the basemap, and photos and recordings now come off disk
+      through `localAssetFor`, so a downloaded town needs no network at all.
+      The files had been written since #65; for three PRs nothing read them.
+- **M2 (Beta) cut at `v0.4.0-m2`.** The DoD above is what the milestone turns
+  on, and it holds. Said plainly because the tag is slightly ahead of the
+  checklist: **Nearby Places** (Phase 2's last box, which needs the location
+  permission), the **Explore hero** insets and **Share** are all still open.
+  None of them is what Beta means here — an offline town is — but a reader
+  comparing the tag against the ticks deserves to know which is which.
+  Neither hardware check has been run either: the airplane-mode pass (#71) and
+  the `geo:` hand-off (#72) are both still tests-only.
 - [x] **Spike — resolved without hardware, and it changed the renderer.**
       `scripts/extract-tiles.mjs` builds a town pack from the destinations'
       coords using D-11's buffer union (4.6× fewer tiles than a whole

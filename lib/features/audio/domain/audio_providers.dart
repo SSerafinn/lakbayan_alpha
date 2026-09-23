@@ -5,6 +5,8 @@ import "package:flutter/foundation.dart";
 import "package:riverpod_annotation/riverpod_annotation.dart";
 
 import "../../../core/models/destination.dart";
+import "../../offline/domain/local_assets.dart";
+import "../../offline/domain/offline_providers.dart";
 import "../data/device_narrator.dart";
 import "narration.dart";
 
@@ -19,9 +21,22 @@ part "audio_providers.g.dart";
 /// dependency the feature-first layout exists to keep straight.
 typedef AudioUrlResolver = Future<String> Function(String storagePath);
 
+/// Downloaded recording if there is one, otherwise a Storage download URL.
+///
+/// The local branch returns a `file://` URI rather than a bare path because
+/// that is what `just_audio` parses — [DeviceNarrator] hands whatever comes
+/// back to `setUrl`, and a plain path is not a URI it can resolve. Keeping the
+/// return type a single string is what lets the narrator stay ignorant of where
+/// a recording came from.
 @Riverpod(keepAlive: true)
-AudioUrlResolver audioUrlResolver(Ref ref) =>
-    (path) => FirebaseStorage.instance.ref(path).getDownloadURL();
+AudioUrlResolver audioUrlResolver(Ref ref) => (path) async {
+  final store = ref.read(downloadStoreProvider);
+  if (store.all.isNotEmpty) {
+    final local = localAssetFor(store, ref.read(townDownloaderProvider), path);
+    if (local != null) return local.uri.toString();
+  }
+  return FirebaseStorage.instance.ref(path).getDownloadURL();
+};
 
 /// The single narrator for the app.
 ///

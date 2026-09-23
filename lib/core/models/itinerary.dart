@@ -51,7 +51,8 @@ abstract class Itinerary with _$Itinerary {
     @Default(<String>[]) List<String> destinationIds,
 
     /// When the trip runs. Optional: a plan can exist before it has dates.
-    /// Requested in `my-docs/backend-requests/itinerary-dates.md`.
+    /// Part of the contract — see `users/{uid}/itineraries` in
+    /// `docs/DATA_MODEL.md`.
     @TimestampConverter() DateTime? startDate,
     @TimestampConverter() DateTime? endDate,
     @TimestampConverter() DateTime? createdAt,
