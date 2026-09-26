@@ -128,7 +128,8 @@ void main() {
     await tester.tap(find.text("BROWSE AS GUEST"));
     await settle(tester);
 
-    await tester.tap(find.byIcon(AppIcons.profile));
+    // The tabs are drawn glyphs; each carries its name as a tooltip (D-16).
+    await tester.tap(find.byTooltip("Profile"));
     await settle(tester);
 
     expect(find.text("Browsing as a guest"), findsOneWidget);
