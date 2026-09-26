@@ -36,7 +36,6 @@ dependencies:
   firebase_storage: ^13.5.0
   flutter:
     sdk: flutter
-  flutter_card_swiper: ^7.2.0
   flutter_map: ^8.3.1
   # Offline basemap tiles, read straight out of a PMTiles pack on disk — the
   # `/tiles/{townId}/` shape docs/DATA_MODEL.md reserves and
