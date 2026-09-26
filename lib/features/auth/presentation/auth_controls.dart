@@ -4,6 +4,7 @@ import "../../../core/theme/app_icons.dart";
 import "../../../core/theme/app_dimens.dart";
 import "../../../core/theme/app_typography.dart";
 import "../../../core/theme/lakbayan_colors.dart";
+import "../../../core/widgets/motion/motion.dart";
 
 /// Names a field, with room for one affordance on the same line. Above the
 /// field rather than floating inside, so it survives the field having content.
@@ -75,28 +76,35 @@ class PrimaryAction extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
 
-    return FilledButton(
-      onPressed: onPressed,
-      style: FilledButton.styleFrom(
-        minimumSize: const Size(0, AppSize.formButton),
+    return Pressable(
+      enabled: onPressed != null,
+      child: FilledButton(
+        onPressed: onPressed,
+        style: FilledButton.styleFrom(
+          minimumSize: const Size(0, AppSize.formButton),
+        ),
+        // The label gives way to the spinner and back with a fade.
+        child: FadeSwap(
+          id: busy,
+          child: busy
+              ? SizedBox(
+                  width: AppSpace.x5,
+                  height: AppSpace.x5,
+                  child: CircularProgressIndicator(
+                    strokeWidth: AppStroke.bold,
+                    color: scheme.onPrimary,
+                  ),
+                )
+              : Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(label),
+                    const SizedBox(width: AppSpace.x2),
+                    const Icon(AppIcons.arrowForward, size: AppSize.glyphMd),
+                  ],
+                ),
+        ),
       ),
-      child: busy
-          ? SizedBox(
-              width: AppSpace.x5,
-              height: AppSpace.x5,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                color: scheme.onPrimary,
-              ),
-            )
-          : Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(label),
-                const SizedBox(width: AppSpace.x2),
-                const Icon(AppIcons.arrowForward, size: 18),
-              ],
-            ),
     );
   }
 }
@@ -163,7 +171,7 @@ class ProviderRow extends StatelessWidget {
   final String label;
   final VoidCallback? onTap;
 
-  static const double _markSize = 22;
+  static const double _markSize = AppSize.glyphLg;
 
   @override
   Widget build(BuildContext context) {
@@ -188,6 +196,9 @@ class ProviderRow extends StatelessWidget {
                 "assets/images/google-logo.webp",
                 width: _markSize,
                 height: _markSize,
+                // Decoded at display size to avoid memory waste.
+                cacheWidth: (_markSize * MediaQuery.devicePixelRatioOf(context))
+                    .ceil(),
                 errorBuilder: (context, error, stackTrace) => Icon(
                   AppIcons.account,
                   size: _markSize,

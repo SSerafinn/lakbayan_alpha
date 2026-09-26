@@ -6,7 +6,7 @@ import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 import "package:lakbayan/core/theme/app_theme.dart";
-import "package:lakbayan/core/widgets/storage_image.dart";
+import "package:lakbayan/core/widgets/content/storage_image.dart";
 import "package:lakbayan/features/audio/domain/audio_providers.dart";
 import "package:lakbayan/features/offline/data/asset_fetcher.dart";
 import "package:lakbayan/features/offline/data/download_store.dart";

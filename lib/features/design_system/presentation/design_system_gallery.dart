@@ -3,16 +3,20 @@ import "package:flutter/material.dart";
 import "../../../core/theme/app_dimens.dart";
 import "../../../core/theme/app_icons.dart";
 import "../../../core/theme/app_typography.dart";
-import "../../../core/theme/lakbayan_colors.dart";
-import "../../../core/widgets/app_card.dart";
-import "../../../core/widgets/bar_item_group.dart";
-import "../../../core/widgets/grouped_section.dart";
-import "../../../core/widgets/lakbayan_badge.dart";
 import "../../../core/models/destination.dart";
-import "../../../core/widgets/media_tile.dart";
-import "../../../core/widgets/section_heading.dart";
-import "../../../core/widgets/storage_image.dart";
-import "../../../core/widgets/symbol_button.dart";
+import "../../../core/theme/lakbayan_colors.dart";
+import "../../../core/widgets/chrome/app_menu.dart";
+import "../../../core/widgets/chrome/system_bars.dart";
+import "../../../core/widgets/content/app_card.dart";
+import "../../../core/widgets/content/grouped_section.dart";
+import "../../../core/widgets/content/lakbayan_badge.dart";
+import "../../../core/widgets/content/media_tile.dart";
+import "../../../core/widgets/content/section_heading.dart";
+import "../../../core/widgets/content/stop_numeral.dart";
+import "../../../core/widgets/content/storage_image.dart";
+import "../../../core/widgets/controls/bar_item_group.dart";
+import "../../../core/widgets/controls/symbol_button.dart";
+import "../../../core/widgets/motion/motion.dart";
 import "../../destinations/data/sample_destinations.dart";
 import "../../destinations/presentation/save_heart.dart";
 import "../../itineraries/presentation/stop_picker.dart";
@@ -28,7 +32,8 @@ class DesignSystemGallery extends StatelessWidget {
   const DesignSystemGallery({super.key});
 
   @override
-  Widget build(BuildContext context) => const Scaffold(body: _Tokens());
+  Widget build(BuildContext context) =>
+      const Scaffold(body: Stack(children: [_Tokens(), StatusBarGround()]));
 }
 
 class _Tokens extends StatefulWidget {
@@ -66,7 +71,7 @@ class _TokensState extends State<_Tokens> {
         Text("Design system", style: AppTypography.titleLarge),
         const SizedBox(height: AppSpace.x2),
         Text(
-          "Tokens 2.1.0. Satoshi, white first; green is the action and the "
+          "Tokens 2.2.0. Satoshi half a step lighter, white first; green is the action and the "
           "selection, blue is spatial, red is closed and saved, gold is featured.",
           style: AppTypography.bodyMedium.copyWith(
             color: scheme.onSurfaceVariant,
@@ -292,17 +297,27 @@ class _TokensState extends State<_Tokens> {
           onTap: () {},
         ),
 
-        const _Section("Grouped section"),
+        const _Section("Photo list"),
+        // Places sit on the white ground; the photos are the colour. A
+        // mark slot carries a stop's number, the same one its pin shows.
         GroupedSection(
           children: [
-            for (final place in sampleDestinations.take(2))
+            for (final (index, place) in sampleDestinations.take(3).indexed)
               GroupedRow(
+                mark: StopNumeral(index + 1),
                 title: place.name,
                 subtitle: place.town,
-                leading: const ImagePlaceholder(),
-                trailing: SaveHeart(place.id, style: SaveHeartStyle.row),
+                leading: CoverImage(place.coverImage),
                 onTap: () {},
               ),
+          ],
+        ),
+
+        const _Section("Facts and settings"),
+        // A glyph or text leads, so the rows share one grey plate; the
+        // dense row is the compact one for settings and pickers.
+        GroupedSection(
+          children: [
             GroupedRow(
               title: "Getting there",
               subtitle: "24 km from Tuguegarao",
@@ -311,21 +326,106 @@ class _TokensState extends State<_Tokens> {
               glyphColor: context.lakbayan.spatial,
               onTap: () {},
             ),
+            GroupedRow(
+              title: "Saved places",
+              leadingGlyph: AppIcons.favoriteFilled,
+              glyphColor: context.lakbayan.save,
+              dense: true,
+              onTap: () {},
+            ),
           ],
         ),
 
-        const _Section("Nested card"),
-        AppCard(
-          padding: const EdgeInsets.all(AppSpace.x3),
-          color: scheme.surfaceContainer,
-          child: AppCard(
-            inset: AppSpace.x3,
-            padding: const EdgeInsets.all(AppSpace.x4),
-            child: Text(
-              "Inner radius derives from the outer one minus the inset, so "
-              "the gap stays even around the corner.",
-              style: AppTypography.bodyMedium,
+        const _Section("Group over media, and its menu"),
+        // A route map or a photo stands behind the controls in the app; the
+        // white capsule is their surface. More opens the menu from its glyph.
+        SizedBox(
+          height: AppSize.routePreview,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              ClipRRect(
+                borderRadius: AppRadii.lgAll,
+                child: _hero.coverImage == null
+                    ? const ImagePlaceholder()
+                    : StorageImage(path: _hero.coverImage!),
+              ),
+              Positioned(
+                top: AppSpace.x2,
+                left: AppSpace.x2,
+                child: SymbolButton(
+                  icon: AppIcons.back,
+                  tooltip: "Back",
+                  onTap: () {},
+                ),
+              ),
+              Positioned(
+                top: AppSpace.x2,
+                right: AppSpace.x2,
+                child: BarItemGroup.overMedia(
+                  items: [
+                    BarItem(
+                      icon: AppIcons.share,
+                      tooltip: "Share",
+                      onPressed: () {},
+                    ),
+                    BarItem(
+                      icon: AppIcons.more,
+                      tooltip: "More",
+                      menu: [
+                        [
+                          AppMenuItem(
+                            label: "Change dates",
+                            icon: AppIcons.calendar,
+                            onSelected: () {},
+                          ),
+                          AppMenuItem(
+                            label: "Rename",
+                            icon: AppIcons.rename,
+                            onSelected: () {},
+                          ),
+                        ],
+                        [
+                          AppMenuItem(
+                            label: "Delete",
+                            icon: AppIcons.delete,
+                            destructive: true,
+                            onSelected: () {},
+                          ),
+                        ],
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        const _Section("Dialog"),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: OutlinedButton(
+            onPressed: () => showAppDialog<void>(
+              context,
+              builder: (context) => AlertDialog(
+                title: const Text("Delete Weekend in Santa Ana?"),
+                content: const Text(
+                  "The stops go with it. This cannot be undone.",
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Text("Keep it"),
+                  ),
+                  FilledButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Text("Delete"),
+                  ),
+                ],
+              ),
             ),
+            child: const Text("Open a dialog"),
           ),
         ),
       ],
@@ -363,7 +463,7 @@ class _Swatches extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Container(
-                    height: 48,
+                    height: AppSize.minTouchTarget,
                     decoration: BoxDecoration(
                       color: color,
                       borderRadius: AppRadii.xsAll,

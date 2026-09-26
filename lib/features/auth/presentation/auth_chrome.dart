@@ -2,9 +2,10 @@ import "package:flutter/gestures.dart";
 import "package:flutter/material.dart";
 
 import "../../../core/theme/app_dimens.dart";
+import "../../../core/theme/app_motion.dart";
 import "../../../core/theme/app_typography.dart";
 import "../../../core/theme/lakbayan_colors.dart";
-import "../../../core/widgets/brand_wash.dart";
+import "../../../core/widgets/content/brand_wash.dart";
 
 class AuthHeader extends StatelessWidget {
   const AuthHeader({super.key});
@@ -90,7 +91,7 @@ class _AuthSheetState extends State<AuthSheet> {
   Widget build(BuildContext context) {
     return AnimatedSlide(
       offset: Offset(0, _nudge / MediaQuery.sizeOf(context).height),
-      duration: const Duration(milliseconds: 120),
+      duration: AppMotion.nudge,
       curve: Curves.easeOut,
       child: Container(
         decoration: BoxDecoration(

@@ -31,13 +31,11 @@ class SplashScreen extends StatelessWidget {
             const SizedBox(height: AppSpace.x8),
             SizedBox(
               width: AppSize.progressBar,
-              child: ClipRRect(
+              child: LinearProgressIndicator(
+                minHeight: AppSize.progressBarHeight,
                 borderRadius: capsuleRadius,
-                child: LinearProgressIndicator(
-                  minHeight: 3,
-                  backgroundColor: scheme.outlineVariant,
-                  valueColor: AlwaysStoppedAnimation<Color>(scheme.primary),
-                ),
+                backgroundColor: scheme.outlineVariant,
+                valueColor: AlwaysStoppedAnimation<Color>(scheme.primary),
               ),
             ),
           ],

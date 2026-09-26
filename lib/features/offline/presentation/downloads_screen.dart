@@ -5,9 +5,10 @@ import "package:go_router/go_router.dart";
 import "../../../core/theme/app_dimens.dart";
 import "../../../core/theme/app_icons.dart";
 import "../../../core/theme/app_typography.dart";
-import "../../../core/widgets/app_card.dart";
-import "../../../core/widgets/lakbayan_badge.dart";
-import "../../../core/widgets/symbol_button.dart";
+import "../../../core/widgets/content/app_card.dart";
+import "../../../core/widgets/content/lakbayan_badge.dart";
+import "../../../core/widgets/controls/symbol_button.dart";
+import "../../../core/widgets/motion/motion.dart";
 import "../domain/downloads_controller.dart";
 import "../domain/offline_bundle.dart";
 import "../domain/offline_providers.dart";
@@ -111,6 +112,9 @@ class _TownCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
     final controller = ref.read(downloadsControllerProvider.notifier);
+    // The whole map, not `select` on this town's entry: removing a town
+    // changes the device store, which is not itself observable, and the map
+    // changing is what tells this card to re-read it.
     final downloads = ref.watch(downloadsControllerProvider);
     final store = ref.watch(downloadStoreProvider);
 
@@ -264,22 +268,29 @@ class _Actions extends StatelessWidget {
     return Row(
       children: [
         if (townState != TownState.absent) ...[
-          OutlinedButton(onPressed: onRemove, child: const Text("Remove")),
+          Pressable(
+            child: OutlinedButton(
+              onPressed: onRemove,
+              child: const Text("Remove"),
+            ),
+          ),
           const SizedBox(width: AppSpace.x2),
         ],
         Expanded(
-          child: FilledButton(
-            onPressed: onDownload,
-            child: Text(
-              switch (townState) {
-                TownState.absent => "Download",
-                // "Update", not "Re-download": the whole town is fetched
-                // either way, but what the person wants is newer content.
-                TownState.stale => "Update",
-                TownState.current => "Download again",
-              },
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+          child: Pressable(
+            child: FilledButton(
+              onPressed: onDownload,
+              child: Text(
+                switch (townState) {
+                  TownState.absent => "Download",
+                  // "Update", not "Re-download": the whole town is fetched
+                  // either way, but what the person wants is newer content.
+                  TownState.stale => "Update",
+                  TownState.current => "Download again",
+                },
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
           ),
         ),
