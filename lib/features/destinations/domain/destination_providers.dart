@@ -1,5 +1,5 @@
 import "package:cloud_firestore/cloud_firestore.dart";
-import "package:flutter/foundation.dart" show kDebugMode;
+import "package:flutter/foundation.dart" show kReleaseMode;
 import "package:latlong2/latlong.dart";
 import "package:riverpod_annotation/riverpod_annotation.dart";
 
@@ -11,11 +11,11 @@ import "saved_destinations.dart";
 
 part "destination_providers.g.dart";
 
-/// Overridden in tests with a fake; in debug, [SampleData] swaps in
-/// `sampleDestinations`.
+/// Overridden in tests; in debug/profile builds [SampleData] swaps in sample data.
+/// Profile is included so perf is measured on the same preview as production.
 @Riverpod(keepAlive: true)
 DestinationRepository destinationRepository(Ref ref) =>
-    kDebugMode && ref.watch(sampleDataProvider)
+    !kReleaseMode && ref.watch(sampleDataProvider)
     ? FakeDestinationRepository(sampleDestinations, segments: sampleSegments)
     : DestinationRepository(FirebaseFirestore.instance);
 
@@ -28,23 +28,23 @@ class SampleData extends _$SampleData {
   void toggle() => state = !state;
 }
 
-@riverpod
+// keepAlive: tab switches unmount Explore; auto-dispose would re-open these on every return.
+
+@Riverpod(keepAlive: true)
 Stream<List<Destination>> popularDestinations(Ref ref) =>
     ref.watch(destinationRepositoryProvider).watchPopular();
 
-@riverpod
+@Riverpod(keepAlive: true)
 Stream<List<Destination>> featuredDestinations(Ref ref) =>
     ref.watch(destinationRepositoryProvider).watchFeatured();
 
 /// Every published destination, for the parts of Explore that are derived
 /// rather than editorial: the towns list groups this by `town`.
-@riverpod
+@Riverpod(keepAlive: true)
 Stream<List<Destination>> allDestinations(Ref ref) =>
     ref.watch(destinationRepositoryProvider).watchAll();
 
-/// One entry per town, in the order the province's places are named, with
-/// the places in it. Derived in the provider so the screen does not group on
-/// every build (STANDARDS 5.6).
+/// Grouped by town. Derived here so the screen does not group on every build.
 @riverpod
 List<Town> towns(Ref ref) {
   final all = ref.watch(allDestinationsProvider).value ?? const [];
@@ -61,10 +61,15 @@ List<Town> towns(Ref ref) {
 
 /// A municipality and the published places in it.
 class Town {
-  const Town({required this.name, required this.places});
+  Town({required this.name, required this.places})
+    : placesLine = places.take(3).map((place) => place.name).join(", ");
 
   final String name;
   final List<Destination> places;
+
+  /// The row's second line: what is there rather than how many. Joined once
+  /// here, not on every build.
+  final String placesLine;
 
   /// The photo that stands for the town: its first place with one.
   String? get cover {
@@ -193,34 +198,116 @@ List<Destination> nearby(Ref ref, String id) {
   return others.take(2).toList();
 }
 
-/// Browse results: the category query from Firestore, then the search text
-/// applied in memory.
+/// The category query from Firestore. "All" is the same query as
+/// [allDestinations], so it reuses that listener instead of opening a second.
+@riverpod
+Stream<List<Destination>> _browseCategoryStream(Ref ref) {
+  final category = ref.watch(browseCategoryProvider);
+  return ref.watch(destinationRepositoryProvider).watchAll(category: category);
+}
+
+/// Browse results: the category's places, then the search text applied in
+/// memory.
 ///
 /// Firestore cannot do substring matching, and one province's published set is
 /// small enough that filtering locally beats standing up a search service. It
 /// also keeps search working offline, which a search service would not.
+///
+/// The text filter is derived here rather than folded into the stream, so a
+/// keystroke re-filters what is loaded instead of re-subscribing to Firestore.
 @riverpod
-Stream<List<Destination>> browseResults(Ref ref) {
+AsyncValue<List<Destination>> browseResults(Ref ref) {
   final category = ref.watch(browseCategoryProvider);
   final query = ref.watch(browseQueryProvider).trim().toLowerCase();
-
-  return ref
-      .watch(destinationRepositoryProvider)
-      .watchAll(category: category)
-      .map(
-        (all) => query.isEmpty
-            ? all
-            : all
-                  .where(
-                    (d) =>
-                        d.name.toLowerCase().contains(query) ||
-                        d.town.toLowerCase().contains(query),
-                  )
-                  .toList(),
-      );
+  final source = category == null
+      ? ref.watch(allDestinationsProvider)
+      : ref.watch(_browseCategoryStreamProvider);
+  if (query.isEmpty) return source;
+  return source.whenData(
+    (all) => [
+      for (final destination in all)
+        if (destination.name.toLowerCase().contains(query) ||
+            destination.town.toLowerCase().contains(query))
+          destination,
+    ],
+  );
 }
 
-/// The category chosen on Home's strip. `null` is the full feed.
+/// Browse's results cut into grid rows of [columns]. Derived here, not on every build.
+@riverpod
+AsyncValue<List<List<Destination>>> browseGridRows(Ref ref, int columns) =>
+    ref.watch(browseResultsProvider).whenData((items) {
+      final rows = <List<Destination>>[];
+      var current = <Destination>[];
+      for (final item in items) {
+        if (item.featured) {
+          if (current.isNotEmpty) rows.add(current);
+          rows.add([item]);
+          current = [];
+          continue;
+        }
+        current.add(item);
+        if (current.length == columns) {
+          rows.add(current);
+          current = [];
+        }
+      }
+      if (current.isNotEmpty) rows.add(current);
+      return rows;
+    });
+
+/// Up to three more places in [id]'s town, skipping [id] and the two shown
+/// as Nearby, so Place detail ends somewhere to go.
+@riverpod
+List<Destination> moreInTown(Ref ref, String id) {
+  final all = ref.watch(allDestinationsProvider).value ?? const [];
+  final origin = all.where((d) => d.id == id).firstOrNull;
+  if (origin == null) return const [];
+  final shown = {
+    id,
+    for (final place in ref.watch(nearbyProvider(id))) place.id,
+  };
+  final town = ref
+      .watch(townsProvider)
+      .where((t) => t.name == origin.town)
+      .firstOrNull;
+  return [
+    for (final place in town?.places ?? const <Destination>[])
+      if (!shown.contains(place.id)) place,
+  ].take(3).toList();
+}
+
+/// One of Place detail's "Around here": a place and the line under its
+/// name.
+typedef AroundHerePlace = ({Destination place, String line});
+
+/// Place detail's "Around here": nearest places with distance, then more from the same town.
+@riverpod
+List<AroundHerePlace> aroundHere(Ref ref, String id) {
+  final origin = ref.watch(destinationByIdProvider(id)).value;
+  if (origin == null) return const [];
+  return [
+    for (final place in ref.watch(nearbyProvider(id)))
+      (
+        place: place,
+        line: "${distanceLabel(distanceBetween(origin, place))} away",
+      ),
+    for (final place in ref.watch(moreInTownProvider(id)))
+      (place: place, line: place.town),
+  ];
+}
+
+/// Food places for Explore's "Where to eat", photo-first, at most ten.
+@riverpod
+List<Destination> foodPlaces(Ref ref) {
+  final all = ref.watch(allDestinationsProvider).value ?? const [];
+  return [
+    for (final place in all)
+      if (place.category == DestinationCategory.food) place,
+  ].take(10).toList();
+}
+
+/// The kind chosen on Explore's chips. `null` is the full feed.
 @riverpod
 class HomeCategory extends _$HomeCategory {
   @override
@@ -231,7 +318,7 @@ class HomeCategory extends _$HomeCategory {
       state = state == category ? null : category;
 }
 
-/// The text in Home's expanded search field.
+/// The text in the search surface's field (the bar's search cell).
 @riverpod
 class HomeQuery extends _$HomeQuery {
   @override
@@ -240,19 +327,50 @@ class HomeQuery extends _$HomeQuery {
   void update(String value) => state = value;
 }
 
-/// Home's matches while a category or a query is active: every published
-/// place, filtered in memory (the same trade as [browseResults]).
+/// The kind chosen on the search surface's chips, apart from Home's strip so
+/// a search never rearranges the feed behind it.
 @riverpod
-List<Destination> homeResults(Ref ref) {
-  final category = ref.watch(homeCategoryProvider);
-  final query = ref.watch(homeQueryProvider).trim().toLowerCase();
-  final all = ref.watch(allDestinationsProvider).value ?? const [];
+class SearchCategory extends _$SearchCategory {
+  @override
+  DestinationCategory? build() => null;
+
+  /// Tapping the chosen kind again clears it.
+  void toggle(DestinationCategory category) =>
+      state = state == category ? null : category;
+
+  void clear() => state = null;
+}
+
+/// Home's matches while its strip has a category chosen.
+@riverpod
+List<Destination> homeResults(Ref ref) => _matching(
+  ref.watch(allDestinationsProvider).value ?? const [],
+  category: ref.watch(homeCategoryProvider),
+  query: "",
+);
+
+/// The search surface's matches: its own kind and the typed query.
+@riverpod
+List<Destination> searchResults(Ref ref) => _matching(
+  ref.watch(allDestinationsProvider).value ?? const [],
+  category: ref.watch(searchCategoryProvider),
+  query: ref.watch(homeQueryProvider),
+);
+
+/// Every published place, filtered in memory (the same trade as
+/// [browseResults]): by kind when one is chosen, and by name or town.
+List<Destination> _matching(
+  List<Destination> all, {
+  required DestinationCategory? category,
+  required String query,
+}) {
+  final needle = query.trim().toLowerCase();
   return [
     for (final destination in all)
       if (category == null || destination.category == category)
-        if (query.isEmpty ||
-            destination.name.toLowerCase().contains(query) ||
-            destination.town.toLowerCase().contains(query))
+        if (needle.isEmpty ||
+            destination.name.toLowerCase().contains(needle) ||
+            destination.town.toLowerCase().contains(needle))
           destination,
   ];
 }

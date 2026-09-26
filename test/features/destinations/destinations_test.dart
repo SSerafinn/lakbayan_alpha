@@ -60,8 +60,8 @@ void main() {
 
       expect(find.text("Popular this week"), findsOneWidget);
       expect(find.text("Nothing here yet."), findsOneWidget);
-      expect(find.text("Pick a town"), findsOneWidget);
-      expect(find.text("No towns published yet."), findsOneWidget);
+      // Rows of photos hide when they have nothing to show (D-16).
+      expect(find.text("Towns"), findsNothing);
       expect(find.text("Not sure where to go?"), findsNothing);
     });
   });
@@ -92,16 +92,18 @@ void main() {
       expect(find.text("Callao Cave"), findsNothing);
     });
 
-    testWidgets("search filters in place, after the debounce", (tester) async {
+    // Browse has no search field of its own since D-16: a town picked on
+    // Explore or in search arrives as the filter, shown as a clearable chip.
+    testWidgets("a town picked elsewhere filters in place", (tester) async {
       final repo = FakeDestinationRepository([
         testDestination(id: "callao", name: "Callao Cave"),
         testDestination(id: "palaui", name: "Palaui Island"),
       ]);
 
       await pump(tester, const BrowseScreen(), repo: repo);
-
-      await tester.enterText(find.byType(TextField), "palaui");
-      // Typing alone must not filter — the wireframe calls for a debounce.
+      ProviderScope.containerOf(tester.element(find.byType(BrowseScreen)))
+          .read(browseQueryProvider.notifier)
+          .update("palaui");
       await tester.pump(const Duration(milliseconds: 400));
       await tester.pumpAndSettle();
 
@@ -115,7 +117,9 @@ void main() {
       ]);
 
       await pump(tester, const BrowseScreen(), repo: repo);
-      await tester.enterText(find.byType(TextField), "zzzz");
+      ProviderScope.containerOf(tester.element(find.byType(BrowseScreen)))
+          .read(browseQueryProvider.notifier)
+          .update("zzzz");
       await tester.pump(const Duration(milliseconds: 400));
       await tester.pumpAndSettle();
 
@@ -193,8 +197,12 @@ void main() {
       );
 
       expect(find.text("Callao Cave"), findsOneWidget);
-      // The stop number is spoken, not printed, so the row shows the bare
-      // title and the order is carried by where the rows sit.
+      // The guide rests as one bar; opened, it lists the stops in visiting
+      // order (D-16).
+      await tester.ensureVisible(find.text("Audio guide"));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text("Audio guide"));
+      await tester.pumpAndSettle();
       expect(find.text("History"), findsOneWidget);
       expect(find.text("The Chapel"), findsOneWidget);
       expect(
