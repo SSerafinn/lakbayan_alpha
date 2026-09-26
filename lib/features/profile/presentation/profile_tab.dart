@@ -6,86 +6,84 @@ import "package:go_router/go_router.dart";
 import "../../../core/router/app_router.dart";
 import "../../../core/theme/app_dimens.dart";
 import "../../../core/theme/app_icons.dart";
-import "../../../core/theme/app_theme_mode.dart";
 import "../../../core/theme/app_typography.dart";
 import "../../../core/theme/lakbayan_colors.dart";
-import "../../../core/widgets/grouped_section.dart";
-import "../../../core/widgets/scroll_edge.dart";
+import "../../../core/widgets/chrome/floating_tab_bar.dart";
+import "../../../core/widgets/content/grouped_section.dart";
+import "../../../core/widgets/motion/motion.dart";
 import "../../auth/domain/auth_providers.dart";
 import "../../destinations/domain/destination_providers.dart";
 import "../../explore/domain/home_tab.dart";
 
-/// Profile (redesign 2e).
+/// Profile (D-16).
 ///
-/// **The screen's one job.** What is mine, and the one setting.
+/// **The screen's one job.** What is mine, and how the app behaves for me.
 ///
 /// **Emotion.** Ownership.
 ///
-/// **Anatomy.** The title; the one brand moment, a solid green block with
-/// the avatar, name and one line; a grouped section of what is theirs (Saved
-/// places, Downloaded towns), each with the glyph of the action that made
-/// it; a grouped section of settings with the value as trailing text; then
-/// Sign out as a white capsule with a red label.
+/// **Anatomy.** The one brand moment, a solid green block: the avatar, the
+/// name as the screen's heading, and one line.
+/// Three plain rows: Saved places, Downloaded towns and Settings, the one
+/// home for future settings ([SettingsScreen]). Sign out last, alone.
 class ProfileTab extends ConsumerWidget {
   const ProfileTab({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isGuest = ref.watch(guestModeProvider);
-    final topInset = MediaQuery.viewPaddingOf(context).top;
 
-    return ListView(
-      padding: EdgeInsets.fromLTRB(
-        AppSpace.gutter,
-        topInset + AppSpace.x2,
-        AppSpace.gutter,
-        ScrollEdge.homeBarHeight(context) + AppSpace.section,
-      ),
-      children: [
-        Text("Profile", style: AppTypography.titleLarge),
-        const SizedBox(height: AppSpace.section),
-        _BrandBlock(isGuest: isGuest),
-        const SizedBox(height: AppSpace.section),
-        const _Mine(),
-        const SizedBox(height: AppSpace.section),
-        const _Settings(),
-        const SizedBox(height: AppSpace.section),
-        if (isGuest)
-          FilledButton(
-            onPressed: () => ref.read(guestModeProvider.notifier).disable(),
-            child: const Text("Sign in"),
-          )
-        else
-          OutlinedButton(
-            onPressed: () =>
-                ref.read(authControllerProvider.notifier).signOut(),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: context.lakbayan.closed,
-              minimumSize: const Size.fromHeight(AppSize.primaryButton),
-            ),
-            child: const Text("Sign out"),
-          ),
-        if (kDebugMode) ...[
+    return EntranceScope(
+      child: ListView(
+        padding: EdgeInsets.fromLTRB(
+          AppSpace.gutter,
+          MediaQuery.viewPaddingOf(context).top + AppSpace.x2,
+          AppSpace.gutter,
+          FloatingTabBar.clearance(context) + AppSpace.section,
+        ),
+        children: [
+          const Entrance(child: _BrandBlock()),
           const SizedBox(height: AppSpace.section),
-          const _DebugRows(),
+          const Entrance(order: 1, child: _Mine()),
+          const SizedBox(height: AppSpace.section),
+          Pressable(
+            child: isGuest
+                ? FilledButton(
+                    onPressed: () =>
+                        ref.read(guestModeProvider.notifier).disable(),
+                    child: const Text("Sign in"),
+                  )
+                : OutlinedButton(
+                    onPressed: () =>
+                        ref.read(authControllerProvider.notifier).signOut(),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: context.lakbayan.closed,
+                      minimumSize: const Size.fromHeight(AppSize.primaryButton),
+                    ),
+                    child: const Text("Sign out"),
+                  ),
+          ),
+          // Not in release — profile builds keep the sample-data switch for perf measurement.
+          if (!kReleaseMode) ...[
+            const SizedBox(height: AppSpace.section),
+            const _DebugRows(),
+          ],
         ],
-      ],
+      ),
     );
   }
 }
 
 /// The sanctioned full-strength green area. Nothing else on the screen is
-/// tinted.
+/// tinted. The avatar leads, large, and the name is the screen's heading.
 class _BrandBlock extends ConsumerWidget {
-  const _BrandBlock({required this.isGuest});
+  const _BrandBlock();
 
-  final bool isGuest;
-
-  static const _avatar = 56.0;
+  static const _avatar = AppSize.avatar;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
+    final isGuest = ref.watch(guestModeProvider);
     final user = ref.watch(authStateProvider).value;
     final name = isGuest
         ? "Browsing as a guest"
@@ -95,13 +93,17 @@ class _BrandBlock extends ConsumerWidget {
     final line = isGuest
         ? "Sign in to keep your saves and plans"
         : (user?.email ?? "");
-    final initial = name.isEmpty ? "?" : name.characters.first.toUpperCase();
+    final initial = Text(
+      name.isEmpty ? "?" : name.characters.first.toUpperCase(),
+      style: AppTypography.titleMedium.copyWith(color: scheme.primary),
+    );
+    final photo = isGuest ? null : user?.photoUrl;
 
     return Material(
       color: scheme.primary,
       shape: const RoundedRectangleBorder(borderRadius: AppRadii.lgAll),
       child: Padding(
-        padding: const EdgeInsets.all(AppSpace.x4),
+        padding: const EdgeInsets.all(AppSpace.x3),
         child: Row(
           children: [
             Container(
@@ -113,52 +115,43 @@ class _BrandBlock extends ConsumerWidget {
               ),
               clipBehavior: Clip.antiAlias,
               alignment: Alignment.center,
-              child: user?.photoUrl == null || isGuest
-                  ? Text(
-                      initial,
-                      style: AppTypography.titleMedium.copyWith(
-                        color: scheme.primary,
-                      ),
-                    )
+              child: photo == null
+                  ? initial
                   : Image.network(
-                      user!.photoUrl!,
+                      photo,
                       fit: BoxFit.cover,
                       width: _avatar,
                       height: _avatar,
                       cacheWidth: (_avatar * 3).round(),
-                      errorBuilder: (_, _, _) => Text(
-                        initial,
-                        style: AppTypography.titleMedium.copyWith(
-                          color: scheme.primary,
-                        ),
-                      ),
+                      errorBuilder: (_, _, _) => initial,
                     ),
             ),
-            const SizedBox(width: AppSpace.x4),
+            const SizedBox(width: AppSpace.x3),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
-                    name,
-                    style: AppTypography.titleMedium.copyWith(
-                      color: scheme.onPrimary,
+                  Semantics(
+                    header: true,
+                    child: Text(
+                      name,
+                      style: AppTypography.titleMedium.copyWith(
+                        color: scheme.onPrimary,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
                   ),
-                  if (line.isNotEmpty) ...[
-                    const SizedBox(height: AppSpace.x1),
+                  if (line.isNotEmpty)
                     Text(
                       line,
                       style: AppTypography.bodyMedium.copyWith(
-                        color: scheme.onPrimary.withValues(alpha: 0.85),
+                        color: scheme.onPrimary,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                  ],
                 ],
               ),
             ),
@@ -169,96 +162,62 @@ class _BrandBlock extends ConsumerWidget {
   }
 }
 
-/// Saved places and downloaded towns: the two places a glyph is allowed
-/// here, because each maps to an established action.
-class _Mine extends ConsumerWidget {
+/// What is mine and how the app behaves, as plain rows on the white ground,
+/// each a glyph, where it goes and a chevron (coloured tiles retired
+/// 2026-09-26). The glyphs keep their meaning's colour: the red of the saved
+/// heart, the blue of downloads, ink for settings.
+class _Mine extends StatelessWidget {
   const _Mine();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final brand = context.lakbayan;
-
-    // No second line: what is saved or downloaded is the list behind the
-    // row, not a summary under it (no dangling text).
     return GroupedSection(
       children: [
         GroupedRow(
-          title: "Saved places",
           leadingGlyph: AppIcons.favoriteFilled,
           glyphColor: brand.save,
+          title: "Saved places",
           onTap: () => context.push(Routes.saved),
         ),
         GroupedRow(
-          title: "Downloaded towns",
           leadingGlyph: AppIcons.download,
           glyphColor: brand.spatial,
+          title: "Downloaded towns",
           onTap: () => context.push(Routes.downloads),
         ),
-      ],
-    );
-  }
-}
-
-/// The one setting so far: appearance. A menu anchored to the row, so the
-/// choice comes from the thing that was tapped (design doc 04).
-class _Settings extends ConsumerWidget {
-  const _Settings();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final mode = ref.watch(appThemeModeProvider);
-    final scheme = Theme.of(context).colorScheme;
-
-    return GroupedSection(
-      children: [
-        MenuAnchor(
-          menuChildren: [
-            for (final option in ThemeMode.values)
-              MenuItemButton(
-                leadingIcon: option == mode
-                    ? const Icon(AppIcons.check)
-                    : const SizedBox(width: AppSpace.x6),
-                onPressed: () =>
-                    ref.read(appThemeModeProvider.notifier).select(option),
-                child: Text(option.label),
-              ),
-          ],
-          builder: (context, controller, _) => GroupedRow(
-            title: "Appearance",
-            trailing: Text(
-              mode.label,
-              style: AppTypography.secondLine.copyWith(
-                color: scheme.onSurfaceVariant,
-              ),
-            ),
-            onTap: controller.isOpen ? controller.close : controller.open,
-          ),
+        GroupedRow(
+          leadingGlyph: AppIcons.settings,
+          title: "Settings",
+          onTap: () => context.push(Routes.settings),
         ),
       ],
     );
   }
 }
 
-/// Debug only: the living specimen and the sample-data switch.
+/// Debug and profile only: the sample-data switch, and in debug the living
+/// specimen, whose route exists only in debug builds.
 class _DebugRows extends ConsumerWidget {
   const _DebugRows();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final sample = ref.watch(sampleDataProvider);
-    return GroupedSection(
-      heading: "Debug",
+    return Wrap(
+      spacing: AppSpace.x2,
       children: [
-        GroupedRow(
-          title: "Design system",
-          onTap: () => context.push(Routes.designSystem),
-        ),
-        GroupedRow(
-          title: sample ? "Use live data" : "Preview with sample data",
-          onTap: () {
+        if (kDebugMode)
+          TextButton(
+            onPressed: () => context.push(Routes.designSystem),
+            child: const Text("Design system"),
+          ),
+        TextButton(
+          onPressed: () {
             ref.read(sampleDataProvider.notifier).toggle();
             ref.read(selectedHomeTabProvider.notifier).select(HomeTab.explore);
           },
+          child: Text(sample ? "Use live data" : "Preview with sample data"),
         ),
       ],
     );
