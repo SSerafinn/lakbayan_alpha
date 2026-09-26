@@ -69,9 +69,6 @@ class GuidePlayback {
 
   bool isCurrent(String id) => segmentId == id;
 
-  bool isPlaying(String id) =>
-      isCurrent(id) && narrator.phase == NarratorPhase.playing;
-
   bool isLoading(String id) =>
       isCurrent(id) && narrator.phase == NarratorPhase.loading;
 
