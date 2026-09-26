@@ -1,18 +1,10 @@
 import "package:flutter/material.dart";
 
-/// Colour values from the Lakbayan design system (`design/tokens.json` 2.1.0,
-/// D-13 and the 2a–2k redesign).
+/// Raw colour values from `design/tokens.json`.
 ///
-/// White first. Surfaces are white and near-white greys, text is near-black,
-/// and **green is a signature, not a wash**: it appears on the one primary
-/// action, on selection, on links, and nowhere else. Photography owns every
-/// other colour on the screen. Four colours carry meaning, one job each:
-/// green is the primary action and selection, blue is anything spatial, red
-/// is CLOSED, Sign out and the saved heart, gold is FEATURED.
-///
-/// Prefer `Theme.of(context).colorScheme` and [LakbayanColors] in widgets. Reach
-/// for these raw constants only when building the theme itself: using one in
-/// a widget bypasses dark mode, which is the same mistake as a hex literal.
+/// Green is a signature — only on the primary action, selection, and links.
+/// Prefer `Theme.of(context).colorScheme` and [LakbayanColors] in widgets;
+/// reach for these only when building the theme (a hex here bypasses dark mode).
 abstract final class AppColors {
   // Signature: Cagayan Green. One shade for actions and selection, one
   // darker shade for text on white, one deep shade for pressed states.
@@ -73,7 +65,6 @@ abstract final class AppColors {
   static const outline = grey400;
 
   // Semantic.
-  static const success = green500;
   static const warning = gold500;
   static const error = Color(0xFFC42B1B);
   static const errorContainer = Color(0xFFFCE8E6);
@@ -84,8 +75,7 @@ abstract final class AppColors {
   /// substitute [green500] here (4.9:1 is fine for a button label, tight for body).
   static const textOnLightGreen = green700;
 
-  // Dark surface ladder (design system marks dark mode v2 scope; these are
-  // derived, not signed off).
+  // Dark surface ladder.
   static const darkSurface = Color(0xFF0F1113);
   static const darkSurfaceDim = Color(0xFF0A0B0D);
   static const darkSurfaceBright = Color(0xFF34383D);
@@ -98,4 +88,14 @@ abstract final class AppColors {
   static const darkOnSurfaceVariant = Color(0xFFA9B0B8);
   static const darkOutline = Color(0xFF5C636B);
   static const darkOutlineVariant = Color(0xFF2F353C);
+
+  /// Each kind of place as a deep tone (`role.kind`), for Keep or skip only:
+  /// a card's stage and its Keep and Skip buttons, until real photos carry
+  /// their own colour. White reads on every one, in light and dark alike.
+  static const kindNature = Color(0xFF1F5B3A);
+  static const kindFood = Color(0xFF8A3B1E);
+  static const kindChurch = Color(0xFF3C3F7A);
+  static const kindHeritage = Color(0xFF6F4512);
+  static const kindMuseum = Color(0xFF1E5A63);
+  static const kindLandmark = Color(0xFF1D4E89);
 }

@@ -23,4 +23,21 @@ abstract final class AppMotion {
 
   /// Opacity fades only: the scroll edge, the reduced-motion cross-fade.
   static const edge = Durations.short4;
+
+  /// A quick nudge that follows a drag: the sign-in sheet settling back.
+  /// Half of [edge]; still a fade-length, not a third spring.
+  static const nudge = Durations.short2;
+
+  /// How far a pressed card, tile or button sinks under the finger. Not a
+  /// motion: `chrome` carries it there and back (`Pressable`).
+  static const pressScale = 0.96;
+
+  /// How long a built-in that takes a duration runs when it is handed a
+  /// spring as a `SpringCurve` (a page step, a dialog, a scroll, a fold):
+  /// long enough for `chrome` to settle inside it. Not a third motion.
+  static const span = Duration(milliseconds: 420);
+
+  /// A release faster than this, in px/s, is a deliberate fling: it decides
+  /// whatever the distance (the swipe deck, dismissing the player sheet).
+  static const flingSpeed = 700.0;
 }

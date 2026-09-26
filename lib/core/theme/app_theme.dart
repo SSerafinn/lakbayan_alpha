@@ -1,31 +1,16 @@
+import "package:flutter/cupertino.dart" show CupertinoPageTransitionsBuilder;
 import "package:flutter/material.dart";
 
+import "../widgets/motion/page_transitions.dart";
 import "app_colors.dart";
 import "app_dimens.dart";
 import "app_typography.dart";
 import "lakbayan_colors.dart";
 
-/// The Lakbayan Material 3 theme (design system 2.0.0, D-13).
+/// The Lakbayan Material 3 theme.
 ///
-/// Component themes are configured here rather than at call sites so that a
-/// stock `FilledButton`, `Chip` or `NavigationBar` already carries the design
-/// language. Each block names the rule it encodes; the rules themselves are in
-/// `docs/DESIGN_SYSTEM.md`.
-///
-/// The structural ones:
-///
-/// - White first. The ground is white, chrome is near-white grey, text is
-///   near-black. Green is the signature: the primary button, selection, links.
-///   Nothing else is tinted.
-/// - Hierarchy comes from position, grouping, size, weight, a single tint and
-///   surface tone, in that order. Shadows are not on the list, so no
-///   component sets an elevation above zero. A 1dp hairline bounds chips,
-///   outlined badges and fields on a white ground; it is never a divider.
-/// - Large controls are capsules; dense controls are rounded rectangles.
-/// - Gold is never an action colour. It lives in [LakbayanColors], out of
-///   reach of every button role.
-/// - Green text on light is /700 or darker.
-/// - A `Divider` draws nothing. Separate with spacing or a grouped surface.
+/// Component themes are centralised here so stock widgets carry the design
+/// language without per-call-site overrides. See `docs/DESIGN_SYSTEM.md`.
 ThemeData buildAppTheme() => _build(Brightness.light);
 
 ThemeData buildAppDarkTheme() => _build(Brightness.dark);
@@ -57,23 +42,26 @@ ThemeData _build(Brightness brightness) {
     extensions: [brand],
     visualDensity: VisualDensity.standard,
     materialTapTargetSize: MaterialTapTargetSize.padded,
-    splashFactory: InkSparkle.splashFactory,
+    // Press feedback is the control itself (`Pressable`: a spring shrink on
+    // cards, tiles and buttons), not ink spreading from the finger. Rows keep
+    // a flat highlight, the iOS list press.
+    splashFactory: NoSplash.splashFactory,
+    highlightColor: scheme.onSurface.withValues(alpha: 0.06),
 
-    // Predictive back: the outgoing route visibly recedes toward where it came
-    // from, which is the source-and-presentation principle applied to Android.
+    // One push for every screen: in from the trailing edge over the one it
+    // came from, back along the same path under Android's back gesture.
+    // iOS gets its own, the same motion with its edge swipe.
     pageTransitionsTheme: const PageTransitionsTheme(
       builders: {
-        TargetPlatform.android: PredictiveBackPageTransitionsBuilder(),
-        TargetPlatform.iOS: ZoomPageTransitionsBuilder(),
+        TargetPlatform.android: PushPageTransitionsBuilder(),
+        TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
         TargetPlatform.windows: FadeForwardsPageTransitionsBuilder(),
         TargetPlatform.linux: FadeForwardsPageTransitionsBuilder(),
         TargetPlatform.macOS: FadeForwardsPageTransitionsBuilder(),
       },
     ),
 
-    // Transparent over the scaffold. The boundary between a pinned bar and
-    // the content scrolling under it is drawn by `ScrollEdge`, once, per edge,
-    // not by the bar tinting itself.
+    // Transparent; no scroll-under tint — pinned controls carry their own surface.
     appBarTheme: AppBarTheme(
       toolbarHeight: AppSize.appBarHeight,
       centerTitle: false,
@@ -146,7 +134,7 @@ ThemeData _build(Brightness brightness) {
       shape: capsule,
       extendedTextStyle: AppTypography.labelLarge,
       extendedPadding: const EdgeInsets.symmetric(horizontal: AppSpace.x5),
-      iconSize: 22,
+      iconSize: AppSize.glyphLg,
     ),
 
     // A card is a tonal step up from the ground, nothing more.
@@ -183,10 +171,11 @@ ThemeData _build(Brightness brightness) {
         ),
       ),
       labelPadding: const EdgeInsets.symmetric(horizontal: AppSpace.x1),
-      // Label line (13 * 1.3) plus padding lands on AppSize.chip.
-      padding: const EdgeInsets.symmetric(
+      // Label line plus padding lands on AppSize.chip at 1x. A larger text
+      // size grows the chip; rows of chips size from the scaled label.
+      padding: EdgeInsets.symmetric(
         horizontal: AppSpace.x3,
-        vertical: (AppSize.chip - 17) / 2,
+        vertical: (AppSize.chip - _chipLabelLine) / 2,
       ),
       showCheckmark: false,
       elevation: 0,
@@ -220,7 +209,7 @@ ThemeData _build(Brightness brightness) {
       ),
       iconTheme: WidgetStateProperty.resolveWith(
         (states) => IconThemeData(
-          size: 24,
+          size: AppSize.glyphXl,
           color: states.contains(WidgetState.selected)
               ? scheme.onPrimary
               : scheme.onSurfaceVariant,
@@ -240,9 +229,12 @@ ThemeData _build(Brightness brightness) {
       unselectedLabelTextStyle: AppTypography.labelMedium.copyWith(
         color: scheme.onSurfaceVariant,
       ),
-      selectedIconTheme: IconThemeData(size: 24, color: scheme.onPrimary),
+      selectedIconTheme: IconThemeData(
+        size: AppSize.glyphXl,
+        color: scheme.onPrimary,
+      ),
       unselectedIconTheme: IconThemeData(
-        size: 24,
+        size: AppSize.glyphXl,
         color: scheme.onSurfaceVariant,
       ),
     ),
@@ -267,9 +259,9 @@ ThemeData _build(Brightness brightness) {
       ),
       isDense: true,
       floatingLabelBehavior: FloatingLabelBehavior.never,
-      helperStyle: const TextStyle(fontSize: 0, height: 0),
-      errorStyle: const TextStyle(fontSize: 0, height: 0),
-      counterStyle: const TextStyle(fontSize: 0, height: 0),
+      helperStyle: _collapsed,
+      errorStyle: _collapsed,
+      counterStyle: _collapsed,
       border: OutlineInputBorder(
         borderRadius: AppRadii.smAll,
         borderSide: BorderSide(color: scheme.outlineVariant),
@@ -280,15 +272,15 @@ ThemeData _build(Brightness brightness) {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: AppRadii.smAll,
-        borderSide: BorderSide(color: scheme.primary, width: 2),
+        borderSide: BorderSide(color: scheme.primary, width: AppStroke.bold),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: AppRadii.smAll,
-        borderSide: BorderSide(color: scheme.error, width: 2),
+        borderSide: BorderSide(color: scheme.error, width: AppStroke.bold),
       ),
       focusedErrorBorder: OutlineInputBorder(
         borderRadius: AppRadii.smAll,
-        borderSide: BorderSide(color: scheme.error, width: 2),
+        borderSide: BorderSide(color: scheme.error, width: AppStroke.bold),
       ),
       labelStyle: AppTypography.bodyMedium.copyWith(
         color: scheme.onSurfaceVariant,
@@ -326,25 +318,6 @@ ThemeData _build(Brightness brightness) {
       shape: const RoundedRectangleBorder(borderRadius: AppRadii.lgAll),
       titleTextStyle: textTheme.titleMedium,
       contentTextStyle: textTheme.bodyMedium,
-    ),
-
-    // Menus anchor to their source. Items share one slot grid.
-    menuTheme: MenuThemeData(
-      style: MenuStyle(
-        backgroundColor: WidgetStatePropertyAll(scheme.surfaceContainerHigh),
-        surfaceTintColor: const WidgetStatePropertyAll(Colors.transparent),
-        elevation: const WidgetStatePropertyAll(0),
-        shape: const WidgetStatePropertyAll(
-          RoundedRectangleBorder(borderRadius: AppRadii.mdAll),
-        ),
-      ),
-    ),
-    popupMenuTheme: PopupMenuThemeData(
-      color: scheme.surfaceContainerHigh,
-      surfaceTintColor: Colors.transparent,
-      elevation: 0,
-      shape: const RoundedRectangleBorder(borderRadius: AppRadii.mdAll),
-      textStyle: textTheme.bodyMedium,
     ),
 
     listTileTheme: ListTileThemeData(
@@ -388,6 +361,13 @@ ThemeData _build(Brightness brightness) {
   );
 }
 
+/// One chip label line at 1x.
+final _chipLabelLine =
+    AppTypography.labelMedium.fontSize! * AppTypography.labelMedium.height!;
+
+/// Zero-height style removes the helper/counter/error line and the space it reserves.
+const _collapsed = TextStyle(fontSize: 0, height: 0);
+
 /// Light. Every role is set explicitly rather than seeded, so the brand hues
 /// land where the design system puts them and nowhere else.
 const _lightScheme = ColorScheme(
@@ -429,8 +409,7 @@ const _lightScheme = ColorScheme(
   scrim: Color(0x99111418),
 );
 
-/// Dark. Interactive colour steps to the /300 tints; still v2 scope for
-/// sign-off, see `docs/DESIGN_SYSTEM.md`.
+/// Dark scheme. Interactive colour steps to the /300 tints.
 const _darkScheme = ColorScheme(
   brightness: Brightness.dark,
   primary: AppColors.green300,
