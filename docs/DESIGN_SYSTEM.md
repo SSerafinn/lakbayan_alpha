@@ -1,6 +1,6 @@
 # Design system
 
-**Version 2.1.0** (D-13, amended by D-14). Values live in `design/tokens.json`;
+**Version 2.3.0** (D-13, amended by D-14, D-15 and D-16). Values live in `design/tokens.json`;
 the Dart under `lib/core/theme/` transcribes them. If the two disagree,
 `tokens.json` wins and the Dart is corrected.
 
@@ -70,18 +70,30 @@ it has too many competing elements.
 What this means in code:
 
 - The ground is **white**. Cards, sheets and menus are a barely visible grey
-  step up (`surfaceContainerLow` for a card, `surfaceContainerHigh` for a
-  menu). `elevation` is 0 everywhere; shadows do not exist in this system.
+  step up (`surfaceContainerLow` for a card, `surfaceContainerHigh` for each
+  group of a menu). `elevation` is 0 everywhere; shadows do not exist in this
+  system.
 - On a white ground a **1dp hairline** (`outlineVariant`) bounds the things
   that need an edge to exist: chips at rest, outlined badges, form fields,
   the secondary button. It is not an emphasis mechanism and it is never a
   divider between rows.
 - `Divider` **draws nothing** (the theme zeroes it). Separate rows with the
   padding inside a `GroupedSection`; separate sections with space.
+- **No grey plate (D-16).** Rows sit on the white ground
+  (`GroupedSection`), compact, with a 56 photo and one second line. A card
+  never holds a card.
+- **No coloured tiles** (retired 2026-09-26, D-16 amendment). Shortcuts and
+  small actions are rows on the white ground, a glyph in its meaning's
+  colour leading (the saved heart red, downloads blue). A fact is words
+  where it is needed: the one that decides now on one line, the rest in a
+  sheet behind a quiet button (Place detail's Plan your visit).
 - Exactly **one primary action per screen**, a solid green
   `FloatingActionButton` or `FilledButton`, separated from every bar group.
 - Bar actions sit in a `BarItemGroup`: two to four symbol-only items on one
-  capsule. A text button never joins a symbol group. Overflow goes to a menu.
+  capsule. A text button never joins a symbol group. Overflow goes to a menu,
+  which the group's last item can open (`BarItem(menu:)`). Over a photo or a
+  map the group is `BarItemGroup.overMedia`, a white capsule the height of a
+  `SymbolButton`.
 
 ## Shape
 
@@ -123,10 +135,10 @@ near-black. Four colours carry meaning and nothing is washed in a tint
 | error | `#C42B1B` | field error border and warning glyph |
 
 The saved heart is red (`save`), reversed from D-14 on the first device pass:
-green made a kept place look like a selected control. Home's
-category strip colours each glyph by category (`categoryColor`): nature
-green, churches and museums ink, heritage earth `#A4620D`, food red,
-landmarks blue. That is identity, not state; selection is still solid green.
+green made a kept place look like a selected control. `categoryColor` keeps
+a colour per kind (nature green, churches and museums ink, heritage earth
+`#A4620D`, food red, landmarks blue) for the specimen; since D-16 Explore's
+kinds are plain chips, and selection is still solid green.
 
 Everything else is neutral: `onSurface` near-black for text,
 `onSurfaceVariant` for second lines, `outlineVariant` for the hairline, and
@@ -151,18 +163,21 @@ the next design pass, not as finished.
 
 One family, **Satoshi**, bundled as a variable font (offline-first; no
 `google_fonts`), set heavy: Satoshi draws light at phone sizes, so the ramp
-sits two steps above a desktop ramp and Regular is not in it. Hero steps are
-Black 900, headings Bold, body 600, with tracking that tightens as size grows. A same-family
+sits above a desktop ramp and Regular is not in it. Since 2.2.0 (D-15) it
+sits half a step lighter than 2.0, which read heavy on a device: display
+800, headings 750, labels 650, body 550, never below 550. Satoshi is
+variable, so the in-between weights are real instances, not rounding. Tracking
+tightens as size grows. A same-family
 hierarchy is the quietest system there is, and it leaves **Barabara** as the
 one loud voice: the landing greetings and the LAKBAYAN wordmark only (a
 Philippine tourism trademark face, uppercase only, never a ramp step).
 
-The ramp (`AppTypography`): `display` 38/900, `hero` 28/800 (a place name
-over its photo), `titleLarge` 24/800, `titleMedium` 19/800, `groupHeading`
-17/800 (over a grouped section), `titleSmall` 17/700; `bodyLarge` 17/600,
-`bodyMedium` 15/600; `labelLarge` 15/700, `labelMedium` 13/700, `secondLine`
-13/600 (a row's second line), `glyphLabel` 12/700, `labelSmall` 12/600,
-`tabLabel` 11/700 (11/800 selected); `caps` 11/800 with wide tracking for
+The ramp (`AppTypography`): `display` 38/800, `hero` 28/750 (a place name
+over its photo), `titleLarge` 24/750, `titleMedium` 19/750, `groupHeading`
+17/750 (over a grouped section), `titleSmall` 17/650; `bodyLarge` 17/550,
+`bodyMedium` 15/550; `labelLarge` 15/650, `labelMedium` 13/650, `secondLine`
+13/550 (a row's second line), `labelSmall` 12/550,
+`tabLabel` 11/650 (11/750 selected); `caps` 11/750 with wide tracking for
 badges and the swipe stamp only. Headings are sentence case; there are no
 all-caps eyebrows. Each step is distinguishable from its neighbour at arm's
 length; that is the whole point of a ramp.
@@ -172,15 +187,22 @@ aligned. Colour comes from the scheme (`onSurface` by default,
 `onSurfaceVariant` for secondary text), not from the style.
 
 Every style sets the `wght` axis through `FontVariation` because on a variable
-font `fontWeight` alone selects the file's default instance. If a weight looks
-wrong, that is why.
+font `fontWeight` alone selects the file's default instance; `fontWeight` is
+the nearest named weight, for anything that reads it instead of the axis. If a
+weight looks wrong, that is why.
 
 ## Icons
 
 **`CupertinoIcons` is the one icon family**, mapped in `AppIcons`. This is a
 deliberate exception to the reference guidance of "Material icons for a
 Material app": the glyph set is the team's choice for its lighter stroke,
-and it carries no Cupertino *widgets* with it. Material widgets throughout.
+and it carries no Cupertino *widgets* with it. Material widgets throughout,
+styled after the reference platform in our own theme: the menu, the bar
+group over media and the dialog look and move like iOS, and none of them is
+a Cupertino widget (D-15). Cupertino widgets read `CupertinoTheme`, not
+this theme; their page route's edge swipe fights Android's back gesture and
+skips predictive back; their action sheets and alerts rise from a fixed
+edge rather than from their source.
 
 **Rule.** A symbol stands alone only when the action has a reliable shorthand
 (search, share, add, close, back, play, pause, download, favourite).
@@ -222,36 +244,79 @@ line under the field**: an error is the error border plus a trailing
 - **Content is edge to edge; interface is inset.** `Scaffold(extendBody: true)`
   so content flows under the navigation bar; the last item pads itself past
   the bar.
-- **A pinned control over a scroll view gets a `ScrollEdge`**, once per edge,
-  one style per surface. The treatment is a progressive Gaussian blur and
-  nothing else: blur strength ramps from nothing at the end of the falloff
-  to full at the screen edge (three stacked `BackdropFilter`s of rising
-  sigma, each masked shorter), so content hazes out rather than meets a
-  band. No wash, no tint. The same band sits under the floating tab bar
-  (`ScrollEdge.bottom`). The bar does not tint itself (the theme sets
-  `scrolledUnderElevation: 0`).
-- **The tab bar is a floating white capsule with a hairline**, inset 14 from
-  the edges, content flowing under it. It **collapses on a deliberate
-  scroll.** `HomeChrome` holds the state: after ~48dp of downward travel,
-  well past the header, the bar drops
-  its labels and hugs its four glyphs at one touch target tall. A short
-  scroll up, reaching the top, a tab switch, or a tap on the collapsed bar
-  brings it back. A nudge never flips it. The bar's real width and height
-  are tweened, so it is a capsule at every size along the way; the indicator
-  is a capsule inset one uniform step, so it stays concentric with the bar.
-  Reduced motion gets a cross-fade instead of the morph.
-- **Presented surfaces come from their source.** Menus via `MenuAnchor` or
-  `PopupMenuButton`; sheets via `showModalBottomSheet` (with scrim, for an
-  interrupting task) or `showBottomSheet` (no scrim, parallel task).
-- **Predictive back is on** (`PredictiveBackPageTransitionsBuilder`,
-  `enableOnBackInvokedCallback` in the manifest). Use `PopScope`, never
-  `WillPopScope`. A screen the system back gesture cannot dismiss is a defect.
+- **Nothing scrolls under the status bar** (2026-09-26, D-16 amendment).
+  Every screen keeps an opaque ground there in the page's white
+  (`StatusBarGround`); the home shell carries one for every tab, so lists
+  and the map start below it. A header photo or map at rest (Place detail,
+  a trip) still reaches the top edge, and the ground closes in under the
+  status bar as the page reaches it.
+- **No scroll edge treatment** (removed 2026-09-26, D-16 amendment). No
+  blur and no fade where content scrolls under a pinned control: a pinned
+  control carries its own surface (the tab bar's white capsule, a
+  `SymbolButton`'s circle, a `BarItemGroup`). The progressive blur this
+  replaced redrew two full-screen `BackdropFilter`s on every scroll frame
+  and was the largest cost on every scrolling screen. The bar does not tint
+  itself (the theme sets `scrolledUnderElevation: 0`). A home tab pads its
+  scroll end by `FloatingTabBar.clearance`.
+- **Tabs are built once and kept** (2026-09-26). The home shell builds a tab
+  the first time it is chosen and keeps it, offstage and with its tickers
+  muted while another is shown, so a tab switch never rebuilds a screen and
+  scroll position, the map's camera and the carousel's page survive it.
+- **The tab bar (D-16, revised 2026-09-26)** is one hairlined white capsule
+  holding the four sections, then search as its last cell, all equal and
+  all drawn in one stroke and box. It is glyph-only. Each item's name is its semantics label and its long-press
+  tooltip. The glyphs are drawn (`TabGlyph`) and animate their selection
+  once. The green indicator slides between sections and never lands on
+  search. It **shrinks on a deliberate scroll.** `HomeChrome` holds the
+  state: after ~48dp of downward travel, well past the header, the whole
+  bar scales down to one touch target tall (`bottomNavCollapsed`), its
+  base in place, every cell still one tap; it never changes shape. The
+  shrink is one transform over the bar's kept picture, not a layout. A
+  short scroll up, reaching the top, a tab switch, or a tap on the chosen
+  section brings it back. Reduced motion gets a cross-fade instead.
+- **Page transitions (2026-09-26).** Every pushed screen slides in from the
+  trailing edge, opaque, while the one beneath drifts a third back and
+  dims a touch; back plays the same path and follows the finger under
+  Android's back gesture (`PushPageTransitionsBuilder`). A place opened
+  from its photo zooms instead (`ZoomPage`): the photo (`PhotoHero`) grows
+  from its tile into the page's, the page fades in around it, the screen
+  beneath stays still, and back shrinks it home. A pushed screen arrives
+  whole, without its sections fading in over the slide. A tab switch is a
+  200ms cross-fade, the chosen tab over the one it replaces. No
+  fade-through or shared axis between screens.
+- **Keep or skip (2026-09-26)** is the one screen on a dark stage in either
+  appearance: the front card's photo, decoded tiny and stretched (a blur
+  with no filter), fills the screen and changes in step with the drag.
+  Keep and Skip are buttons as well as the gesture, in the card's colour:
+  its kind's deep tone (`role.kind`) until photos carry their own.
+- **A trip's page** has one way into its map, the map itself: no pill and
+  no floating button. The full-screen map carries Open in Map and each
+  stop's directions. Each stop after the first says how far it is from
+  the one before, in blue.
+- **Search is the tab bar's last cell.** It grows into a field docked above
+  the keyboard while the capsule slides away. Close, back and a picked
+  result retrace the same `t`. No screen has a search field of its own. A
+  town picked elsewhere reaches the Map and Browse as a removable chip.
+- **Presented surfaces come from their source.** Menus are `AppMenu`
+  (`app_menu.dart`), on `RawMenuAnchor`: it grows from the control that
+  opened it and folds back into it on one spring, whether closed by an item,
+  a tap outside or back. A row is the label, then its glyph trailing on a
+  shared axis; every item has a glyph; groups are separate grey surfaces a
+  gap apart, never divided; a destructive item is last, alone, red, with the
+  trash. A menu of choices adds a leading check slot. Sheets via
+  `showAppSheet` (with scrim, for an interrupting task) or `showBottomSheet`
+  (no scrim, parallel task); dialogs via `showAppDialog`.
+- **Predictive back is on** (`enableOnBackInvokedCallback` in the manifest).
+  The app's own transitions (`PushPageTransitionsBuilder`, `ZoomPage`) hand
+  the gesture's progress to the route, so the page follows the finger. Use
+  `PopScope`, never `WillPopScope`. A screen the system back gesture cannot
+  dismiss is a defect.
 - **Compact first.** `FloatingTabBar` is the shipped navigation; the rail and
   drawer forms for medium and expanded widths are a later pass (the
   `AdaptiveNavigation` shell was removed unused in D-14). `WidthClass` still
   drives the Browse grid's column count; no widget contains a raw width
   number.
-- **Spacing is the 2.1 compact rhythm:** screen gutter 14, 16 between
+- **Spacing is the 2.3 tight rhythm (D-16):** screen gutter 12, 12 between
   sections, 4 inside a grouped section, 8 of row padding
   (`AppSpace.gutter / section / groupInset / rowPad`). Grouped sections are
   radius 16 with an 11 thumbnail derived inside; media tiles 14; heroes and
@@ -259,30 +324,54 @@ line under the field**: an error is the error border plus a trailing
 
 ## Motion
 
-The `animations` package supplies the Material motion patterns: shared axis
-for parent/child navigation, fade-through for tab changes, container transform
-for card to detail. Motion explains a change; if an animation does not say
+Two springs, `AppMotion.chrome` and `AppMotion.arrive` (`motor`), carry
+everything; where a built-in route takes only a curve, the spring is handed
+over as a `SpringCurve` (modal sheets ride `chrome` up and back down).
+Every route rides one push (`PushPageTransitionsBuilder`, on the same
+spring), and tabs cross-fade (see Structure). A place's photo becomes its
+page by zooming (`ZoomPage` with `PhotoHero`); a trip's row grows into its
+route map as the page slides in. A map camera flies on its own declared
+motion (`CameraFlight`), no bounce. Motion settles on
+identity values in the same widget tree, never by swapping in the bare
+child, which would rebuild it the moment it lands. A dialog settles in from a beat larger and
+leaves by fading. Motion explains a change; if an animation does not say
 where something came from, remove it. Honour `MediaQuery.disableAnimationsOf`
 with a cross-fade, not a zero duration.
 
 ## Shared primitives
 
 Each one's class comment carries its contract (purpose, anatomy, shape,
-states, behaviour, adaptation).
+states, behaviour, adaptation). `lib/core/widgets/` is grouped by job:
+`motion/` (how things move), `chrome/` (the app's frame: bars, sheets,
+menus, the floating action), `controls/` (things you press or pick) and
+`content/` (things that show content). Paths below are relative to it
+unless they name a feature.
 
 | Widget | File | What it is |
 |---|---|---|
-| `AppCard` | `app_card.dart` | a tonal surface with a concentric-or-fallback radius, whole surface tappable |
-| `GroupedSection`, `GroupedRow` | `grouped_section.dart` | comparable rows on one surface, no dividers; a row leads with media or an action glyph, its second line may carry a role colour |
-| `BarItemGroup` | `bar_item_group.dart` | two to four symbol-only actions on one capsule |
-| `ScrollEdge` | `scroll_edge.dart` | the progressive blur under a pinned top control, soft or hard |
-| `MediaTile`, `MediaScrim` | `media_tile.dart` | a photograph with a caption below, or a title on a tested scrim; a trailing slot for the save heart |
-| `SectionHeading` | `section_heading.dart` | a sentence-case heading with an optional blue "See all" |
-| `SymbolButton` | `symbol_button.dart` | a symbol-only control on its own white circle over photography |
-| `SaveHeart` | `features/destinations/presentation/save_heart.dart` | the save control in its three sizes |
+| `AppMotionBuilder`, `Pressable`, `SymbolSwap`, `Fold`, `FadeSwap`, `PopIn`, `Entrance`, `SpringCurve`, `showAppDialog` | `motion/motion.dart` | every shared motion, each settling on identity values in the same tree |
+| `PushPageTransitionsBuilder`, `ZoomPage`, `PhotoHero` | `motion/page_transitions.dart` | every route's push, in from the trailing edge with the page beneath drifting back; a place opened from its photo zooms instead, the photo (`PhotoHero`) scaled, never re-decoded. Both follow Android's back gesture |
+| `FloatingTabBar`, `TabBarLayout`, `TabGlyph` | `chrome/floating_tab_bar.dart` | one capsule, the four sections then search, all drawn glyphs; shrinks on scroll as one transform, slides away for search |
+| `SystemBars`, `StatusBarGround` | `chrome/system_bars.dart` | the bars' icon style for a region; the opaque ground under the status bar (`.below` closes in under a resting header) |
+| `PinnedAction`, `PinnedActionScope` | `chrome/pinned_action.dart` | the floating primary action; folds into a circle while reading |
+| `AppMenu`, `AppMenuItem` | `chrome/app_menu.dart` | the anchored menu: label then trailing glyph, grouped surfaces, grows from its source |
+| `showAppSheet` | `chrome/app_sheet.dart` | the modal sheet, riding the keyboard |
+| `SymbolButton` | `controls/symbol_button.dart` | a symbol-only control on its own white circle over photography |
+| `BarItemGroup` | `controls/bar_item_group.dart` | two to four symbol-only actions on one capsule; `.overMedia` over a photo or map; an item may open a menu, or be a control of its own (`BarItem.control`, the save heart) |
+| `FilterChipRow`, `MonthCalendar` | `controls/` | the single-select chips; the inline date picker |
+| `MediaTile`, `MediaScrim` | `content/media_tile.dart` | a photograph with a caption below, or a title on a tested scrim; a trailing slot for the save heart |
+| `StorageImage`, `CoverImage` | `content/storage_image.dart` | every photo, decoded at its box's size (or a fixed tiny width for a blur) |
+| `GroupedSection`, `GroupedRow` | `content/grouped_section.dart` | comparable rows on the white ground, no dividers, no plate; a 56 photo and one second line; a row may carry a mark (a stop's numeral) |
+| `AppCard` | `content/app_card.dart` | a tonal surface with a concentric-or-fallback radius, whole surface tappable |
+| `LakbayanBadge` | `content/lakbayan_badge.dart` | read-only annotation |
+| `StopNumeral` | `content/stop_numeral.dart` | a stop's number on a blue circle, the same on its pin and its row |
+| `PageDots` | `content/page_dots.dart` | where you are in a swipeable row; a sliding window of dots past seven pages |
+| `SectionHeading` | `content/section_heading.dart` | a sentence-case heading with an optional blue "See all" |
+| `AudioGuideSection` | `features/audio/presentation/audio_guide_section.dart` | one white capsule on the page that opens the player sheet: the stop playing, progress, transport and every stop |
+| `SaveHeart` | `features/destinations/presentation/save_heart.dart` | the save control in its four sizes, `bar` inside a `BarItemGroup` |
 | `SelectionCircle`, `StopPicker` | `features/itineraries/presentation/stop_picker.dart` | the green check circle and selectable place rows |
-| `FloatingTabBar` | `floating_tab_bar.dart` | the hairlined white capsule bar; collapses on scroll |
-| `LakbayanBadge` | `lakbayan_badge.dart` | read-only annotation |
+| `CameraFlight`, `Basemap` | `features/maps/presentation/map_view.dart` | a map camera's flight (pull back, cross, settle in) and the tiles every map draws, appearing without a fade |
+| `TourTile`, `TourRail` | `features/itineraries/presentation/tour_tile.dart` | a province tour as a 3:4 poster, and a row of them |
 
 ## Migrating from 1.0.0
 
@@ -306,10 +395,12 @@ Resolved under that rule:
 - **Bottom navigation** is *Explore · Map · Itineraries · Profile* (wireframes).
 - **Auth providers** are email/password + Google only (D-06); provider choice
   is scope, not structure.
-- **Home's primary action is "Add to a tour" on the featured hero** (redesign
-  2a); building a trip from scratch is the Itineraries tab's FAB. The
-  wireframe's "create your own tour" entry survives as that FAB; structure is
-  preserved, the form and the screen it lives on changed.
+- **Home's primary action is "Add to a tour" on the featured card in the
+  middle of the carousel** (redesign 2a, D-16); building a trip from scratch
+  is the Itineraries tab's New itinerary, a tinted `+` beside its title
+  (2026-09-24, no longer a FAB). The wireframe's "create your own tour"
+  entry survives there; structure is preserved, the form and the screen it
+  lives on changed.
 - **The Map tab lands on the map** (2c); the Browse photo grid is one symbol
   away. Wireframe 1c drew the grid first with a map toggle; the redesign
   inverts the default because a map is the tab's name and its job.

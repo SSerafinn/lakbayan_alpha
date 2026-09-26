@@ -176,9 +176,37 @@ and `flutter test` before committing; commit with `/commit`.
       the 2.1 screens (`audio_guide_test`, `auth_sheet_test`,
       `destinations_test`, `itineraries_test`, `landing_test`,
       `map_view_test`, `widget_test`). All 89 Flutter tests pass.
-- [ ] **Explore hero**: FEATURED and AR badges sit under the status bar; the
+- [x] **Explore hero**: FEATURED and AR badges sit under the status bar; the
       hero draws from y = 0 and insets them by the gutter only.
+      *Badges now sit below the top inset, level with the search circle. The
+      bars are transparent app-wide, with light icons over photo headers
+      (`SystemBars`). Scrolled content meets a status bar ground
+      (`StatusBarGround`); photo headers reach the top edge at rest.*
+- [x] **Overflow at large text sizes and with the keyboard.** The Recently
+      viewed rail, category strip, chip rows, badges and the landing greeting
+      size from the scaled text (`TextScaler.lineHeightOf`), not fixed
+      heights. Modal sheets share `AppSheet`, which sits on the keyboard
+      instead of squeezing under it. Loose icon, stroke and radius literals
+      are named tokens.
+- [x] **Place to trip flow.** Add to itinerary confirms in the same sheet
+      (check, "View trip"), opens the trip scrolled to the new stop, and
+      retries a failed write on its row. A trip made from the sheet opens.
+      Guests get Sign in. Dates can be changed after creation, with an inline
+      calendar. Writes go through one `ItineraryActions`.
+- [x] **Motion pass.** Press feedback is a spring shrink (`Pressable`), with
+      no ripple. Glyph changes morph (`SymbolSwap`): heart, play and pause.
+      The audio player grows in. Stops land, fold and slide. Pushed screens
+      use the app's push, and a place photo zooms into Place detail
+      (`ZoomPage`, `PhotoHero`).
+- [x] **Performance pass.** Photos decode at display size. Long lists are
+      lazy slivers. Browse filters without re-subscribing. The audio list
+      ignores position ticks. Home's feeds stay alive across tab switches.
+      Map tiles draw without a fade, and the camera flies (`CameraFlight`).
 - [ ] **Share on Place detail** is a placeholder snackbar.
+- [ ] **Stops by day** (wireframe 2j). Needs a schema change; see
+      `my-docs/backend-requests/itinerary-days.md`.
+- [x] **Tabs keep their scroll position.** `HomeShell` keeps each visited
+      tab alive offstage and cross-fades between them.
 - **DoD:** download a town → maps + audio guides work fully offline. **Met.**
       The pack draws the basemap, and photos and recordings now come off disk
       through `localAssetFor`, so a downloaded town needs no network at all.
@@ -186,7 +214,8 @@ and `flutter test` before committing; commit with `/commit`.
 - **M2 (Beta) cut at `v0.4.0-m2`.** The DoD above is what the milestone turns
   on, and it holds. Said plainly because the tag is slightly ahead of the
   checklist: **Nearby Places** (Phase 2's last box, which needs the location
-  permission), the **Explore hero** insets and **Share** are all still open.
+  permission) and **Share** are still open. The **Explore hero** insets
+  have since been fixed on `feat/home-screen`.
   None of them is what Beta means here — an offline town is — but a reader
   comparing the tag against the ticks deserves to know which is which.
   Neither hardware check has been run either: the airplane-mode pass (#71) and
