@@ -2,142 +2,179 @@ import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
 
+import "../../../core/models/destination.dart";
 import "../../../core/models/itinerary.dart";
 import "../../../core/router/app_router.dart";
 import "../../../core/theme/app_dimens.dart";
 import "../../../core/theme/app_icons.dart";
 import "../../../core/theme/app_typography.dart";
-import "../../../core/widgets/grouped_section.dart";
-import "../../../core/widgets/quiet_note.dart";
-import "../../../core/widgets/scroll_edge.dart";
+import "../../../core/widgets/chrome/app_menu.dart";
+import "../../../core/widgets/chrome/floating_tab_bar.dart";
+import "../../../core/widgets/content/grouped_section.dart";
+import "../../../core/widgets/content/lakbayan_badge.dart";
+import "../../../core/widgets/content/media_tile.dart";
+import "../../../core/widgets/content/quiet_note.dart";
+import "../../../core/widgets/content/section_heading.dart";
+import "../../../core/widgets/content/stop_numeral.dart";
+import "../../../core/widgets/content/storage_image.dart";
+import "../../../core/widgets/motion/motion.dart";
 import "../../auth/domain/auth_providers.dart";
 import "../../destinations/domain/destination_providers.dart";
-import "../../explore/domain/home_tab.dart";
-import "../../maps/domain/map_route.dart";
 import "../domain/itinerary_copy.dart";
 import "../domain/itinerary_providers.dart";
 import "new_itinerary_sheet.dart";
+import "tour_tile.dart";
 
-/// The Itineraries tab (redesign 2d).
-///
-/// **The screen's one job.** See my trips and start a new one.
-///
-/// **Emotion.** A plan taking form.
-///
-/// **Anatomy.** The title; one grouped section of the trips I built, the
-/// second line carrying the dates when there are any; a "Saved tours"
-/// heading and its own section for the province's tours I kept. The one
-/// primary action, New itinerary, is the FAB.
-///
-/// Two lists that look alike and are not the same thing: **Saved** are the
-/// province's tours somebody kept; **Mine** are tours they built. They live
-/// in different collections because `tours` is admin-written.
+/// The Itineraries tab: my trips and a New itinerary action, plus saved
+/// province tours below.
 class ItinerariesTab extends ConsumerWidget {
   const ItinerariesTab({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final signedIn = ref.watch(authStateProvider).value != null;
-    final topInset = MediaQuery.viewPaddingOf(context).top;
-
+    final signedIn = ref.watch(
+      authStateProvider.select((auth) => auth.value != null),
+    );
     if (!signedIn) return const _GuestPrompt();
 
-    return Stack(
-      children: [
-        ListView(
-          padding: EdgeInsets.fromLTRB(
-            AppSpace.gutter,
-            topInset + AppSpace.x2,
-            AppSpace.gutter,
-            ScrollEdge.homeBarHeight(context) + AppSize.primaryButton * 2,
-          ),
-          children: const [
-            _Title(),
-            SizedBox(height: AppSpace.section),
-            _Mine(),
-            SizedBox(height: AppSpace.section),
-            _SavedTours(),
-          ],
+    const gutter = EdgeInsets.symmetric(horizontal: AppSpace.gutter);
+
+    return EntranceScope(
+      child: ListView(
+        padding: EdgeInsets.fromLTRB(
+          0,
+          MediaQuery.viewPaddingOf(context).top + AppSpace.x2,
+          0,
+          FloatingTabBar.clearance(context) + AppSpace.section,
         ),
-        // Placed by hand rather than by a Scaffold so it clears the floating
-        // tab bar exactly, gesture inset included.
-        Positioned(
-          right: AppSpace.gutter,
-          bottom: ScrollEdge.homeBarHeight(context) + AppSpace.gutter,
-          child: FloatingActionButton.extended(
-            onPressed: () => showNewItinerary(context),
-            icon: const Icon(AppIcons.add),
-            label: const Text("New itinerary"),
+        children: const [
+          Padding(padding: gutter, child: _Title()),
+          SizedBox(height: AppSpace.section),
+          Padding(
+            padding: gutter,
+            child: Entrance(order: 1, child: _Mine()),
           ),
+          SizedBox(height: AppSpace.section),
+          Entrance(order: 2, child: _SavedTours()),
+        ],
+      ),
+    );
+  }
+}
+
+/// The title, and beside it the one primary action New itinerary: a tinted
+/// glyph beside the content it creates, not floating over empty space.
+class _Title extends StatelessWidget {
+  const _Title();
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Row(
+      children: [
+        Expanded(child: Text("Itineraries", style: AppTypography.titleLarge)),
+        IconButton(
+          onPressed: () => showNewItinerary(context),
+          tooltip: "New itinerary",
+          icon: const Icon(AppIcons.add),
+          style: IconButton.styleFrom(foregroundColor: scheme.primary),
         ),
       ],
     );
   }
 }
 
-class _Title extends StatelessWidget {
-  const _Title();
-
-  @override
-  Widget build(BuildContext context) =>
-      Text("Itineraries", style: AppTypography.titleLarge);
-}
-
+/// Next up, then the rest.
 class _Mine extends ConsumerWidget {
   const _Mine();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final mine = ref.watch(myItinerariesProvider);
-    return mine.when(
+    final shelf = ref.watch(tripShelfProvider);
+    return shelf.when(
       loading: () => const _Loading(),
       error: (e, _) => QuietNote("Couldn't load your itineraries.\n$e"),
-      data: (items) => items.isEmpty
-          ? const QuietNote(
-              "Nothing planned yet. Make one, and add stops from any place.",
-            )
-          : GroupedSection(
-              children: [
-                for (final itinerary in items) _ItineraryRow(itinerary),
-              ],
-            ),
+      data: (shelf) {
+        final next = shelf.next;
+        if (next == null) {
+          return const QuietNote(
+            "Nothing planned yet. Start one with New itinerary, then add "
+            "stops from any place.",
+          );
+        }
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _NextTripCard(trip: next),
+            if (shelf.others.isNotEmpty) ...[
+              const SizedBox(height: AppSpace.section),
+              const SectionHeading("Other trips"),
+              const SizedBox(height: AppSpace.x2),
+              GroupedSection(
+                children: [
+                  for (final trip in shelf.others) _ItineraryRow(trip),
+                ],
+              ),
+            ],
+          ],
+        );
+      },
     );
   }
 }
 
-class _ItineraryRow extends StatelessWidget {
+/// A trip, led by its first stop's photo, which grows into the trip's route
+/// map when it opens (`tripHeroTag`).
+class _ItineraryRow extends ConsumerWidget {
   const _ItineraryRow(this.itinerary);
 
   final Itinerary itinerary;
 
   @override
-  Widget build(BuildContext context) => GroupedRow(
-    title: itinerary.name,
-    subtitle: itineraryLine(itinerary),
-    onTap: () => context.push(Routes.itinerary(itinerary.id)),
-  );
+  Widget build(BuildContext context, WidgetRef ref) {
+    final first = itinerary.destinationIds.firstOrNull;
+    final cover = first == null
+        ? null
+        : ref.watch(destinationByIdProvider(first)).value?.coverImage;
+    return GroupedRow(
+      title: itinerary.name,
+      subtitle: datePhrase(itinerary),
+      leading: Hero(tag: tripHeroTag(itinerary.id), child: CoverImage(cover)),
+      onTap: () => context.push(Routes.itinerary(itinerary.id)),
+    );
+  }
 }
 
+/// The province's tours this person kept, as posters. A tap draws one on the
+/// map; its menu, from the poster's corner, removes it.
 class _SavedTours extends ConsumerWidget {
   const _SavedTours();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final saved = ref.watch(savedToursProvider);
+    const gutter = EdgeInsets.symmetric(horizontal: AppSpace.gutter);
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text("Saved tours", style: AppTypography.groupHeading),
+        const Padding(padding: gutter, child: SectionHeading("Saved tours")),
         const SizedBox(height: AppSpace.x2),
         saved.when(
           loading: () => const _Loading(),
-          error: (e, _) => QuietNote("Couldn't load your saved tours.\n$e"),
+          error: (e, _) => Padding(
+            padding: gutter,
+            child: QuietNote("Couldn't load your saved tours.\n$e"),
+          ),
           data: (items) => items.isEmpty
-              ? const QuietNote(
-                  "Tours you save from the province's list appear here.",
+              ? const Padding(
+                  padding: gutter,
+                  child: QuietNote(
+                    "Tours you save from the province's list appear here.",
+                  ),
                 )
-              : GroupedSection(
-                  children: [for (final tour in items) _TourRow(tour: tour)],
+              : TourRail(
+                  tours: items,
+                  trailingFor: (tour) => _TourMenu(tour: tour),
                 ),
         ),
       ],
@@ -145,46 +182,56 @@ class _SavedTours extends ConsumerWidget {
   }
 }
 
-class _TourRow extends ConsumerWidget {
-  const _TourRow({required this.tour});
+/// More, on the poster's corner, opening a menu with the one thing to do to
+/// a kept tour that a tap does not: let it go.
+class _TourMenu extends ConsumerWidget {
+  const _TourMenu({required this.tour});
 
   final Tour tour;
 
-  /// Draw the province's tour on the map — the same gesture an itinerary's
-  /// "Open on the map" performs, and the only way to see one. A saved tour
-  /// used to be a row you could do nothing with but delete, even though its
-  /// stops are an ordered route.
-  void _openOnMap(BuildContext context, WidgetRef ref) {
-    ref.read(browseQueryProvider.notifier).update("");
-    ref.read(browseCategoryProvider.notifier).select(null);
-    ref.read(mapShowsSavedProvider.notifier).set(false);
-    ref.read(browseShowsGridProvider.notifier).set(false);
-    ref.read(mapSelectedIdProvider.notifier).select(null);
-    ref.read(activeMapRouteProvider.notifier).show(tour.title, tour.stops);
-    ref.read(selectedHomeTabProvider.notifier).select(HomeTab.map);
-    context.go(Routes.home);
+  Future<void> _remove(BuildContext context, WidgetRef ref) async {
+    final uid = ref.read(authStateProvider).value?.uid;
+    if (uid == null) return;
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await ref
+          .read(userProfileRepositoryProvider)
+          .setTourSaved(uid, tour.id, saved: false);
+    } catch (error) {
+      debugPrint("Removing a saved tour failed: $error");
+      messenger.showSnackBar(
+        const SnackBar(content: Text("Couldn't remove it. Try again.")),
+      );
+    }
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) => GroupedRow(
-    title: tour.title,
-    subtitle: tour.stops.isEmpty ? null : stopsPhrase(tour.stops.length),
-    // A tour with no stops has no route to draw, so the row stays inert
-    // rather than sending somebody to an empty map.
-    onTap: tour.stops.isEmpty ? null : () => _openOnMap(context, ref),
-    // A distinct action, so it is its own 48 target.
-    trailing: IconButton(
-      icon: const Icon(AppIcons.close, size: 18),
-      tooltip: "Remove from saved",
-      onPressed: () {
-        final uid = ref.read(authStateProvider).value?.uid;
-        if (uid == null) return;
-        ref
-            .read(userProfileRepositoryProvider)
-            .setTourSaved(uid, tour.id, saved: false);
-      },
-    ),
-  );
+  Widget build(BuildContext context, WidgetRef ref) {
+    final scheme = Theme.of(context).colorScheme;
+    return AppMenu(
+      groups: [
+        [
+          AppMenuItem(
+            label: "Remove from saved",
+            icon: AppIcons.delete,
+            destructive: true,
+            onSelected: () => _remove(context, ref),
+          ),
+        ],
+      ],
+      builder: (context, controller) => IconButton(
+        icon: const Icon(AppIcons.more, size: AppSize.glyphMd),
+        tooltip: "More",
+        onPressed: controller.isOpen ? controller.close : controller.open,
+        style: IconButton.styleFrom(
+          backgroundColor: scheme.surface,
+          foregroundColor: scheme.onSurface,
+          fixedSize: const Size.square(AppSize.tileSave),
+          shape: const CircleBorder(),
+        ),
+      ),
+    );
+  }
 }
 
 class _GuestPrompt extends ConsumerWidget {
@@ -193,13 +240,12 @@ class _GuestPrompt extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
-    final topInset = MediaQuery.viewPaddingOf(context).top;
     return ListView(
       padding: EdgeInsets.fromLTRB(
         AppSpace.gutter,
-        topInset + AppSpace.x2,
+        MediaQuery.viewPaddingOf(context).top + AppSpace.x2,
         AppSpace.gutter,
-        ScrollEdge.homeBarHeight(context),
+        FloatingTabBar.clearance(context),
       ),
       children: [
         const _Title(),
@@ -218,9 +264,11 @@ class _GuestPrompt extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: AppSpace.section),
-        FilledButton(
-          onPressed: () => ref.read(guestModeProvider.notifier).disable(),
-          child: const Text("Sign in"),
+        Pressable(
+          child: FilledButton(
+            onPressed: () => ref.read(guestModeProvider.notifier).disable(),
+            child: const Text("Sign in"),
+          ),
         ),
       ],
     );
@@ -234,5 +282,141 @@ class _Loading extends StatelessWidget {
   Widget build(BuildContext context) => const Padding(
     padding: EdgeInsets.symmetric(vertical: AppSpace.x4),
     child: Center(child: CircularProgressIndicator()),
+  );
+}
+
+/// The trip that comes next, the largest thing on the Itineraries tab: its
+/// first stop's photo, NEXT UP on it, the name in the hero step and the
+/// dates on the scrim, and under the photo the first stops in order, each a
+/// photo with its number, so the plan reads as a route before it is opened.
+///
+/// The photo is the trip's `Hero`: it grows into the route map at the top of
+/// the trip when the card is tapped.
+class _NextTripCard extends ConsumerWidget {
+  const _NextTripCard({required this.trip});
+
+  final Itinerary trip;
+
+  /// Stops shown under the photo; the rest are one tap away.
+  static const _shown = 4;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final places = ref.watch(placesByIdProvider);
+    final stops = [for (final id in trip.destinationIds) ?places[id]];
+    final dates = datePhrase(trip);
+    void open() => context.push(Routes.itinerary(trip.id));
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Pressable(
+          child: ClipRRect(
+            borderRadius: AppRadii.lgAll,
+            child: AspectRatio(
+              aspectRatio: 16 / 11,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  Hero(
+                    tag: tripHeroTag(trip.id),
+                    child: CoverImage(stops.firstOrNull?.coverImage),
+                  ),
+                  Material(
+                    type: MaterialType.transparency,
+                    child: InkWell(onTap: open),
+                  ),
+                  const Positioned(
+                    top: AppSpace.x4,
+                    left: AppSpace.x4,
+                    child: LakbayanBadge("Next up", kind: BadgeKind.info),
+                  ),
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    child: IgnorePointer(
+                      child: MediaScrim(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              trip.name,
+                              style: AppTypography.hero.copyWith(
+                                color: Colors.white,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            // The dates or nothing: a stop count under a
+                            // name is a dangling number (itinerary_copy).
+                            if (dates != null)
+                              Text(
+                                dates,
+                                style: AppTypography.labelMedium.copyWith(
+                                  color: Colors.white,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        if (stops.isNotEmpty) ...[
+          const SizedBox(height: AppSpace.x3),
+          _StopsInOrder(stops: stops.take(_shown).toList()),
+        ],
+      ],
+    );
+  }
+}
+
+/// The first stops, left to right in visiting order, a number on each.
+class _StopsInOrder extends StatelessWidget {
+  const _StopsInOrder({required this.stops});
+
+  final List<Destination> stops;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    children: [
+      for (final (index, place) in stops.indexed) ...[
+        if (index > 0) const SizedBox(width: AppSpace.x2),
+        Expanded(
+          child: Semantics(
+            label: "Stop ${index + 1}, ${place.name}",
+            excludeSemantics: true,
+            child: AspectRatio(
+              aspectRatio: 1,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  ClipRRect(
+                    borderRadius: AppRadii.smAll,
+                    child: CoverImage(place.coverImage),
+                  ),
+                  Positioned(
+                    left: AppSpace.x1,
+                    top: AppSpace.x1,
+                    child: StopNumeral(index + 1),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+      // Fewer than four keeps each photo its size rather than stretching.
+      for (var i = stops.length; i < _NextTripCard._shown; i++) ...[
+        const SizedBox(width: AppSpace.x2),
+        const Expanded(child: SizedBox.shrink()),
+      ],
+    ],
   );
 }

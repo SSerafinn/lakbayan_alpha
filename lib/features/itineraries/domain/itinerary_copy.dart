@@ -31,7 +31,9 @@ String weekday(DateTime date) => switch (_weekdays[date.weekday - 1]) {
   _ => "Sunday",
 };
 
-/// "14 to 15 Oct", "14 Oct", or null when the trip has no dates.
+/// "14 to 15 Oct", "14 Oct", or null when the trip has no dates. Also a trip
+/// row's second line: a stop count under a name is a dangling number, and
+/// "no dates yet" is a hint dressed as metadata, so neither is shown.
 String? datePhrase(Itinerary itinerary) {
   final start = itinerary.startDate;
   final end = itinerary.endDate;
@@ -46,11 +48,6 @@ String? datePhrase(Itinerary itinerary) {
 
 /// "4 stops" or "1 stop".
 String stopsPhrase(int count) => "$count stop${count == 1 ? "" : "s"}";
-
-/// The row's second line: the dates, or nothing. A stop count under a name
-/// is a dangling number, and "no dates yet" is a hint dressed as metadata,
-/// so neither is shown.
-String? itineraryLine(Itinerary itinerary) => datePhrase(itinerary);
 
 bool _sameDay(DateTime a, DateTime b) =>
     a.year == b.year && a.month == b.month && a.day == b.day;

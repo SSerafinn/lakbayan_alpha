@@ -87,10 +87,8 @@ void main() {
       await pump(tester, const Scaffold(body: ItinerariesTab()));
 
       expect(find.textContaining("Nothing planned yet"), findsOneWidget);
-      expect(
-        find.widgetWithText(FloatingActionButton, "New itinerary"),
-        findsOneWidget,
-      );
+      // The action is the tinted + beside the title (2026-09-24), not a FAB.
+      expect(find.byTooltip("New itinerary"), findsOneWidget);
     });
 
     testWidgets("lists itineraries with their dates", (tester) async {
@@ -242,7 +240,9 @@ void main() {
       // Delete sits behind the overflow menu, so it is two taps away.
       await tester.tap(find.byTooltip("More"));
       await tester.pumpAndSettle();
-      await tester.tap(find.widgetWithText(MenuItemButton, "Delete"));
+      // The menu is `AppMenu`, not a stock `MenuAnchor`, so the item is
+      // found by its label.
+      await tester.tap(find.text("Delete"));
       await tester.pumpAndSettle();
       expect(find.text("Delete Weekend?"), findsOneWidget);
 
