@@ -1,13 +1,11 @@
 import "package:flutter/material.dart";
 
-import "../theme/app_dimens.dart";
-import "../theme/app_icons.dart";
-import "../theme/app_typography.dart";
+import "../../theme/app_dimens.dart";
+import "../../theme/app_icons.dart";
+import "../../theme/app_typography.dart";
 
-/// Comparable rows on one shared surface, an optional heading above it.
-/// Fixed [AppRadii.md]; rows derive their pressed radius through
-/// [ParentRadius]. Nothing is drawn between rows: the surface says they
-/// belong together (design doc 04), so there is no divider slot.
+/// Grouped rows on the white ground with an optional heading.
+/// No dividers between rows — grouping is the signal.
 class GroupedSection extends StatelessWidget {
   const GroupedSection({required this.children, this.heading, super.key});
 
@@ -15,61 +13,75 @@ class GroupedSection extends StatelessWidget {
   final String? heading;
 
   @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    const radius = AppRadii.md;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        if (heading != null)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(
-              AppSpace.x1,
-              0,
-              AppSpace.x1,
-              AppSpace.x2,
-            ),
-            child: Text(heading!, style: AppTypography.groupHeading),
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      if (heading != null)
+        Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AppSpace.x1,
+            0,
+            AppSpace.x1,
+            AppSpace.x1,
           ),
-        Material(
-          color: scheme.surfaceContainerLow,
-          shape: const RoundedRectangleBorder(borderRadius: AppRadii.mdAll),
-          clipBehavior: Clip.antiAlias,
-          child: Padding(
-            padding: const EdgeInsets.all(AppSpace.groupInset),
-            child: ParentRadius(
-              radius: concentricRadius(
-                parentRadius: radius,
-                padding: AppSpace.groupInset,
-                fallback: AppRadii.sm,
-              ),
-              child: Column(mainAxisSize: MainAxisSize.min, children: children),
-            ),
-          ),
+          child: Text(heading!, style: AppTypography.groupHeading),
         ),
-      ],
-    );
-  }
+      ParentRadius(
+        radius: _rowRadius,
+        child: Column(mainAxisSize: MainAxisSize.min, children: children),
+      ),
+    ],
+  );
 }
 
-/// One row of a [GroupedSection]: leading media or glyph, title, second
-/// line, trailing accessory (a chevron when the row navigates). The whole row
-/// is the target; a trailing accessory is its own 48dp target only when it
-/// does something distinct, and every accessory sits centred in one slot at
-/// least 48dp wide so they share an axis down the section. A glyph only where it maps to an
-/// established action (save, download, play).
+/// A [GroupedSection] as a sliver: only rows on screen are built.
+class SliverGroupedSection extends StatelessWidget {
+  const SliverGroupedSection({
+    required this.itemCount,
+    required this.itemBuilder,
+    super.key,
+  });
+
+  final int itemCount;
+  final IndexedWidgetBuilder itemBuilder;
+
+  @override
+  Widget build(BuildContext context) => SliverList.builder(
+    itemCount: itemCount,
+    itemBuilder: (context, index) => ParentRadius(
+      radius: _rowRadius,
+      child: Material(
+        type: MaterialType.transparency,
+        child: itemBuilder(context, index),
+      ),
+    ),
+  );
+}
+
+/// A row's pressed shape: fixed, so the photo inside derives its corner.
+const _rowRadius = AppRadii.md;
+
+/// One row: an optional mark (a stop's numeral), leading media or glyph,
+/// title, second line, trailing accessory (a chevron when the row
+/// navigates). The whole row is the target; a trailing accessory is its own
+/// 48dp target only when it does something distinct, and every accessory
+/// sits centred in one slot at least 48dp wide so they share an axis.
+///
+/// Compact by default: a [AppSize.rowMedia] photo and a one-line second
+/// label keep a row near 64dp. [dense] is smaller still, for sheet pickers.
 class GroupedRow extends StatelessWidget {
   const GroupedRow({
     required this.title,
     this.subtitle,
     this.subtitleColor,
+    this.mark,
     this.leading,
     this.leadingGlyph,
     this.glyphColor,
     this.trailing,
     this.onTap,
+    this.dense = false,
     super.key,
   }) : assert(
          leading == null || leadingGlyph == null,
@@ -82,6 +94,10 @@ class GroupedRow extends StatelessWidget {
   /// Colours the second line when it carries a role (a distance in blue).
   final Color? subtitleColor;
 
+  /// Before the media: a stop's numeral, or an empty box of its width so a
+  /// row without one lines up.
+  final Widget? mark;
+
   /// Raw media; sized and clipped here.
   final Widget? leading;
   final IconData? leadingGlyph;
@@ -90,21 +106,23 @@ class GroupedRow extends StatelessWidget {
   /// Replaces the default chevron. Pass [noAccessory] for none.
   final Widget? trailing;
   final VoidCallback? onTap;
+  final bool dense;
 
   /// A navigating row with nothing trailing: no chevron, no slot.
   static const Widget noAccessory = SizedBox.shrink();
 
-  static const _mediaSize = 56.0;
-  static const _glyphCircle = 40.0;
-  static const _padding = EdgeInsets.all(AppSpace.rowPad);
-
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final mediaSize = dense ? AppSize.rowMediaDense : AppSize.rowMedia;
+    final padding = EdgeInsets.symmetric(
+      horizontal: AppSpace.x1,
+      vertical: dense ? AppSpace.x1 : AppSpace.rowPadDense,
+    );
     final rowRadius = ParentRadius.maybeOf(context) ?? AppRadii.sm;
     final mediaRadius = concentricRadius(
       parentRadius: rowRadius,
-      padding: _padding.left,
+      padding: padding.left,
       fallback: AppRadii.xs,
     );
 
@@ -115,7 +133,7 @@ class GroupedRow extends StatelessWidget {
                   ? null
                   : Icon(
                       AppIcons.chevron,
-                      size: 18,
+                      size: AppSize.glyphMd,
                       color: scheme.onSurfaceVariant,
                     ));
 
@@ -123,13 +141,14 @@ class GroupedRow extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(rowRadius),
       child: Padding(
-        padding: _padding,
+        padding: padding,
         child: Row(
           children: [
+            if (mark != null) ...[mark!, const SizedBox(width: AppSpace.x3)],
             if (leading != null) ...[
               SizedBox(
-                width: _mediaSize,
-                height: _mediaSize,
+                width: mediaSize,
+                height: mediaSize,
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(mediaRadius),
                   child: ParentRadius(radius: mediaRadius, child: leading!),
@@ -138,9 +157,8 @@ class GroupedRow extends StatelessWidget {
               const SizedBox(width: AppSpace.x3),
             ],
             if (leadingGlyph != null) ...[
-              SizedBox(
-                width: _glyphCircle,
-                height: _glyphCircle,
+              SizedBox.square(
+                dimension: mediaSize,
                 child: DecoratedBox(
                   decoration: ShapeDecoration(
                     color: scheme.surfaceContainerHigh,
@@ -148,7 +166,7 @@ class GroupedRow extends StatelessWidget {
                   ),
                   child: Icon(
                     leadingGlyph,
-                    size: 22,
+                    size: AppSize.glyphLg,
                     color: glyphColor ?? scheme.onSurface,
                   ),
                 ),
@@ -172,7 +190,7 @@ class GroupedRow extends StatelessWidget {
                       style: AppTypography.secondLine.copyWith(
                         color: subtitleColor ?? scheme.onSurfaceVariant,
                       ),
-                      maxLines: 2,
+                      maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                 ],

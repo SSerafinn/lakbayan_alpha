@@ -96,14 +96,6 @@ abstract class Destination with _$Destination {
 
   /// The Storage path of the card image, if there is one.
   String? get coverImage => images.isEmpty ? null : images.first;
-
-  /// Shared [Hero] tag for the "Popular this week" → detail continuity
-  /// transition. One tag per destination keeps it stable across rebuilds.
-  String get popularHeroTag => "popular-image-$id";
-
-  /// True when this document was written by a newer client than this build
-  /// understands. Callers should degrade gracefully rather than hide the row.
-  bool get isNewerSchema => schemaVersion > destinationSchemaVersion;
 }
 
 /// `destinations/{id}/segments/{sid}` — one stop in the audio guide.

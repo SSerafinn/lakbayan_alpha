@@ -1,8 +1,8 @@
 import "package:flutter/material.dart";
 
-import "../theme/app_dimens.dart";
-import "../theme/app_typography.dart";
-import "../theme/lakbayan_colors.dart";
+import "../../theme/app_dimens.dart";
+import "../../theme/app_typography.dart";
+import "../../theme/lakbayan_colors.dart";
 
 /// Which meaning a [LakbayanBadge] carries.
 ///
@@ -68,8 +68,10 @@ class LakbayanBadge extends StatelessWidget {
       BadgeKind.closed => (scheme.error, scheme.onError, null),
     };
 
+    // At least the badge height, taller only when a large text size needs
+    // it, so the label is never clipped.
     return Container(
-      height: AppSize.badge,
+      constraints: const BoxConstraints(minHeight: AppSize.badge),
       padding: const EdgeInsets.symmetric(horizontal: AppSpace.x3),
       decoration: ShapeDecoration(
         color: fill,
@@ -80,9 +82,11 @@ class LakbayanBadge extends StatelessWidget {
       // `Center(widthFactor: 1)` rather than `Container(alignment:)`: a
       // Container with an alignment expands to fill its loose constraints, so
       // the badge would stretch to the full row width instead of hugging its
-      // label. widthFactor pins the width to the child.
+      // label. The factors pin the size to the child; the min height and the
+      // capsule's padding do the rest.
       child: Center(
         widthFactor: 1,
+        heightFactor: 1,
         child: Text(
           label.toUpperCase(),
           style: AppTypography.caps.copyWith(color: text),

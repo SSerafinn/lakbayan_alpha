@@ -63,7 +63,4 @@ abstract class Itinerary with _$Itinerary {
 
   factory Itinerary.fromJson(Map<String, dynamic> json) =>
       _$ItineraryFromJson(json);
-
-  /// A route needs somewhere to go and somewhere to come from.
-  bool get isRoutable => destinationIds.length >= 2;
 }

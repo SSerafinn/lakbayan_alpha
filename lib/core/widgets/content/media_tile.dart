@@ -1,27 +1,17 @@
 import "package:flutter/material.dart";
 
-import "../theme/app_dimens.dart";
-import "../theme/app_typography.dart";
+import "../../theme/app_dimens.dart";
+import "../../theme/app_typography.dart";
+import "../motion/motion.dart";
 import "lakbayan_badge.dart";
 
-/// A photograph with an optional caption. Photography is the hero; the tile
-/// adds no chrome of its own.
+/// A photograph with an optional caption; the tile adds no chrome of its own.
 ///
-/// **Anatomy.** Media, badge at the top leading corner (optional), a
-/// [trailing] control at the top trailing corner (optional, the save heart),
-/// then either a caption *below* the photo (the default) or a title *on* the
-/// photo over a scrim ([overlay]).
-///
-/// **Shape.** Concentric with a fallback of [radius]. Standalone it takes
-/// the fallback; inside a [ParentRadius] it derives from the parent.
-///
-/// **Legibility.** Text never sits directly on a photograph. The caption
-/// variant puts it below, on the page surface. The overlay variant draws a
-/// bottom scrim from transparent to `scrim` at 70% under the title, tested
-/// against a white photo. That scrim is the one gradient this app draws on
-/// purpose.
-///
-/// **Behaviour.** When [onTap] is set the whole tile is the target.
+/// Badge top leading, [trailing] control top trailing (the save heart), then
+/// a caption below the photo or, with [overlay], a title on it over the
+/// scrim (the one gradient the app draws). Concentric inside a
+/// [ParentRadius], else [radius]. With [onTap] the whole tile is the target
+/// and sinks under the finger.
 class MediaTile extends StatelessWidget {
   const MediaTile({
     required this.media,
@@ -32,8 +22,8 @@ class MediaTile extends StatelessWidget {
     this.badge,
     this.trailing,
     this.overlay = false,
+    this.dense = false,
     this.radius = AppRadii.tile,
-    this.inset = AppSpace.x3,
     this.onTap,
     super.key,
   });
@@ -61,18 +51,23 @@ class MediaTile extends StatelessWidget {
   /// Draw the title on the photo over a scrim instead of below it.
   final bool overlay;
 
+  /// With [overlay]: a small tile's caption, the title a row title rather
+  /// than a heading and the scrim shallower, so a rail or a grid of photos
+  /// needs no caption space under each one.
+  final bool dense;
+
   /// The fallback radius when there is no parent to derive from.
   final double radius;
 
-  /// The gap to the parent edge when nested. Drives the concentric radius.
-  final double inset;
-
   final VoidCallback? onTap;
+
+  /// The gap to the parent edge when nested, for the concentric radius.
+  static const _inset = AppSpace.x3;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final resolved = concentricOf(context, padding: inset, fallback: radius);
+    final resolved = concentricOf(context, padding: _inset, fallback: radius);
     final shape = BorderRadius.circular(resolved);
 
     final photo = ClipRRect(
@@ -82,18 +77,37 @@ class MediaTile extends StatelessWidget {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            media,
+            // Its corners, for a photo that flies out of here to unround
+            // from (`PhotoHero`).
+            ParentRadius(radius: resolved, child: media),
             if (overlay && title != null)
               Positioned(
                 left: 0,
                 right: 0,
                 bottom: 0,
                 child: MediaScrim(
-                  child: _OverlayCaption(title: title!, subtitle: subtitle),
+                  padding: dense
+                      ? const EdgeInsets.fromLTRB(
+                          AppSpace.x2,
+                          AppSpace.x8,
+                          AppSpace.x2,
+                          AppSpace.x2,
+                        )
+                      : const EdgeInsets.fromLTRB(
+                          AppSpace.x4,
+                          AppSpace.x12,
+                          AppSpace.x4,
+                          AppSpace.x4,
+                        ),
+                  child: _OverlayCaption(
+                    title: title!,
+                    subtitle: subtitle,
+                    dense: dense,
+                  ),
                 ),
               ),
-            // The ripple sits on top of the photo so a tap reads on the
-            // image, not under it.
+            // The tap target sits on top of the photo so a press reads on
+            // the image, not under it.
             if (onTap != null)
               Material(
                 type: MaterialType.transparency,
@@ -112,9 +126,11 @@ class MediaTile extends StatelessWidget {
       ),
     );
 
-    if (overlay || title == null) return photo;
+    if (overlay || title == null) {
+      return Pressable(enabled: onTap != null, child: photo);
+    }
 
-    return GestureDetector(
+    final captioned = GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: Column(
@@ -141,6 +157,7 @@ class MediaTile extends StatelessWidget {
         ],
       ),
     );
+    return Pressable(enabled: onTap != null, child: captioned);
   }
 }
 
@@ -180,10 +197,15 @@ class MediaScrim extends StatelessWidget {
 }
 
 class _OverlayCaption extends StatelessWidget {
-  const _OverlayCaption({required this.title, this.subtitle});
+  const _OverlayCaption({
+    required this.title,
+    required this.dense,
+    this.subtitle,
+  });
 
   final String title;
   final String? subtitle;
+  final bool dense;
 
   @override
   Widget build(BuildContext context) {
@@ -193,14 +215,17 @@ class _OverlayCaption extends StatelessWidget {
       children: [
         Text(
           title,
-          style: AppTypography.titleLarge.copyWith(color: Colors.white),
+          style: (dense ? AppTypography.titleSmall : AppTypography.titleLarge)
+              .copyWith(color: Colors.white),
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
         ),
         if (subtitle != null)
           Text(
             subtitle!,
-            style: AppTypography.labelMedium.copyWith(color: Colors.white),
+            style:
+                (dense ? AppTypography.secondLine : AppTypography.labelMedium)
+                    .copyWith(color: Colors.white),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),

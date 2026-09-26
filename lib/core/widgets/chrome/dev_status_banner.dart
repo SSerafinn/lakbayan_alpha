@@ -2,10 +2,11 @@ import "package:flutter/foundation.dart";
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
-import "../theme/app_icons.dart";
-import "../config/app_config.dart";
-import "../firebase/firebase_bootstrap.dart";
-import "../firebase/firebase_status_provider.dart";
+import "../../config/app_config.dart";
+import "../../firebase/firebase_bootstrap.dart";
+import "../../firebase/firebase_status_provider.dart";
+import "../../theme/app_dimens.dart";
+import "../../theme/app_icons.dart";
 
 /// A thin strip along the bottom saying which backend the app is talking to.
 ///
@@ -90,12 +91,15 @@ class _Strip extends StatelessWidget {
       child: SafeArea(
         top: false,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpace.x3,
+            vertical: AppSpace.x1,
+          ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, size: 14, color: foreground),
-              const SizedBox(width: 8),
+              Icon(icon, size: AppSize.glyphXs, color: foreground),
+              const SizedBox(width: AppSpace.x2),
               Flexible(
                 child: Text(
                   message,
