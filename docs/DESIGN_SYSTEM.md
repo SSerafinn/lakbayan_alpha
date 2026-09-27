@@ -22,7 +22,7 @@ comment states its one job, its emotion and its anatomy.
 | Colour values, surface ladder | `lib/core/theme/app_colors.dart` |
 | Spacing and fixed sizes | `lib/core/theme/app_dimens.dart` |
 | Shape: fixed radii, capsule, concentric helpers | `lib/core/theme/app_shape.dart` |
-| Width classes | `lib/core/theme/app_layout.dart` |
+| Width classes | `_WidthClass` in `browse_screen.dart`, its one user |
 | Type ramp | `lib/core/theme/app_typography.dart` |
 | Action to glyph map | `lib/core/theme/app_icons.dart` |
 | Brand tokens outside `ColorScheme` (gold, badges) | `lib/core/theme/lakbayan_colors.dart` |
@@ -313,9 +313,9 @@ line under the field**: an error is the error border plus a trailing
   dismiss is a defect.
 - **Compact first.** `FloatingTabBar` is the shipped navigation; the rail and
   drawer forms for medium and expanded widths are a later pass (the
-  `AdaptiveNavigation` shell was removed unused in D-14). `WidthClass` still
-  drives the Browse grid's column count; no widget contains a raw width
-  number.
+  `AdaptiveNavigation` shell was removed unused in D-14). Browse's
+  `_WidthClass` still drives its grid's column count; no widget contains a
+  raw width number.
 - **Spacing is the 2.3 tight rhythm (D-16):** screen gutter 12, 12 between
   sections, 4 inside a grouped section, 8 of row padding
   (`AppSpace.gutter / section / groupInset / rowPad`). Grouped sections are
@@ -353,12 +353,12 @@ unless they name a feature.
 | `PushPageTransitionsBuilder`, `ZoomPage`, `PhotoHero` | `motion/page_transitions.dart` | every route's push, in from the trailing edge with the page beneath drifting back; a place opened from its photo zooms instead, the photo (`PhotoHero`) scaled, never re-decoded. Both follow Android's back gesture |
 | `FloatingTabBar`, `TabBarLayout`, `TabGlyph` | `chrome/floating_tab_bar.dart` | one capsule, the four sections then search, all drawn glyphs; shrinks on scroll as one transform, slides away for search |
 | `SystemBars`, `StatusBarGround` | `chrome/system_bars.dart` | the bars' icon style for a region; the opaque ground under the status bar (`.below` closes in under a resting header) |
-| `PinnedAction`, `PinnedActionScope` | `chrome/pinned_action.dart` | the floating primary action; folds into a circle while reading |
+| `_PinnedAction`, `_PinnedActionScope` | private in `destination_detail_screen.dart`, its one user | the floating primary action; folds into a circle while reading |
 | `AppMenu`, `AppMenuItem` | `chrome/app_menu.dart` | the anchored menu: label then trailing glyph, grouped surfaces, grows from its source |
 | `showAppSheet` | `chrome/app_sheet.dart` | the modal sheet, riding the keyboard |
 | `SymbolButton` | `controls/symbol_button.dart` | a symbol-only control on its own white circle over photography |
 | `BarItemGroup` | `controls/bar_item_group.dart` | two to four symbol-only actions on one capsule; `.overMedia` over a photo or map; an item may open a menu, or be a control of its own (`BarItem.control`, the save heart) |
-| `FilterChipRow`, `MonthCalendar` | `controls/` | the single-select chips; the inline date picker |
+| `FilterChipRow` | `controls/filter_chip_row.dart` | the single-select chips (the inline date picker is private in `trip_dates.dart`) |
 | `MediaTile`, `MediaScrim` | `content/media_tile.dart` | a photograph with a caption below, or a title on a tested scrim; a trailing slot for the save heart |
 | `StorageImage`, `CoverImage` | `content/storage_image.dart` | every photo, decoded at its box's size (or a fixed tiny width for a blur) |
 | `GroupedSection`, `GroupedRow` | `content/grouped_section.dart` | comparable rows on the white ground, no dividers, no plate; a 56 photo and one second line; a row may carry a mark (a stop's numeral) |

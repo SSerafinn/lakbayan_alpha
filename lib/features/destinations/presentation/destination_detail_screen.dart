@@ -12,7 +12,6 @@ import "../../../core/theme/app_motion.dart";
 import "../../../core/theme/app_typography.dart";
 import "../../../core/widgets/chrome/app_menu.dart";
 import "../../../core/widgets/chrome/app_sheet.dart";
-import "../../../core/widgets/chrome/pinned_action.dart";
 import "../../../core/widgets/chrome/system_bars.dart";
 import "../../../core/widgets/content/lakbayan_badge.dart";
 import "../../../core/widgets/content/media_tile.dart";
@@ -78,7 +77,7 @@ class _DestinationDetailScreenState
       data: (d) => d == null
           ? const MessageScreen("This destination is no longer available.")
           : Scaffold(
-              body: PinnedActionScope(
+              body: _PinnedActionScope(
                 child: EntranceScope(
                   child: _Content(destination: d, from: widget.from),
                 ),
@@ -112,7 +111,7 @@ class _ContentState extends State<_Content> {
   @override
   Widget build(BuildContext context) {
     final destination = widget.destination;
-    final actionHeight = PinnedAction.extentOf(context);
+    final actionHeight = _PinnedAction.extentOf(context);
     final topInset = MediaQuery.viewPaddingOf(context).top;
     final stage = _PhotoStage.heightOf(context);
     final controlsTop = topInset + AppSpace.x2;
@@ -172,7 +171,7 @@ class _ContentState extends State<_Content> {
             groundAt: groundAt,
           ),
         ),
-        PinnedAction(
+        _PinnedAction(
           label: "Add to trip",
           icon: AppIcons.add,
           onPressed: () => showAddToItinerary(
@@ -854,4 +853,148 @@ class _AroundHere extends ConsumerWidget {
       ),
     );
   }
+}
+
+/// Add to trip, floating at the bottom trailing corner: a green capsule that
+/// folds to its glyph while reading. Takes its own `SafeArea`.
+class _PinnedAction extends StatelessWidget {
+  const _PinnedAction({
+    required this.label,
+    required this.icon,
+    required this.onPressed,
+  });
+
+  final String label;
+  final IconData icon;
+  final VoidCallback? onPressed;
+
+  /// The button, its gutter all round, and the gesture inset under it.
+  static double extentOf(BuildContext context) =>
+      AppSize.primaryButton +
+      AppSpace.gutter * 2 +
+      MediaQuery.viewPaddingOf(context).bottom;
+
+  @override
+  Widget build(BuildContext context) {
+    final compact = _Compact.of(context);
+    return Positioned(
+      right: 0,
+      bottom: 0,
+      // Own RepaintBoundary so folding repaints only the action.
+      child: RepaintBoundary(
+        child: SafeArea(
+          top: false,
+          minimum: const EdgeInsets.all(AppSpace.gutter),
+          child: Pressable(
+            enabled: onPressed != null,
+            child: Tooltip(
+              message: label,
+              excludeFromSemantics: true,
+              child: FilledButton(
+                onPressed: onPressed,
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size.square(AppSize.primaryButton),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: (AppSize.primaryButton - AppSize.glyph) / 2,
+                  ),
+                ),
+                child: Semantics(
+                  label: label,
+                  excludeSemantics: true,
+                  child: AppMotionBuilder(
+                    end: compact ? 0 : 1,
+                    builder: (context, t, _) {
+                      final open = t.clamp(0.0, 1.0);
+                      return Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(icon, size: AppSize.glyph),
+                          if (open > 0)
+                            ClipRect(
+                              child: Align(
+                                alignment: Alignment.centerLeft,
+                                widthFactor: open,
+                                child: Padding(
+                                  padding: const EdgeInsets.only(
+                                    left: AppSpace.x2,
+                                  ),
+                                  child: Opacity(
+                                    opacity: open,
+                                    child: Text(label, maxLines: 1),
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Folds [_PinnedAction] after a deliberate scroll down, opens it on a scroll
+/// up or at the top, and keeps it folded at the bottom over the last row.
+class _PinnedActionScope extends StatefulWidget {
+  const _PinnedActionScope({required this.child});
+
+  final Widget child;
+
+  @override
+  State<_PinnedActionScope> createState() => _PinnedActionScopeState();
+}
+
+class _PinnedActionScopeState extends State<_PinnedActionScope> {
+  bool _compact = false;
+  double _travel = 0;
+
+  static const _foldAfter = AppSpace.x12;
+  static const _openAfter = AppSpace.x6;
+
+  bool _onScroll(ScrollNotification notification) {
+    final metrics = notification.metrics;
+    if (metrics.axis != Axis.vertical || notification.depth != 0) return false;
+    if (notification is! ScrollUpdateNotification) return false;
+    final atTop = metrics.pixels <= metrics.minScrollExtent;
+    final atBottom = metrics.pixels >= metrics.maxScrollExtent;
+    final delta = notification.scrollDelta ?? 0;
+    if ((delta > 0) != (_travel > 0)) _travel = 0;
+    _travel += delta;
+    final compact = atTop
+        ? false
+        : atBottom
+        ? true
+        : _travel > _foldAfter
+        ? true
+        : _travel < -_openAfter
+        ? false
+        : _compact;
+    if (compact != _compact) setState(() => _compact = compact);
+    return false;
+  }
+
+  @override
+  Widget build(BuildContext context) =>
+      NotificationListener<ScrollNotification>(
+        onNotification: _onScroll,
+        child: _Compact(compact: _compact, child: widget.child),
+      );
+}
+
+class _Compact extends InheritedWidget {
+  const _Compact({required this.compact, required super.child});
+
+  final bool compact;
+
+  static bool of(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<_Compact>()?.compact ?? false;
+
+  @override
+  bool updateShouldNotify(_Compact old) => compact != old.compact;
 }

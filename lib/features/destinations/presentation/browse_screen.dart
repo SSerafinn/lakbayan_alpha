@@ -6,7 +6,6 @@ import "../../../core/models/destination.dart";
 import "../../../core/router/app_router.dart";
 import "../../../core/theme/app_dimens.dart";
 import "../../../core/theme/app_icons.dart";
-import "../../../core/theme/app_layout.dart";
 import "../../../core/theme/app_typography.dart";
 import "../../../core/widgets/chrome/floating_tab_bar.dart";
 import "../../../core/widgets/content/lakbayan_badge.dart";
@@ -45,10 +44,10 @@ class BrowseScreen extends ConsumerWidget {
     final selected = ref.watch(browseCategoryProvider);
     final query = ref.watch(browseQueryProvider);
     final topInset = MediaQuery.viewPaddingOf(context).top;
-    final columns = switch (context.widthClass) {
-      WidthClass.compact => 2,
-      WidthClass.medium => 3,
-      WidthClass.expanded => 4,
+    final columns = switch (_WidthClass.of(context)) {
+      _WidthClass.compact => 2,
+      _WidthClass.medium => 3,
+      _WidthClass.expanded => 4,
     };
     final rows = ref.watch(browseGridRowsProvider(columns));
 
@@ -243,5 +242,21 @@ class _NoResults extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+/// Material 3 window size classes (design doc 07); no widget holds a raw
+/// width. Promote to `lib/core/` when a second screen adapts.
+enum _WidthClass {
+  compact,
+  medium,
+  expanded;
+
+  /// `sizeOf`, so only a size change rebuilds.
+  static _WidthClass of(BuildContext context) {
+    final width = MediaQuery.sizeOf(context).width;
+    if (width < 600) return compact;
+    if (width < 840) return medium;
+    return expanded;
   }
 }
