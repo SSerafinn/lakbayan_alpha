@@ -142,30 +142,20 @@ class MapSelectedId extends _$MapSelectedId {
 }
 
 /// The places the map shows: Browse's results, narrowed to saved when the
-/// Saved chip is on, sorted by distance from the selected pin when there is
-/// one (client-side over `coords`, a small set).
+/// Saved chip is on. Not reordered by the selection: the rail's cards are
+/// this list, and a card must not change place under a swipe.
 @riverpod
 AsyncValue<List<Destination>> mapResults(Ref ref) {
   final savedOnly = ref.watch(mapShowsSavedProvider);
   final saved = ref.watch(savedDestinationsProvider);
-  final selectedId = ref.watch(mapSelectedIdProvider);
-  return ref.watch(browseResultsProvider).whenData((all) {
-    final items = [
-      for (final destination in all)
-        if (!savedOnly || saved.contains(destination.id)) destination,
-    ];
-    final selected = items.where((d) => d.id == selectedId).firstOrNull;
-    if (selected == null) return items;
-    final origin = LatLng(selected.coords.lat, selected.coords.lng);
-    items.sort(
-      (a, b) => _distance
-          .distance(origin, LatLng(a.coords.lat, a.coords.lng))
-          .compareTo(
-            _distance.distance(origin, LatLng(b.coords.lat, b.coords.lng)),
-          ),
-    );
-    return items;
-  });
+  return ref
+      .watch(browseResultsProvider)
+      .whenData(
+        (all) => [
+          for (final destination in all)
+            if (!savedOnly || saved.contains(destination.id)) destination,
+        ],
+      );
 }
 
 const _distance = Distance();

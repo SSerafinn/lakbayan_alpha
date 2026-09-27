@@ -132,6 +132,16 @@ class _PlacesSheetState extends ConsumerState<_PlacesSheet> {
     final selectedId = ref.watch(mapSelectedIdProvider);
     final query = ref.watch(browseQueryProvider).trim();
     final selected = items.where((d) => d.id == selectedId).firstOrNull;
+    // Nearest first from the chosen pin, in the list only: the rail keeps
+    // the map's order so its cards stay where they were swiped.
+    final rows = selected == null
+        ? items
+        : ([...items]..sort(
+            (a, b) => distanceBetween(
+              selected,
+              a,
+            ).compareTo(distanceBetween(selected, b)),
+          ));
     final title = selected?.town ?? (query.isEmpty ? "Cagayan" : query);
     final barHeight = FloatingTabBar.clearance(context);
     final barHidden = ref.watch(homeChromeProvider) == HomeChromeState.hidden;
@@ -197,9 +207,9 @@ class _PlacesSheetState extends ConsumerState<_PlacesSheet> {
                     SliverPadding(
                       padding: gutter,
                       sliver: SliverGroupedSection(
-                        itemCount: items.length,
+                        itemCount: rows.length,
                         itemBuilder: (context, index) => _PlaceRow(
-                          place: items[index],
+                          place: rows[index],
                           from: selected,
                           distanceColor: context.lakbayan.spatial,
                         ),
