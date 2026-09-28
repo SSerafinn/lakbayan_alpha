@@ -23,9 +23,10 @@ Branching, commit format, PR rules and release tagging live in one place —
 **the Git workflow section of `README.md`**. Summary: `main` ← `staging` ←
 `feat/*`, never commit directly to the first two, squash into `staging`.
 
-CI must pass: `flutter analyze`, `dart run custom_lint`, `flutter test`,
-`flutter build apk --debug`, and the rules tests in `test_rules/`.
-Note `flutter analyze` does **not** run custom_lint plugins — both are required.
+CI must pass: `dart analyze`, `flutter test`, `flutter build apk --debug`,
+and the rules tests in `test_rules/`. Use `dart analyze` rather than
+`flutter analyze` — riverpod_lint is a native analyzer plugin and only the
+former reliably loads it.
 
 ## Firebase
 - Separate dev/prod projects; Android flavors; Emulator Suite for local dev.

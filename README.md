@@ -13,7 +13,7 @@ most of it downloads.
 
 | Tool | Version | Why this version |
 |---|---|---|
-| **Flutter SDK** | **3.41.6** | Pinned. CI and the Docker image use exactly this; a different minor can change generated code. |
+| **Flutter SDK** | **3.47.2** | Pinned. CI and the Docker image use exactly this; a different minor can change generated code. |
 | **JDK** | **17** | **Not 21, not 26.** Gradle 8.14 fails on anything newer — see step 2. |
 | **Android Studio** | latest | For the Android SDK, platform-tools and a device emulator. |
 | **Docker Desktop** | latest, WSL2 backend | Runs the Firebase emulators. |
@@ -57,7 +57,7 @@ cd lakbayan_alpha && flutter pub get
 ```
 
 ```bash
-dart run build_runner build --delete-conflicting-outputs
+dart run build_runner build
 ```
 
 **Codegen is not optional.** `*.freezed.dart` and `*.g.dart` are gitignored, so a
@@ -80,6 +80,31 @@ docker compose --profile tools build
 ```
 
 The `--profile tools` flag is required — without it that service is skipped silently.
+
+### Put something in it
+
+A fresh emulator is empty, and an empty backend looks exactly like a broken
+connection: both give you a blank Explore tab and a CMS with nothing in it.
+Seed it:
+
+```bash
+cd scripts && npm install
+```
+
+```bash
+node seed-emulator.mjs
+```
+
+That gives you six published Cagayan destinations — two with audio guides — and
+an admin account, `test@gmail.com` / `password`. Pass a different address as an
+argument if you prefer. Re-run it whenever you like: documents are keyed by slug,
+so it overwrites rather than duplicates.
+
+You will need it again after any reset — see
+[Emulator data](docs/DOCKER.md#emulator-data) for when that happens.
+
+> Emulator only. It refuses to run against anything but a `demo-` project,
+> because unlike `import-content.mjs` it writes **published** documents.
 
 ## 5 · Run the app
 
@@ -107,11 +132,7 @@ so a **hot restart will not pick up edits** to `config/dev.json` — stop and re
 You are ready when all of these pass:
 
 ```bash
-flutter analyze
-```
-
-```bash
-dart run custom_lint
+dart analyze
 ```
 
 ```bash
@@ -122,8 +143,21 @@ flutter test
 cd test_rules && npm install && npm test
 ```
 
-`flutter analyze` does **not** run custom_lint plugins, so the riverpod_lint rules
-are inert without that second command. Run both before pushing.
+**`dart analyze`, not `flutter analyze`.** Both read the same
+`analysis_options.yaml`, and riverpod_lint is a native analyzer plugin
+(`plugins:` in that file) rather than a separate command. But `flutter analyze`
+does not reliably load the plugin — on at least one machine here it reports a
+clean tree while `dart analyze` flags real violations, and CI catches them
+either way. Run the one that catches more.
+
+It does not check formatting, and CI does:
+
+```bash
+dart format $(git ls-files '*.dart')
+```
+
+Tracked files only — the generated `*.freezed.dart` and `*.g.dart` belong to
+build_runner, not to us.
 
 Then in the app: sign up with an email, and check the user appears in the Emulator
 UI Auth tab plus a `users/{uid}` document in the Firestore tab. Nothing will appear
@@ -136,15 +170,15 @@ in the Firebase *console* — that is correct, you are on the emulator.
 Recommended over the emulator: real GPS, real performance, and no virtualization
 overhead.
 
-Enable **Developer options → USB debugging**, plug in, then copy the shared config
-and set your own LAN IP:
+Enable **Developer options → USB debugging**, plug in, then let the helper work
+out your LAN IP and write it into a per-developer config:
 
 ```bash
-cp config/dev.json config/local.json
+node scripts/emulator-host.mjs --write
 ```
 
-Set `FIREBASE_EMULATOR_HOST` to your PC's Wi-Fi IPv4 (`ipconfig` — the Wi-Fi
-adapter, not WSL or VirtualBox), then:
+It skips the virtual adapters a phone cannot reach (WSL, VirtualBox, Hyper-V)
+and confirms the emulator actually answers on the address it picks. Then:
 
 ```bash
 flutter run --dart-define-from-file=config/local.json
@@ -179,10 +213,18 @@ Email/password sign-in works without any of this.
 |---|---|
 | Run the app | `flutter run --dart-define-from-file=config/dev.json` |
 | Codegen after model/provider changes | `dart run build_runner build` (or `/gen`) |
-| Static analysis | `flutter analyze` **and** `dart run custom_lint` |
+| Static analysis (includes riverpod_lint) | `dart analyze` — not `flutter analyze`, see above |
+| Format Dart before pushing | `dart format $(git ls-files '*.dart')` |
 | Flutter tests | `flutter test` |
 | Security-rules tests | `cd test_rules && npm test` |
 | Start / stop the backend | `docker compose up -d emulators` / `docker compose down` |
+| Seed content + an admin after a reset | `cd scripts && node seed-emulator.mjs` |
+| Plan an offline map pack for a town | `cd scripts && node extract-tiles.mjs "Peñablanca"` (add `--run` to build it) |
+| Rasterise that pack for the app | `docker compose --profile tiles run --rm tiles node rasterise.mjs …` — see [docs/DOCKER.md](docs/DOCKER.md#map-tile-packs) |
+| Add or remove an admin | CMS → **Users & roles** (first admin on a fresh project: `scripts/grant-admin.mjs`) |
+| Cloud Functions tests on the host | `cd functions && npm install && npm test` |
+| Find the emulator host for a phone | `node scripts/emulator-host.mjs` |
+| Refill an empty emulator | `cd scripts && node seed-emulator.mjs` |
 | Reproducible build, matching CI | `docker compose run --rm toolchain flutter test` |
 | Design system specimen | run the app → Profile tab → **Design system** |
 
@@ -199,13 +241,22 @@ is exported on clean shutdown, so your test users survive.
 3. **Config edits ignored** — dart-defines are compile-time; hot restart is not enough.
 4. **Emulator calls hang on a physical device** — Windows Firewall. Load
    `http://<your-ip>:4000` in the phone's browser to confirm before touching code.
-5. **Google Sign-In fails on web** — needs `GOOGLE_WEB_CLIENT_ID`; Android reads it
+5. **Every list in the app is empty** — usually a stale `FIREBASE_EMULATOR_HOST`
+   after a DHCP change, not missing content. In debug the app now says so in a
+   strip along the bottom; `node scripts/emulator-host.mjs` gives you the
+   current address.
+6. **Google Sign-In fails on web** — needs `GOOGLE_WEB_CLIENT_ID`; Android reads it
    from `google-services.json` instead. Android is the platform that matters here.
 
 ## Becoming an admin
 
-Every content write in `firestore.rules` requires the `admin` custom claim. Grant
-it to yourself after signing in through the app once:
+Every content write in `firestore.rules` requires the `admin` custom claim.
+Without it the CMS signs you in and then tells you that you are not an
+administrator, which reads like a broken login but is working as designed.
+
+On the emulator, `node seed-emulator.mjs` already creates an admin account for
+you — nothing further is needed. To promote a *different* account, sign in
+through the app or CMS once so the account exists, then:
 
 ```bash
 cd scripts && npm install
@@ -218,6 +269,9 @@ node grant-admin.mjs you@example.com
 That targets the **emulator** by default. Sign out and back in afterwards —
 custom claims are baked into the ID token and do not appear until it is reissued.
 For a real project, `--live` with `GOOGLE_APPLICATION_CREDENTIALS` set.
+
+`grant-admin.mjs` is the tool for promoting a real person on a real project.
+`seed-emulator.mjs` is the local shortcut and cannot touch a real project at all.
 
 ## Git workflow
 
@@ -274,10 +328,10 @@ the context the next person needs and the hardest to reconstruct later.
 
 ### Before you open a PR
 
-All four must pass. CI runs them anyway, but locally is faster than a red build:
+All three must pass. CI runs them anyway, but locally is faster than a red build:
 
 ```bash
-flutter analyze && dart run custom_lint && flutter test
+dart analyze && flutter test
 ```
 
 ```bash
@@ -333,6 +387,7 @@ where neither owns them. See `docs/DECISIONS.md` D-10.
 ```
 lib/core/        theme, router, models, services shared across features
 lib/features/    one folder per feature (data/domain/presentation)
+lib/features/landing/  the first screens a new visitor sees, before sign-in
 cms/             admin CMS — React + Vite (see cms/README.md)
 design/          tokens.json — single source of truth for BOTH apps' styling
 config/          run configuration — dev.json shared, local.json yours

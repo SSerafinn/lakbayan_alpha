@@ -1,0 +1,3 @@
+﻿destination_ref,stop_number,stop_title,stop_caption,narration_script,recording_filename,language,notes
+EXAMPLE-001 (delete this row),1,The river crossing,"Shown beside the stop in the player.","What the guide says out loud at this stop. Write it as speech, not as a brochure — it is either read by the narrator or spoken by the device. One or two short paragraphs per stop works best.",callao-stop-01.mp3,English,"Recording supplied by the tourism office; script also exists in Ilocano"
+EXAMPLE-001 (delete this row),2,The chapel chamber,"The second chamber, fitted with an altar.","Narration for the second stop. If a recording already exists, still give us the script — it is what a deaf or hard-of-hearing visitor reads.",,English,"No recording yet — script only"

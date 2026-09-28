@@ -11,10 +11,10 @@ class TimestampConverter implements JsonConverter<DateTime?, Object?> {
 
   @override
   DateTime? fromJson(Object? json) => switch (json) {
-        final Timestamp t => t.toDate(),
-        final String s => DateTime.tryParse(s),
-        _ => null,
-      };
+    final Timestamp t => t.toDate(),
+    final String s => DateTime.tryParse(s),
+    _ => null,
+  };
 
   @override
   Object? toJson(DateTime? date) =>

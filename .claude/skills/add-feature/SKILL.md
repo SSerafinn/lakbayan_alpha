@@ -20,6 +20,6 @@ Create a new feature named `$ARGUMENTS` under `lib/features/`, following
 4. Register the route(s) in `lib/core/router/app_router.dart` (go_router).
 5. Read data **local-first** (cache/Firestore offline) per the offline strategy.
 6. Add a widget/unit test under `test/features/$ARGUMENTS/`.
-7. `flutter analyze` clean; then `/commit` with `feat($ARGUMENTS): ...`.
+7. `dart analyze` clean; then `/commit` with `feat($ARGUMENTS): ...`.
 
 Keep UI theming from `lib/core/theme/` — never hardcode brand colors.

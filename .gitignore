@@ -46,6 +46,20 @@ ios/Runner/GoogleService-Info.plist
 test_rules/node_modules/
 test_rules/package-lock.json
 scripts/node_modules/
+functions/node_modules/
+# Installed inside docker/tiles — the renderer's binaries are Linux-only, so a
+# host install would not work anyway.
+tools/tiles/node_modules/
+# Offline map packs, and everything the tile pipeline writes beside them.
+# Regenerable, and a single town pack is several MB.
+#
+# Anchored with a leading slash. Without it the pattern matches a directory
+# named `tiles` at ANY depth, which silently swallowed both `docker/tiles/` and
+# `tools/tiles/` — the pipeline itself — and they simply never appeared in
+# `git status`.
+/tiles/
+# tsc output; the emulator container rebuilds it on every start.
+functions/lib/
 scripts/package-lock.json
 
 # Per-developer run config (LAN IP for testing on a physical device).
@@ -57,6 +71,11 @@ config/local.json
 # deliberately and commit it under a named folder — see docs/DOCKER.md.
 .emulator-data/
 artifacts/
+
+# Office lock files. Excel writes ~$Book.xlsx beside a workbook while it is
+# open and deletes it on close, so it only ever appears mid-edit — which is
+# exactly when someone is most likely to `git add` the intake folder.
+~$*
 
 # misc
 *.log

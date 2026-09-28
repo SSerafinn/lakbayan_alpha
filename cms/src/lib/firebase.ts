@@ -2,6 +2,14 @@ import { initializeApp, type FirebaseOptions } from "firebase/app";
 import { getAuth, connectAuthEmulator } from "firebase/auth";
 import { getFirestore, connectFirestoreEmulator } from "firebase/firestore";
 import { getStorage, connectStorageEmulator } from "firebase/storage";
+import { getFunctions, connectFunctionsEmulator } from "firebase/functions";
+
+/**
+ * Must match `REGION` in functions/src/region.ts. A mismatch does not throw —
+ * the call simply 404s — so this is the one place it is set on this side.
+ * See docs/DECISIONS.md D-12.
+ */
+export const FUNCTIONS_REGION = "asia-southeast1";
 
 /**
  * Whether to talk to the local Emulator Suite.
@@ -47,6 +55,7 @@ export const app = initializeApp(useEmulators ? demoConfig : liveConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const storage = getStorage(app);
+export const functions = getFunctions(app, FUNCTIONS_REGION);
 
 if (useEmulators) {
   // Must run before any read or write — these SDKs latch their endpoint on
@@ -56,6 +65,7 @@ if (useEmulators) {
   });
   connectFirestoreEmulator(db, emulatorHost, 8080);
   connectStorageEmulator(storage, emulatorHost, 9199);
+  connectFunctionsEmulator(functions, emulatorHost, 5001);
 }
 
 // eslint-disable-next-line no-console

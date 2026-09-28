@@ -8,11 +8,20 @@ services:
     ports:
       - "4000:4000"   # Emulator Suite UI  -> http://localhost:4000
       - "4400:4400"   # hub
-      - "4500:4500"   # logging
-      # Published ahead of time. The functions emulator is deliberately absent
-      # from firebase.json until Phase 3 creates functions/ — configuring it
-      # with no source makes the suite print a hard error on every startup.
-      - "5001:5001"   # functions (Phase 3)
+      # 4500 (logging) is deliberately NOT published. Windows reserves blocks of
+      # ports for Hyper-V, and 4500 lands inside one on at least one machine
+      # here (`netsh interface ipv4 show excludedportrange protocol=tcp` listed
+      # 4495-4594). Docker then fails the whole container with "bind: An attempt
+      # was made to access a socket in a way forbidden by its access
+      # permissions" — and because it aborts partway through publishing, the
+      # container comes up *healthy* with most ports unmapped, which looks like
+      # a network problem rather than a port conflict.
+      #
+      # Nothing needs it from the host: the emulator still binds 4500 inside the
+      # container, and the Emulator UI on 4000 shows the logs. The ranges are
+      # assigned dynamically and move on reboot, so if another port here starts
+      # failing the same way, check that command before anything else.
+      - "5001:5001"   # functions
       - "8080:8080"   # firestore
       - "9099:9099"   # auth
       - "9150:9150"   # firestore websocket
@@ -26,11 +35,13 @@ services:
       - ./storage.rules:/app/storage.rules:ro
       # Auth users and Firestore documents survive a restart.
       - ./.emulator-data:/app/.emulator-data
-    command: >
-      firebase emulators:start
-      --project demo-lakbayan
-      --import=/app/.emulator-data
-      --export-on-exit=/app/.emulator-data
+      # Cloud Functions source. The container installs and builds it on start
+      # (docker/firebase/start.sh); lib/ lands back on the host through this
+      # mount, node_modules stays in the named volume below.
+      - ./functions:/app/functions
+      - functions-modules:/app/functions/node_modules
+      - ./docker/firebase/start.sh:/app/start.sh:ro
+    command: ["sh", "/app/start.sh"]
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:4000"]
       interval: 10s
@@ -39,7 +50,7 @@ services:
       start_period: 40s
 
   # CI-parity toolchain. Not started by `up` — invoke per command:
-  #   docker compose run --rm toolchain flutter analyze
+  #   docker compose run --rm toolchain dart analyze
   #
   # NOTE: because this service sits behind a profile, a bare `docker compose
   # build` silently skips it. Build with `docker compose --profile tools build`.
@@ -70,7 +81,36 @@ services:
     stdin_open: true
     tty: true
 
+  # Tile pipeline. Not started by `up` — invoke per command:
+  #   docker compose --profile tiles run --rm tiles npm run smoke
+  #
+  # Its own image because MapLibre Native is a compiled OpenGL renderer whose
+  # prebuilt binaries target Ubuntu 24.04, and it does not run on the Windows
+  # hosts. See docker/tiles/Dockerfile and D-11.
+  tiles:
+    build:
+      # Root context: the Dockerfile copies scripts/lib as well, so the tile
+      # maths is shared with scripts/extract-tiles.mjs rather than duplicated.
+      context: .
+      dockerfile: docker/tiles/Dockerfile
+    profiles: ["tiles"]
+    # A real init to reap the Xvfb the entrypoint backgrounds. Without one the
+    # renderer's own child processes accumulate as zombies across a long run.
+    init: true
+    working_dir: /app/tools/tiles
+    volumes:
+      - ./tools/tiles:/app/tools/tiles
+      - ./scripts/lib:/app/scripts/lib:ro
+      # Packs land on the host here. Gitignored — they are regenerable and
+      # several MB each.
+      - ./tiles:/app/out
+      # Linux node_modules must not collide with anything the host installed,
+      # the same separation the toolchain image keeps for .dart_tool.
+      - tiles-modules:/app/tools/tiles/node_modules
+
 volumes:
+  tiles-modules:
+  functions-modules:
   dart-tool:
   build-out:
   gradle-project:

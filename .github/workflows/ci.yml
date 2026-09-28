@@ -18,12 +18,12 @@ jobs:
   app:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # Gradle 8.14 / AGP do not support JDK 26 — pin to 17.
       # The rules job below needs 21 for the Firestore emulator, which is why
       # these are separate jobs rather than separate steps.
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: "17"
@@ -31,19 +31,41 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
-          flutter-version: 3.41.6 # keep in step with the team's local SDK
+          flutter-version: 3.47.2 # keep in step with the team's local SDK
           cache: true
 
       - run: flutter pub get
 
+      # After pub get, before codegen.
+      #
+      # It ran first originally, on the reasoning that formatting needs neither
+      # step — which is true, but the formatter still reads analysis_options.yaml,
+      # and that file `include:`s package:flutter_lints. With no package
+      # resolution yet it cannot follow the include, so every run printed a
+      # screenful of "Failed to resolve package URI" warnings. Harmless, and
+      # more than enough to bury a real message.
+      #
+      # Still ahead of build_runner, which is the genuinely slow step, so a
+      # whitespace mistake fails in well under a minute rather than ten.
+      #
+      # Only tracked files. Generated sources (*.freezed.dart, *.g.dart) are
+      # gitignored but do exist once build_runner has run, and they are its
+      # output rather than ours to format.
+      #
+      # `dart analyze` does not check formatting, which is how a de-indented
+      # line with trailing whitespace once passed CI untouched.
+      - run: dart format --output=none --set-exit-if-changed $(git ls-files '*.dart')
+
       # Generated sources are gitignored, so this must run before analyze.
       - run: dart run build_runner build
 
-      - run: flutter analyze
-
-      # `flutter analyze` does NOT execute custom_lint plugins, so riverpod_lint
-      # rules are inert without this step.
-      - run: dart run custom_lint
+      # `dart analyze`, NOT `flutter analyze`. Both read the same
+      # analysis_options.yaml, but only `dart analyze` reliably loads the
+      # native analyzer plugin that riverpod_lint became in 3.1.4. On at least
+      # one developer machine `flutter analyze` reports a clean tree while
+      # `dart analyze` flags real violations of it — so the two commands
+      # disagree, and the one that catches more is the one to run.
+      - run: dart analyze
 
       - run: flutter test
 
@@ -53,7 +75,7 @@ jobs:
       # missing". See docs/DECISIONS.md D-08.
       - run: flutter build apk --debug
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: app-debug
           path: build/app/outputs/flutter-apk/app-debug.apk
@@ -67,9 +89,9 @@ jobs:
       run:
         working-directory: cms
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: npm
@@ -82,22 +104,50 @@ jobs:
       # browser.
       - run: npm run typecheck
       - run: npm run lint
+      - run: npm run test
       - run: npm run build
+
+      # scripts/ rides along in this job rather than getting its own.
+      #
+      # Branch protection requires exactly three checks by name — `app`, `cms`
+      # and `rules` (see docs/REPO_SETTINGS.md). A fourth job would not be
+      # required, so it could fail without blocking a merge, which is worse
+      # than a slightly overloaded job name. Move it out if and when the
+      # required-checks list is updated to match.
+      #
+      # `npm test` here is the JavaScript half of the slug contract; the
+      # TypeScript half runs above. They assert the same fixture, and the
+      # importer creates duplicate destinations if the two ever disagree.
+      - run: npm install
+        working-directory: scripts
+      - run: npm run lint
+        working-directory: scripts
+      - run: npm run test
+        working-directory: scripts
+
+      # functions/ too, for the same reason. `npm test` compiles first, so a
+      # type error fails here as well as a failing assertion.
+      - run: npm install
+        working-directory: functions
+      - run: npm run lint
+        working-directory: functions
+      - run: npm run test
+        working-directory: functions
 
   # firestore.rules is code and is reviewed like code. It is evaluated by the
   # emulator rather than by Dart, so it gets its own job.
   rules:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # firebase-tools refuses to run the Firestore emulator below JDK 21.
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: "21"
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
 
@@ -108,4 +158,9 @@ jobs:
 
       # emulators:exec starts the suite, runs the command, and tears it down,
       # failing the job if the command does.
-      - run: firebase emulators:exec --project demo-lakbayan "cd test_rules && npm test"
+      #
+      # --only firestore: firebase.json now declares functions/, and without
+      # this flag the suite would also try to start the functions emulator —
+      # which needs functions/lib built and would fail this job for a reason
+      # that has nothing to do with the rules.
+      - run: firebase emulators:exec --only firestore --project demo-lakbayan "cd test_rules && npm test"

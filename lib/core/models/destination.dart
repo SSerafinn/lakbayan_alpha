@@ -27,14 +27,14 @@ enum DestinationCategory {
   unknown;
 
   String get label => switch (this) {
-        church => "Churches",
-        nature => "Nature",
-        heritage => "Heritage",
-        museum => "Museums",
-        food => "Food",
-        landmark => "Landmarks",
-        unknown => "Other",
-      };
+    church => "Churches",
+    nature => "Nature",
+    heritage => "Heritage",
+    museum => "Museums",
+    food => "Food",
+    landmark => "Landmarks",
+    unknown => "Other",
+  };
 }
 
 /// Publication state. Only [published] documents are readable by non-admins —
@@ -97,6 +97,10 @@ abstract class Destination with _$Destination {
   /// The Storage path of the card image, if there is one.
   String? get coverImage => images.isEmpty ? null : images.first;
 
+  /// Shared [Hero] tag for the "Popular this week" → detail continuity
+  /// transition. One tag per destination keeps it stable across rebuilds.
+  String get popularHeroTag => "popular-image-$id";
+
   /// True when this document was written by a newer client than this build
   /// understands. Callers should degrade gracefully rather than hide the row.
   bool get isNewerSchema => schemaVersion > destinationSchemaVersion;
@@ -122,7 +126,8 @@ abstract class Segment with _$Segment {
 
   const Segment._();
 
-  factory Segment.fromJson(Map<String, dynamic> json) => _$SegmentFromJson(json);
+  factory Segment.fromJson(Map<String, dynamic> json) =>
+      _$SegmentFromJson(json);
 
   /// A segment with neither recorded audio nor TTS text cannot be played.
   bool get isPlayable =>

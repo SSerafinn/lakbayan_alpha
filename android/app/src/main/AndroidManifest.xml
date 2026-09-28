@@ -4,7 +4,33 @@
          would leave release builds unable to reach the network at all. -->
     <uses-permission android:name="android.permission.INTERNET"/>
 
+    <!-- Android 11 (API 30) package visibility: without this the device's
+         text-to-speech engine is invisible to us and flutter_tts finds no
+         engine at all. That is the audio guide's fallback for any stop with a
+         script but no recording, so on a modern phone those stops would simply
+         be silent — with no error, because nothing failed. The plugin does not
+         declare this itself; its own manifest is only a package tag. -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.TTS_SERVICE" />
+        </intent>
+        <!-- Same API 30 visibility rule, and the same silent failure: without
+             these, `canLaunchUrl` answers false for every `geo:` and `https:`
+             URI even when a map app and a browser are both installed. Nothing
+             throws — "Take me there" would simply refuse, on a phone that can
+             obviously do it. url_launcher declares neither itself. -->
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="geo" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="https" />
+        </intent>
+    </queries>
+
     <application
+        android:enableOnBackInvokedCallback="true"
         android:label="lakbayan"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">

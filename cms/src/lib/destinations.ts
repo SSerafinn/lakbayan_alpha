@@ -18,6 +18,7 @@ import {
   deleteObject,
 } from "firebase/storage";
 import { auth, db, storage } from "./firebase";
+import { deleteAllSegments } from "./segments";
 import {
   DESTINATION_SCHEMA_VERSION,
   type Destination,
@@ -97,7 +98,16 @@ export async function setStatus(id: string, status: Status): Promise<void> {
   await updateDestination(id, { status });
 }
 
+/**
+ * Delete a destination and its audio guide.
+ *
+ * Firestore does not cascade. Deleting only the parent leaves the `segments`
+ * subcollection behind: the documents survive, no query reaches them, and
+ * `firestore.rules` can no longer resolve their visibility because the parent
+ * it reads is gone. Subcollections go first, then the document.
+ */
 export async function deleteDestination(id: string): Promise<void> {
+  await deleteAllSegments(id);
   await deleteDoc(doc(db, COLLECTION, id));
 }
 

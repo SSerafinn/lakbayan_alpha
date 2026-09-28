@@ -132,6 +132,21 @@ bundle generator can build that shape from the destinations' `coords`.
 This is worth designing in from the start; retrofitting it after shipping
 whole-municipality packs means re-downloading everything.
 
+**Implemented** as `scripts/extract-tiles.mjs`. Measured on six destinations
+spread across one municipality, which is the realistic case:
+
+| maxzoom | buffer union | whole municipality |
+|---|---|---|
+| 15 | 208 tiles · 1.6–4.1 MB | 828 tiles · 6.5–16.2 MB |
+| 16 | 666 tiles · 5.2–13.0 MB | 3,037 tiles · 23.7–59.3 MB |
+| 17 | 2,421 tiles · 18.9–47.3 MB | 11,501 tiles · 89.9–224.6 MB |
+
+**4.6× fewer tiles at z16**, and the whole-municipality column reproduces the
+independently-calculated table above to within 3%, which is the cross-check that
+the script's tile arithmetic is right. Low-zoom context does come free: a z10
+tile spans ~40 km, so it covers the municipality whether or not the region asks
+for it. Figures are the raster bounds; a vector pack is materially smaller.
+
 ---
 
 ## Decided (2026-08-10)
@@ -178,6 +193,98 @@ measurement rather than on documentation, which is the part that cannot be
 researched from here.
 
 ---
+
+## Resolution findings (2026-09-09) — renderer settled as raster
+
+Before running the spike, the packages were resolved against this project as it
+actually stands (Flutter 3.47.2, `flutter_map ^8.3.1`, `latlong2 ^0.10.1`). **The
+stack D-11 recommended does not resolve**, and neither does anything else off the
+shelf. Every line below is a `flutter pub add --dry-run` result, not a reading of
+the pubspecs.
+
+| Attempt | Outcome |
+|---|---|
+| `vector_map_tiles_pmtiles` (the recommended path) | ❌ every version pins `pmtiles ^1.2.0` → `latlong2 ^0.9.0` |
+| `vector_map_tiles 9.0.0-beta.13` + `pmtiles ^2.2.0` | ❌ `pmtiles` 2.x wants `protobuf ^6`; `vector_tile_renderer` (**every** version, including 7.0.0-beta.1) wants `vector_tile ^2.0.0` → `protobuf ^3` |
+| `vector_map_tiles 9.0.0-beta.8` | ❌ `latlong2 ^0.9.1` against our `^0.10.1` |
+| `flutter_map_pmtiles` (raster) | ❌ same `pmtiles ^1.2.0` → `latlong2 ^0.9.0` |
+| `flutter_map_mbtiles` (raster) | ❌ `mbtiles ^0.4.0` → `latlong2 ^0.9.0`. A different package, the same conflict |
+| `pmtiles ^2.2.0` alone | ✅ resolves |
+| `vector_map_tiles 9.0.0-beta.9` + `pmtiles ^1.3.0` + downgrades | ✅ resolves, expensively |
+| **`latlong2 ^0.9.1` + `flutter_map_pmtiles`** | ✅ **resolves. One downgrade, nothing else** |
+| `latlong2 ^0.9.1` + `flutter_map_mbtiles` | ✅ resolves, plus `sqlite3` |
+
+### One conflict, wearing several hats
+
+Every ❌ above is the same disagreement: **`latlong2` 0.9 against 0.10**. It is
+worth stating plainly because the first reading of this table was wrong, and the
+mistake changed the recommendation.
+
+`flutter_map` is not the constraint. 8.3.2 declares `latlong2 >=0.9.1 <0.11.0`
+and is content either way. **Our own `^0.10.1` pin is what forbids every tile
+package**, and nothing in `lib/` or `test/` imports `latlong2` directly, so
+relaxing it costs nothing today.
+
+Relaxed, both raster packages resolve with no beta, no second downgrade, and no
+adapter code of our own. That is the correction: **an earlier version of this
+section claimed a raster path also meant writing our own `TileProvider`. It does
+not.**
+
+### What each option costs
+
+**Vector**, the only combination that renders vector tiles here today:
+
+- `latlong2` ^0.10.1 → ^0.9.1.
+- `lottie` ^3.3.2 → 3.3.0. `pmtiles` 1.3.0 needs `archive ^3`, `lottie` from
+  3.3.1 needs `archive ^4`. `lottie` is unimported, so this costs nothing today,
+  but it is a real ceiling on a package we are keeping.
+- A **beta** renderer, `vector_map_tiles 9.0.0-beta.9` — and pinned there. The
+  betas from .10 onward moved to `latlong2` 0.10, which the `pmtiles` 1.x this
+  needs forbids. There is no upgrade path, only a rebuild on a different stack.
+- **Glue we own.** `vector_map_tiles_pmtiles` pins `vector_map_tiles ^8.0.0` and
+  cannot be used with the beta, so the adapter becomes ours to maintain.
+- Plus `unicode` 1.1.9 → 0.3.1 and `protobuf` held at 3.x.
+
+**Raster**, either package: `latlong2` ^0.10.1 → ^0.9.1. That is the whole list.
+
+### Decided (2026-09-09): raster
+
+See D-11. The reasoning, shortest first:
+
+1. **This map does not need vector.** It draws a basemap, pins, and one authored
+   polyline. No dynamic restyling, no feature filtering, no rotation-dependent
+   labels. Every advantage vector offers is one this app never uses.
+2. **The target hardware argues against it.** Vector rasterises geometry and
+   glyphs every frame; raster decodes an image and blits it. On the cheap Android
+   phones this app is for, that gap is where jank lives — and measuring it was
+   the spike's entire purpose.
+3. **Raster costs one downgrade and nothing else**, against a pinned beta, two
+   downgrades and an adapter we maintain.
+4. **The size argument that chose vector has weakened.** D-11 picked vector for
+   download size. The buffer union above already cut a town pack to single-digit
+   MB. Vector might halve it again, which does not decide a one-time download
+   over wifi.
+
+**The cost, stated plainly: a rasterisation step**, because Protomaps publishes
+vector. It is build-time, per town, and small — a few hundred tiles for a town at
+z16. `@maplibre/maplibre-gl-native` is maintained on npm and renders a style to
+tiles headlessly; `pmtiles convert` moves between MBTiles and PMTiles, so either
+package's format is reachable from one pipeline. This project already runs its
+tooling in Docker, which is where that step belongs.
+
+`flutter_map_pmtiles` over `flutter_map_mbtiles`: same one-line cost, and it
+keeps the PMTiles format `scripts/extract-tiles.mjs` already produces and that
+`docs/DATA_MODEL.md` already reserves a Storage path for. The two are
+interchangeable behind a `TileLayer` if that turns out wrong.
+
+**Style flavour: `light`, confirmed 2026-09-09** after looking at a real
+rasterised tile of Peñablanca at z14. It is `tools/tiles/rasterise.mjs`'s
+default; `--flavour` takes the other Protomaps named flavours. Changing it means
+re-rendering every pack, so it is worth being deliberate about before towns are
+built in bulk.
+
+`scripts/extract-tiles.mjs` is unaffected. The pack it produces is the same file
+under every option; only the renderer differs.
 
 ## Still open
 

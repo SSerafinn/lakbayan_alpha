@@ -1,3 +1,4 @@
+import "package:animations/animations.dart";
 import "package:flutter/foundation.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
@@ -7,13 +8,36 @@ import "../../features/auth/presentation/sign_in_screen.dart";
 import "../../features/auth/presentation/splash_screen.dart";
 import "../../features/design_system/presentation/design_system_gallery.dart";
 import "../../features/destinations/presentation/destination_detail_screen.dart";
+import "../../features/destinations/presentation/places_list_screen.dart";
+import "../../features/destinations/presentation/swipe_screen.dart";
 import "../../features/explore/presentation/home_shell.dart";
+import "../../features/landing/presentation/landing_screen.dart";
+import "../../features/itineraries/presentation/itinerary_screen.dart";
+import "../../features/offline/presentation/downloads_screen.dart";
+import "../prefs/app_preferences.dart";
 
 abstract final class Routes {
   static const splash = "/splash";
+  static const landing = "/landing";
   static const signIn = "/sign-in";
   static const home = "/";
   static const designSystem = "/design-system";
+
+  /// Wireframe 1f. Pushed from Profile rather than given a tab: downloading is
+  /// something you do once before a trip, not a place you spend time.
+  static const downloads = "/downloads";
+
+  /// Swipe mode, full screen. Reached from Home's swipe entry row.
+  static const swipe = "/swipe";
+
+  /// Popular places as a list. Home's "See all".
+  static const popular = "/popular";
+
+  /// Everything saved with the heart. Reached from Profile.
+  static const saved = "/saved";
+
+  /// One of the user's own itineraries. Pushed from the Itineraries tab.
+  static String itinerary(String id) => "/itinerary/$id";
 
   /// Destination Detail. Pushed, not replaced — wireframe 1d opens it as a
   /// sheet over whatever is beneath.
@@ -45,9 +69,32 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 
       final signedIn = auth.value != null;
       final mayEnter = signedIn || isGuest;
-      final atGate = here == Routes.splash || here == Routes.signIn;
+      final atGate =
+          here == Routes.splash ||
+          here == Routes.landing ||
+          here == Routes.signIn;
 
-      if (!mayEnter) return atGate && here == Routes.signIn ? null : Routes.signIn;
+      // No account yet. The landing pages are an introduction, so they run
+      // **once per device** and afterwards the entry point is sign-in.
+      //
+      // Showing them on every signed-out launch quietly undid the guest
+      // escape hatch: guest mode is session-only by design (see
+      // [GuestMode]), so someone browsing as a guest is signed out again on
+      // the next launch — and would have had to swipe through three pages of
+      // onboarding to reach "Skip for now" every single time. Wireframe 1b
+      // has guest keeping discovery open, not gated behind a carousel.
+      //
+      // Both routes stay reachable while signed out, so the back gesture out
+      // of sign-in still works.
+      if (!mayEnter) {
+        final atEntry = here == Routes.landing || here == Routes.signIn;
+        if (atEntry) return null;
+        // Null preferences (tests, or Hive unavailable) reads as "not seen",
+        // which shows the landing page. The safe direction to fail.
+        final seenLanding =
+            ref.read(appPreferencesProvider)?.hasSeenLanding ?? false;
+        return seenLanding ? Routes.signIn : Routes.landing;
+      }
       if (atGate) return Routes.home;
       return null;
     },
@@ -57,8 +104,26 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const SplashScreen(),
       ),
       GoRoute(
+        path: Routes.landing,
+        builder: (context, state) => const LandingScreen(),
+      ),
+      GoRoute(
         path: Routes.signIn,
-        builder: (context, state) => const SignInScreen(),
+        // Shared axis, vertical: Material's own pattern for screens with a
+        // navigational relationship, onboarding into auth among them.
+        pageBuilder: (context, state) => CustomTransitionPage<void>(
+          key: state.pageKey,
+          transitionDuration: const Duration(milliseconds: 420),
+          reverseTransitionDuration: const Duration(milliseconds: 360),
+          child: const SignInScreen(),
+          transitionsBuilder: (context, animation, secondary, child) =>
+              SharedAxisTransition(
+                animation: animation,
+                secondaryAnimation: secondary,
+                transitionType: SharedAxisTransitionType.vertical,
+                child: child,
+              ),
+        ),
       ),
       GoRoute(
         path: Routes.home,
@@ -68,6 +133,29 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: "/destination/:id",
         builder: (context, state) =>
             DestinationDetailScreen(id: state.pathParameters["id"]!),
+      ),
+      GoRoute(
+        path: Routes.swipe,
+        builder: (context, state) => const SwipeScreen(),
+      ),
+      GoRoute(
+        path: Routes.popular,
+        builder: (context, state) =>
+            const PlacesListScreen(list: PlacesList.popular),
+      ),
+      GoRoute(
+        path: Routes.saved,
+        builder: (context, state) =>
+            const PlacesListScreen(list: PlacesList.saved),
+      ),
+      GoRoute(
+        path: Routes.downloads,
+        builder: (context, state) => const DownloadsScreen(),
+      ),
+      GoRoute(
+        path: "/itinerary/:id",
+        builder: (context, state) =>
+            ItineraryScreen(id: state.pathParameters["id"]!),
       ),
       // Debug-only: the living design system specimen. Excluded from release so
       // it cannot be reached in a shipped build.

@@ -1,0 +1,2 @@
+﻿ref,name,town,specialties_semicolon_separated,contact_phone,contact_email,languages_spoken_semicolon_separated,accredited_yes_no,accreditation_number,featured_yes_no,consent_to_publish_yes_no,consent_recorded_by
+EXAMPLE-G01 (delete this row),Maria Santos,Peñablanca,caving;birdwatching;heritage walks,0917-000-0000,maria.santos@example.com,English;Filipino;Ilocano,yes,DOT-R2-2025-0142,no,yes,"Accreditation unit, form signed 2026-07-14"

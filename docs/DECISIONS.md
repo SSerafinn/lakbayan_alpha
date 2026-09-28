@@ -52,6 +52,99 @@ and every teammate fail with `File google-services.json is missing`.
 A **production** project is different — keep its config out of the repo and inject
 it in CI from a secret.
 
+## D-13 · Design language 2.0: white first, Satoshi, three shape types, Cupertino glyphs (2026-09-12)
+
+**Decision.** The 1.0.0 design system (green-washed surfaces; bordered,
+shadowed cards; 16dp buttons; Plus Jakarta Sans + Inter; dividers; pale-tint
+badges) is replaced by a white-first system whose hierarchy comes from
+position, grouping, size, weight, a single tint and surface tone. Concretely:
+
+- **Colour.** White ground, near-black text, grey chrome. Green is the
+  signature and does four jobs at full strength: the one primary action,
+  selection (solid green capsule, white text), links, the focus ring. No muted
+  tints anywhere. Gold is the FEATURED badge only; red is CLOSED and errors.
+- **Type.** One family, Satoshi (variable), set heavy: 900 for hero steps,
+  800/700 for headings and labels, 600 for body. Regular is too light at
+  phone sizes and is not in the ramp. Barabara stays for the landing greetings and the LAKBAYAN
+  wordmark only (a Philippine tourism trademark face). Plus Jakarta Sans and
+  Inter are removed. Khand and Switzer were tried on the branch and rejected:
+  Khand is a condensed display face and read cramped in UI.
+- **Shape.** Every rounded element is fixed, capsule or concentric
+  (`lib/core/theme/app_shape.dart`). Buttons are capsules again; this reverses
+  the 2026-08 note that reserved the pill for chips.
+- **Surfaces.** White, with a grey ladder for the rare tonal step. No
+  shadows. A 1dp hairline bounds chips, outlined badges and fields; it is
+  never a divider. `Divider` draws nothing.
+- **Badges and chips.** Solid, all caps, high contrast. Chips are quiet grey
+  at rest and solid green when selected.
+- **Icons.** `CupertinoIcons`, mapped once in `AppIcons`. A deliberate
+  exception to "Material icons for a Material app"; Material widgets remain.
+- **Structure.** Predictive back on, edge-to-edge content, one primary action
+  per screen as a FAB, bar actions grouped on a capsule, a scroll edge under
+  pinned controls, one destination list rendered as bar / rail / drawer by
+  width class.
+
+**Why.** The 1.0.0 system expressed emphasis with decoration and washed every
+surface in a pale green, which does not scale: every new screen added another
+border, shadow or tint to compete with the last, and the brand colour meant
+nothing because it was everywhere. Photography is the hero of this app; a white
+chrome gets out of its way, and a green that appears only on the thing you can
+act on is a green that means something.
+
+**Where.** `docs/DESIGN_SYSTEM.md` is the committed statement;
+`design/tokens.json` 2.0.0 records the values (1.0.0 groups kept so the CMS
+generator still runs). The reasoning is the frontend lead's local design
+reference. The 1.0.0 token names are deprecated forwarders; Explore and
+Browse are on the new system, the remaining screens migrate as they are
+touched.
+
+## D-14 · Redesign 2.1: colour roles, compact rhythm, map-first Map tab, Offers out of scope (2026-09-13)
+
+**Decision.** The 2a–2k redesign (frontend lead's reference,
+`LAKBAYAN-REDESIGN.md`) is implemented across every screen. Four structural
+changes on top of D-13:
+
+- **Each screen states one job and gives it the largest element.** Home is
+  a 412dp featured hero with the screen's only primary action, "Add to a
+  tour"; the greeting, eyebrow labels and middots are gone everywhere.
+- **Search is a circle pinned top-right over Explore's hero** that grows
+  leftward into a field, matches dropping down under it; not a row that
+  pushes the hero down, and not a slot in the tab bar.
+- **Colour has assignments.** Green is the primary action and selection;
+  blue is anything spatial (pins, distances, getting there, download); red
+  is CLOSED, Sign out, Delete, the SKIP stamp and, since the first device
+  pass, the saved heart (`save`); the AR badge is ink; gold (/700, white
+  text) is FEATURED only. `tokens.json` 2.1.0 adopts the
+  redesign's hexes as written and names the roles (`role.*`).
+- **Spacing tightened by a third**: 14 gutter, 16 between sections, 4 inside
+  a grouped section, 8 row padding; chips 38, primary buttons 50.
+
+Three product calls were made alongside:
+
+- **Save is red after all.** It was green (saved as a selection state)
+  until the first device pass, where a green heart read as a selected
+  control rather than a kept place. Red is now `role.save`, a role of its
+  own beside `closed`; the selection idiom stays green everywhere else.
+- **Offers (Home section 6, screen 2k) is out of scope.** No collection,
+  no CMS screen, and no mention in `docs/`, `PLAN.md` or the intake pack.
+  The Local Guides directory is a contact list of accredited people, not a
+  marketplace. The request that would have to precede it is written up in
+  the frontend lead's backend requests.
+- **The Map tab lands on the map**; the Browse grid is one symbol away.
+  Itineraries gained optional `startDate` and `endDate` (owner-only rules
+  accept them today; the contract change is requested).
+
+**Deleted.** `DestinationCard`, `LakbayanListRow`, `AdaptiveNavigation`,
+`FeaturedDeck` (now `SwipeScreen`), the home-page proposals, and every 1.0.0
+forwarder. Auth, landing and splash were migrated to 2.0 names without a
+layout change; their redesign is a separate pass, as are the dark palette,
+medium and expanded widths, and the tests that still assert 1.0 layouts.
+
+**Why.** The previous screens ranked nothing, so the eye had nowhere to
+land, and green alone could not distinguish a primary action from a saved
+place at a distance. Naming the roles and tightening the rhythm made both
+legible on a 393dp phone.
+
 ## D-11 · Offline tiles — source decided, renderer pending a spike (2026-08-07)
 
 **Partially accepted.** Full analysis in `docs/research/map-tiles.md`.
@@ -82,6 +175,46 @@ pan/zoom frame times. If it stutters there, the fallback is raster and the cost
 is a paid tile source, so it is worth knowing early rather than after
 `features/maps` is built on top.
 
+### Renderer settled as RASTER (2026-09-09) — this supersedes the paragraph above
+
+**Source unchanged: Protomaps PMTiles. Renderer: raster, via
+`flutter_map_pmtiles`.** Routes remain authored polylines.
+
+The spike never ran, because resolving the packages first showed the recommended
+stack **cannot be installed**. `vector_map_tiles` 8.x requires `flutter_map
+^7.0.2`, and every PMTiles or MBTiles adapter pins `latlong2 ^0.9.0` against our
+`^0.10.1`. Nine resolutions are tabulated in `docs/research/map-tiles.md`.
+
+The decisive finding is that **every one of those failures is the same
+`latlong2` conflict, and the pin causing it is ours** — `flutter_map` 8.3.2
+accepts `>=0.9.1 <0.11.0` either way, and nothing in `lib/` imports `latlong2`.
+Relax it and both raster packages resolve with **one downgrade and nothing
+else**: no beta, no adapter of our own, no second package moved.
+
+Vector, by contrast, costs two downgrades, an adapter we maintain, and a beta
+renderer we would be **pinned to** — the later betas moved to a `latlong2` the
+required `pmtiles` forbids, so there is no upgrade path from it.
+
+Why raster is also the better fit on merit, not merely the cheaper one:
+
+- **The map draws a basemap, pins and one authored polyline.** No dynamic
+  restyling, no feature filtering. Vector's advantages are ones this app never
+  uses.
+- **The target is low-end Android.** Vector rasterises geometry and glyphs every
+  frame; raster decodes an image. That gap is precisely what the spike existed
+  to measure, and it falls on the hardware we care about.
+- **The size argument that chose vector has weakened.** Vector was picked for
+  download size; the buffer-union pack design has already cut a town to
+  single-digit MB.
+
+**The cost we are accepting: a rasterisation step**, since Protomaps publishes
+vector. Build-time, per town, a few hundred tiles — `@maplibre/maplibre-gl-native`
+renders a style headlessly and `pmtiles convert` bridges the formats. It belongs
+in Docker, where this project's tooling already lives.
+
+Open, and worth answering before that pipeline is built: how a rasterised
+Protomaps basemap actually looks. That is a taste call for a tourism map.
+
 Routes are **authored polylines**, not computed. `CONVENTIONS.md` already
 specifies "map with pins + static route", so no routing engine is needed:
 `PolylineLayer` draws a tour's path over the basemap, fully offline. For "take
@@ -98,6 +231,36 @@ destinations at high zoom, plus the whole municipality at low zoom — not the
 whole municipality at high zoom. Measured: a municipality at maxzoom 16 is
 ~25–60 MB of raster, at maxzoom 15 ~6–16 MB. Retrofitting this after shipping
 whole-municipality packs means re-downloading everything.
+
+## D-12 · Cloud Functions: `functions/`, Singapore, callables for what a browser must not do (2026-09-04)
+
+**Accepted.** The first Cloud Functions land with the CMS Users screen, and they
+set the shape for the ones Phase 3 adds (`generateOfflineBundle`):
+
+- **One codebase, `functions/`**, TypeScript compiled to `lib/`, ESM, Node 22.
+  Linted and unit-tested in the `cms` CI job alongside `scripts/` — the
+  required-check list is fixed by name (see `docs/REPO_SETTINGS.md`), so a new
+  job would not gate merges.
+- **Region `asia-southeast1`** (Singapore), the nearest that offers 2nd-gen
+  functions. Firestore's own location is separate and unaffected. The CMS
+  names the region explicitly; a mismatch 404s rather than errors, which is
+  why both sides carry a comment pointing here.
+- **Callables, not Firestore triggers, for admin actions.** `setAdminRole` and
+  `listAdmins` exist because custom claims can only be set by the Admin SDK,
+  and the Admin SDK must never run in a browser. The alternative — an
+  `admins/` collection the rules read — would cost a document read on every
+  write check and give the claim two sources of truth. Rejected; the claim
+  stays the only authority, as D-09 established.
+- **The function refuses a self-revoke.** The last admin revoking their own
+  claim would lock content editing until someone found a service account key.
+  Two admins can still revoke each other, so this is a guard against the
+  likely mistake, not a guarantee.
+- **`scripts/grant-admin.mjs` stays** — as the bootstrap for the first admin
+  on a fresh project, which by definition cannot be done from a screen that
+  requires an admin. It is no longer the way to add a colleague.
+
+Consequences: the emulators container now builds `functions/` on every start
+(`docs/DOCKER.md`), and deploying will need the Blaze plan.
 
 ## D-10 · Monorepo — the CMS lives in `cms/`, not a separate repo (2026-08-04)
 

@@ -9,10 +9,14 @@ import {
 import { AuthProvider } from "./auth/AuthProvider";
 import { useAuth } from "./auth/auth-context";
 import { LoginPage, NotAuthorised } from "./auth/LoginPage";
+import { BundlesPage } from "./pages/BundlesPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { DestinationsListPage } from "./pages/DestinationsListPage";
 import { DestinationEditorPage } from "./pages/DestinationEditorPage";
+import { GuidesPage } from "./pages/GuidesPage";
 import { PlaceholderPage } from "./pages/PlaceholderPage";
+import { ToursPage } from "./pages/ToursPage";
+import { UsersPage } from "./pages/UsersPage";
 import { useEmulators } from "./lib/firebase";
 import { ToastProvider } from "./components/Toast";
 import {
@@ -117,22 +121,10 @@ const router = createBrowserRouter([
       { index: true, element: <DashboardPage /> },
       { path: "destinations", element: <DestinationsListPage /> },
       { path: "destinations/:id", element: <DestinationEditorPage /> },
-      {
-        path: "tours",
-        element: <PlaceholderPage title="Tours" phase="CMS-2" />,
-      },
-      {
-        path: "guides",
-        element: <PlaceholderPage title="Local guides" phase="CMS-2" />,
-      },
-      {
-        path: "bundles",
-        element: <PlaceholderPage title="Offline bundles" phase="CMS-3" />,
-      },
-      {
-        path: "users",
-        element: <PlaceholderPage title="Users & roles" phase="CMS-3" />,
-      },
+      { path: "tours", element: <ToursPage /> },
+      { path: "guides", element: <GuidesPage /> },
+      { path: "bundles", element: <BundlesPage /> },
+      { path: "users", element: <UsersPage /> },
       {
         path: "settings",
         element: <PlaceholderPage title="Settings" phase="CMS-4" />,

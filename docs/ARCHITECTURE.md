@@ -21,3 +21,6 @@ Client (Flutter)            Firebase                 Device / External
   them in Hive, and marks the bundle `version`. Re-download when the version bumps.
 - **AR module:** isolated `features/ar`; native ARCore Augmented Images behind a Dart interface;
   app runs fully without it; unsupported devices fall back to Destination Detail.
+- **Cloud Functions (`functions/`):** callables for what a client must never do itself.
+  Today that is admin promotion (`setAdminRole`, `listAdmins` — the CMS Users screen);
+  `generateOfflineBundle` joins them in Phase 3. Region and conventions: D-12.

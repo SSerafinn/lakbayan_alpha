@@ -1,0 +1,32 @@
+{
+  "//": "Shared contract for slugify. Asserted from all THREE implementations: scripts/lib/slug.test.mjs (JS), cms/src/types/slug.test.ts (TypeScript) and functions/src/bundle.test.ts (Cloud Functions, which derives a town's bundle id from its name). If the two implementations ever disagree, the importer stops recognising existing destinations and duplicates the province instead of updating it — so this file is the thing that stops that happening quietly.",
+  "cases": [
+    { "name": "Callao Cave", "slug": "callao-cave" },
+    { "name": "Buntun Bridge", "slug": "buntun-bridge" },
+    { "name": "Tuguegarao City", "slug": "tuguegarao-city" },
+
+    { "//": "The reason diacritics are stripped rather than dropped.",
+      "name": "Peñablanca", "slug": "penablanca" },
+    { "name": "Santo Niño", "slug": "santo-nino" },
+    { "name": "Basílica Minore de Nuestra Señora de Piat",
+      "slug": "basilica-minore-de-nuestra-senora-de-piat" },
+
+    { "//": "Hyphens already in the name survive; they do not double up.",
+      "name": "Lal-lo", "slug": "lal-lo" },
+    { "name": "Sanchez-Mira", "slug": "sanchez-mira" },
+
+    { "//": "Punctuation collapses to a single separator.",
+      "name": "St. Peter Metropolitan Cathedral",
+      "slug": "st-peter-metropolitan-cathedral" },
+    { "name": "Cagayan Museum & Historical Research Center",
+      "slug": "cagayan-museum-historical-research-center" },
+
+    { "//": "Leading and trailing separators are trimmed, not left dangling.",
+      "name": "  Palaui Island  ", "slug": "palaui-island" },
+    { "name": "--Anguib Beach--", "slug": "anguib-beach" },
+
+    { "//": "Capped at 60 characters. A slug is a deep-link segment, not prose.",
+      "name": "The Very Long Name Of A Destination That Runs Past The Sixty Character Cap",
+      "slug": "the-very-long-name-of-a-destination-that-runs-past-the-sixty" }
+  ]
+}
