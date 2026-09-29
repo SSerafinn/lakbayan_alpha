@@ -3,6 +3,7 @@ import "dart:io";
 import "package:cloud_firestore/cloud_firestore.dart";
 import "package:riverpod_annotation/riverpod_annotation.dart";
 
+import "../../../core/models/destination.dart";
 import "../../destinations/domain/destination_providers.dart";
 import "../data/asset_fetcher.dart";
 import "../data/bundle_repository.dart";
@@ -46,10 +47,6 @@ TownDownloader townDownloader(Ref ref) => TownDownloader(
 Stream<List<OfflineBundle>> offlineBundles(Ref ref) =>
     ref.watch(bundleRepositoryProvider).watchAll();
 
-@riverpod
-Stream<OfflineBundle?> offlineBundle(Ref ref, String townId) =>
-    ref.watch(bundleRepositoryProvider).watchById(townId);
-
 /// Every Storage object a town's bundle implies.
 ///
 /// Derived here rather than read from the manifest: the app already has the
@@ -59,12 +56,19 @@ Future<List<String>> assetPathsFor(Ref ref, OfflineBundle bundle) async {
   final repository = ref.read(destinationRepositoryProvider);
   final paths = <String>{};
 
-  for (final id in bundle.destinationIds) {
-    final destination = await repository.watchById(id).first;
+  // Fetch all place documents and segments in parallel.
+  final places = await Future.wait([
+    for (final id in bundle.destinationIds)
+      Future.wait<Object?>([
+        repository.watchById(id).first,
+        repository.watchSegments(id).first,
+      ]),
+  ]);
+
+  for (final [destination as Destination?, segments as List<Segment>]
+      in places) {
     if (destination == null) continue;
     paths.addAll(destination.images.where((p) => p.isNotEmpty));
-
-    final segments = await repository.watchSegments(id).first;
     for (final segment in segments) {
       final audio = segment.audioUrl;
       if (audio != null && audio.isNotEmpty) paths.add(audio);

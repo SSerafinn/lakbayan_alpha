@@ -76,15 +76,31 @@ void main() {
   /// `LinearProgressIndicator` — it animates forever by design, because the
   /// engine reports no length — so `pumpAndSettle` never returns. That is the
   /// feature working, not a fault to design around.
+  /// Past the player's grow and fold, which ride `AppMotion.chrome` (350 ms),
+  /// so a tap lands on a settled card and a cleared player is really gone.
   Future<void> settle(WidgetTester tester) async {
     for (var i = 0; i < 6; i++) {
-      await tester.pump(const Duration(milliseconds: 20));
+      await tester.pump(const Duration(milliseconds: 80));
     }
+  }
+
+  Future<void> openGuide(WidgetTester tester) async {
+    if (find.byKey(const ValueKey("stop-s1")).evaluate().isNotEmpty ||
+        find.byKey(const ValueKey("stop-s2")).evaluate().isNotEmpty ||
+        find.byKey(const ValueKey("stop-s3")).evaluate().isNotEmpty) {
+      return;
+    }
+    await tester.tap(find.text("Audio guide"));
+    await settle(tester);
   }
 
   /// By segment id. Not by title: once a stop is playing the player bar
   /// repeats that title, and the finder would match two widgets.
+  ///
+  /// The guide rests as one bar and lists its stops once opened (D-16), so
+  /// the bar is tapped first when the stops are not showing yet.
   Future<void> tapStop(WidgetTester tester, String segmentId) async {
+    await openGuide(tester);
     await tester.tap(find.byKey(Key("stop-$segmentId")), warnIfMissed: false);
     await settle(tester);
   }
@@ -118,6 +134,7 @@ void main() {
 
     testWidgets("says which stops the device will read out", (tester) async {
       await pump(tester, const [recorded, spoken]);
+      await openGuide(tester);
       // Only the script-only stop carries the note.
       expect(find.text("Read aloud by your device"), findsOneWidget);
     });
@@ -146,6 +163,7 @@ void main() {
       tester,
     ) async {
       await pump(tester, const [silent]);
+      await openGuide(tester);
       expect(find.text("No recording or script yet"), findsOneWidget);
 
       await tapStop(tester, "s3");

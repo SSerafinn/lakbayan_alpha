@@ -8,10 +8,11 @@ part "home_chrome.g.dart";
 
 /// The floating tab bar's form.
 enum HomeChromeState {
-  /// Glyphs and labels.
+  /// The full bar.
   rest,
 
-  /// Glyphs only, one touch target tall, after a deliberate scroll down.
+  /// The same bar shrunk, one touch target tall, every cell still one tap,
+  /// after a deliberate scroll down.
   collapsed,
 
   /// Off screen, while a surface the person is engaging with (the Map's
@@ -19,7 +20,7 @@ enum HomeChromeState {
   hidden,
 }
 
-/// The floating tab bar's state. Collapses after [collapseTravel] of downward
+/// The floating tab bar's state. Shrinks after [collapseTravel] of downward
 /// scroll past [collapseFloor]; expands after [expandTravel] upward, at the
 /// top, on a tab switch or a tap. A change of direction restarts the count.
 /// While hidden, only [expand] or [reset] brings the bar back.

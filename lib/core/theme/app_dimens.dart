@@ -17,14 +17,19 @@ abstract final class AppSpace {
   static const x10 = 40.0;
   static const x12 = 48.0;
 
-  // The compact rhythm. Off the 4dp grid on purpose: a phone screen reads
-  // as empty at the desktop-derived 20/28.
-  static const gutter = 14.0;
-  static const section = 16.0;
+  // 12dp gutter and section gap (tight rhythm).
+  static const gutter = 12.0;
+  static const section = 12.0;
 
   /// Grouped section edge to row edge, and a row's own padding.
   static const groupInset = 4.0;
   static const rowPad = 8.0;
+
+  /// A dense row's padding: settings and sheet pickers.
+  static const rowPadDense = 6.0;
+
+  /// Between the grouped surfaces of one menu.
+  static const menuGroupGap = 8.0;
 }
 
 /// Fixed sizes (`size.*`). Layout sizes two screens share live here rather
@@ -34,20 +39,23 @@ abstract final class AppSize {
   static const minTouchTarget = 48.0;
   static const appBarHeight = 56.0;
 
-  /// The floating tab bar at rest: 5 inset, 8 pad, 21 glyph, 2 gap, 13
-  /// label, 8 pad, 5 inset. Collapsed it is glyphs only, one touch target.
-  static const bottomNav = 60.0;
+  /// The floating tab bar at rest: the four sections and search in one
+  /// capsule.
+  static const bottomNav = 56.0;
+
+  /// The same bar shrunk on a scroll down, one touch target tall, so every
+  /// cell still meets the minimum.
   static const bottomNavCollapsed = minTouchTarget;
 
-  /// Smaller than Material's 24 so the Cupertino stroke sits light against
-  /// the 11pt label under it.
-  static const tabGlyph = 21.0;
+  /// A drawn tab glyph (`TabGlyph`). Full size now there is no label under
+  /// it to keep light against.
+  static const tabGlyph = 24.0;
 
-  /// Taller than the touch minimum so the capsule reads as the one focal
-  /// action on a surface (design doc 02, size classes).
+  /// Taller than the touch minimum so the capsule reads as the focal action.
   static const primaryButton = 50.0;
 
   static const chip = 38.0;
+
   static const badge = 24.0;
 
   /// A symbol-only control over photography: search, back, close.
@@ -57,19 +65,30 @@ abstract final class AppSize {
   static const heroSave = 48.0;
   static const tileSave = 32.0;
 
-  /// A category glyph circle on Home's strip.
-  static const glyphCircle = 56.0;
+  /// The audio player sheet's play button, the sheet's one focal control.
+  static const playerButton = 64.0;
 
-  /// A recently-viewed thumbnail.
-  static const thumbnail = 112.0;
+  /// A featured card on Explore's carousel, at the default text size.
+  static const featuredCard = 320.0;
 
-  static const heroHeight = 412.0;
-  static const detailHero = 392.0;
-  static const routePreview = 196.0;
+  /// A tour's tile on a rail: 3:4, so the rail reads as a row of posters.
+  static const tourTile = 124.0;
 
-  /// What the Map's places sheet shows above the tab bar at rest: the
-  /// handle, the area's name and two rows.
-  static const mapSheetRest = 220.0;
+  /// A photo tile on a rail with its caption on the photo, 4:5: Where to
+  /// eat, Around here.
+  static const railTile = 136.0;
+
+  /// A town's card on Explore's rail, 16:10.
+  static const townCard = 220.0;
+
+  /// A local guide's card on Explore's rail.
+  static const guideCard = 232.0;
+
+  /// A place's card on the Map's sheet, a wide photo.
+  static const mapCard = 136.0;
+
+  /// The itinerary's route map at rest; it grows in place to the screen.
+  static const routePreview = 248.0;
 
   /// Primary form buttons: a full-width action needs no extra height.
   static const formButton = 48.0;
@@ -84,6 +103,10 @@ abstract final class AppSize {
   /// The splash progress bar. Deliberately narrow: it marks time passing, it
   /// does not report progress.
   static const progressBar = 120.0;
+  static const progressBarHeight = 3.0;
+
+  /// A carousel page dot; the current one stretches to [AppSpace.x4].
+  static const pageDot = 6.0;
 
   /// The grab bar at the top of the auth sheet.
   static const dragHandleWidth = 36.0;
@@ -100,6 +123,74 @@ abstract final class AppSize {
   /// Three lines of [AppTypography.bodyLarge], a floor so centred landing
   /// pages with shorter copy do not sit lower than the rest.
   static const landingBodyBlock = 72.0;
+
+  // Glyph sizes. Material's icon default is 24; the Cupertino strokes read
+  // heavier, so most in-row glyphs step down. One ladder, no inline sizes.
+
+  /// A status glyph in a debug strip.
+  static const glyphXs = 14.0;
+
+  /// A glyph inside a selection circle.
+  static const glyphSm = 16.0;
+
+  /// A trailing glyph in a grouped row, or a row's reorder controls.
+  static const glyphMd = 18.0;
+
+  /// A symbol button's glyph, and a field's leading glyph.
+  static const glyph = 20.0;
+
+  /// A FAB or a leading glyph in a grouped row.
+  static const glyphLg = 22.0;
+
+  /// Material's default; the navigation bar and rail.
+  static const glyphXl = 24.0;
+
+  /// A grouped row's leading photo, and its leading glyph circle.
+  static const rowMedia = 56.0;
+  static const rowGlyphCircle = 40.0;
+
+  /// A dense row's leading photo or glyph circle.
+  static const rowMediaDense = 40.0;
+
+  /// The numbered circle that ties a stop in a list to its pin on a map.
+  static const stopNumeral = 24.0;
+
+  /// An anchored menu's width: long enough for "Change dates" and a glyph.
+  static const menuWidth = 240.0;
+
+  /// The signed-in avatar on Profile.
+  static const avatar = 56.0;
+
+  /// The check circle beside a pickable row.
+  static const selectionCircle = 26.0;
+
+  /// A small inline spinner, the size of a [glyph].
+  static const spinner = 20.0;
+}
+
+/// Stroke widths. A hairline bounds; the heavier strokes mark focus, a
+/// selection ring or a drawn route.
+abstract final class AppStroke {
+  static const hairline = 1.0;
+  static const regular = 1.5;
+  static const bold = 2.0;
+  static const route = 3.0;
+
+  /// A route on the full map: a step heavier than the preview's, so it
+  /// holds its own over the basemap's roads.
+  static const mapRoute = 4.0;
+}
+
+/// Modal sheet heights as a fraction of the screen. A sheet is sized by
+/// [AppSheetSize.form] at most and shrinks with the keyboard, never the other
+/// way round.
+abstract final class AppSheetSize {
+  /// A form or picker sheet: enough to show a header, a few rows and the
+  /// pinned action without covering the context behind it.
+  static const form = 0.62;
+
+  /// The Map's places sheet fully raised.
+  static const mapMax = 0.72;
 }
 
 /// The shoreline band, `footer.webp`, which is 1440 x 319.

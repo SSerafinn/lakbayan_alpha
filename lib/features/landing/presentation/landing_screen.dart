@@ -8,7 +8,7 @@ import "../../../core/prefs/app_preferences.dart";
 import "../../../core/router/app_router.dart";
 import "../../../core/theme/app_dimens.dart";
 import "../../../core/theme/lakbayan_colors.dart";
-import "../../../core/widgets/brand_wash.dart";
+import "../../../core/widgets/content/brand_wash.dart";
 import "landing_widgets.dart";
 
 /// The landing page, shown while there is no account yet.
@@ -135,12 +135,11 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
                       ),
                     ),
                   ),
-                  AnimatedBuilder(
-                    animation: _controller,
-                    builder: (context, _) => SwipeHint(
-                      atEnd: _settled == lastIndex,
-                      onTap: () => _forward(lastIndex),
-                    ),
+                  // Depends only on the settled page, which a setState
+                  // already carries; not rebuilt on every scroll frame.
+                  SwipeHint(
+                    atEnd: _settled == lastIndex,
+                    onTap: () => _forward(lastIndex),
                   ),
                   AnimatedBuilder(
                     animation: _controller,

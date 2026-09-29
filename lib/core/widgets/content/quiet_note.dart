@@ -1,11 +1,10 @@
 import "package:flutter/material.dart";
-import "package:go_router/go_router.dart";
 
-import "../router/app_router.dart";
-import "../theme/app_dimens.dart";
-import "../theme/app_icons.dart";
-import "../theme/app_typography.dart";
-import "symbol_button.dart";
+import "../../router/app_router.dart";
+import "../../theme/app_dimens.dart";
+import "../../theme/app_icons.dart";
+import "../../theme/app_typography.dart";
+import "../controls/symbol_button.dart";
 
 /// One line of secondary text where a list would be: the empty and error
 /// states of a section. [centered] fills the space it is given instead, for
@@ -57,8 +56,7 @@ class MessageScreen extends StatelessWidget {
             child: SymbolButton(
               icon: AppIcons.back,
               tooltip: "Back",
-              onTap: () =>
-                  context.canPop() ? context.pop() : context.go(Routes.home),
+              onTap: context.popOrHome,
             ),
           ),
           Expanded(child: QuietNote(text, centered: true)),

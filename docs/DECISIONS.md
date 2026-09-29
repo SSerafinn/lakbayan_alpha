@@ -145,6 +145,223 @@ land, and green alone could not distinguish a primary action from a saved
 place at a distance. Naming the roles and tightening the rhythm made both
 legible on a 393dp phone.
 
+## D-16 · Glyph-only bar with search in the middle; a tighter rhythm (2026-09-23) · PROPOSED
+
+**Status.** Proposed on `feat/home-screen`; the team confirms before merge.
+
+**Decision.**
+
+- **The bar.** The four sections sit in one hairlined capsule, and search
+  has its own white circle at the trailing end, the same height. Search is a
+  destination, so it gets its own place (design doc 04). It is not green,
+  because green stays the primary action and selection.
+- **No tab labels.** A tab's name is its semantics label and its long-press
+  tooltip. Selection is still carried twice, by the green capsule and by the
+  glyph filling in. This departs from doc 06's central test: compass and
+  briefcase are not universal shorthand. It is accepted because the bar is
+  four stable sections that are learned once.
+- **Drawn tab glyphs.** `TabGlyph` draws the four section glyphs with a
+  painter, so each can animate its selection once and then settle (the
+  compass needle, the map unfolding, the case lid, the person filling).
+  CupertinoIcons (D-13) stays the set for everything else. `CrossGlyph` is
+  gone with the category glyph strip.
+- **Search.** The circle grows into a field docked above the keyboard, with
+  the kinds, Recently viewed and the towns above it. Close, back and
+  picking a result retrace the same spring. Explore's corner circle, the
+  Map's field and the Browse grid's field are removed. A town picked
+  elsewhere now arrives as a removable chip.
+- **Explore, compact.** No wordmark or header row: the featured cards open
+  the screen. Photos carry their captions on their own scrim (`MediaTile`
+  `dense`), with Popular as a bento and tours as posters, so no line of white
+  sits under a picture. The kinds are text chips, food among them. The towns
+  are a row of round photos, and food has its own rail.
+- **No grey plate, more colour.** (The coloured tiles are retired; see the
+  2026-09-26 amendment.) The plate that stacked facts and settings
+  as rows is gone. Facts, shortcuts and small actions are solid coloured
+  tiles in one row (`ColorTileRow`), using the role colours at full
+  strength. This loosens "no colour beyond the roles' jobs" on purpose: the
+  app read grey. Place detail puts the map, directions and the CMS facts on
+  one row of tiles; Profile's saved, downloads and settings are three tiles.
+- **Audio guide.** One bar that opens on a tap into the player, the stops
+  listed inside it with their full titles, in place of a stacked list with a
+  player folding in. White like every other card, not a colour block
+  (revised 2026-09-24, twice: first to ink, which still wasn't right —
+  green belongs on the primary action and the selection, nowhere else, per
+  Colour in `CLAUDE.local.md`). The play button is filled green; the running
+  stop is a single green pill that slides between rows as it changes, not
+  four rows each fading their own highlight, and not a second copy of the
+  floating tab bar's indicator math — both call `indexedRect`
+  (`core/widgets/motion.dart`). No stop count sits under the heading — the
+  bar's second line names the current stop instead, or invites a first tap.
+- **Place detail.** At most three badges on one line (FEATURED, AR, the
+  kind); On the map and Directions as two buttons side by side; the CMS
+  facts ranked, not shown as four equal boxes — hours and entry, the
+  go-or-not facts, as a row of colour tiles; best time and getting around,
+  the plan-ahead facts, as plain label/value lines under them, no fill
+  (revised 2026-09-24: the two-column tile grid read as too much colour and
+  variation for four facts of unequal weight).
+- **The primary action floats.** `PinnedAction` is a green capsule at the
+  trailing corner that folds into a circle while the person scrolls down,
+  opens again on the way up or at the very top, and stays folded at the
+  bottom so it never reopens over the screen's own trailing content
+  (`PinnedActionScope`; revised 2026-09-24, it previously opened at either
+  end — on Place detail that meant popping back open right over the Around
+  Here rail).
+- **New itinerary isn't a floating pill.** The Itineraries tab's primary
+  action moved off `PinnedAction` entirely: a tinted `+` beside the
+  "Itineraries" title, since the tab's content is often short, and a pill
+  left floating over mostly empty space read as chrome with nothing to
+  anchor to (revised 2026-09-24).
+- **Trips.** A trip's stops are a timeline, a blue line through their
+  numerals.
+- **Local guides.** The `guides` collection (already in
+  `docs/DATA_MODEL.md` and readable by a signed-in user under the current
+  rules) appears on Explore for the first time: name, town, specialties,
+  VERIFIED, and a tap that calls or emails. No rule, index or schema change.
+- **Map sheet.** One scroll, as before, with the grip and the area's name
+  pinned at its top. A row of place cards, one per page with page dots, is
+  one selection with the pins, and the camera glides between them.
+- **Settings.** A Settings screen holds Appearance and a Reduce motion
+  switch. The switch adds to the phone's own setting through
+  `disableAnimations`, so every motion widget honours it unchanged.
+- **Rhythm.** The gutter and the section gap both go to 12 (from 14 and
+  16). Body leading tightens: `bodyLarge` 1.4, `bodyMedium` 1.35,
+  `secondLine` 1.25. `tokens.json` goes to 2.3.0.
+
+**Why.** On a device the tabs read as a static list and the spacing read
+loose. Search was hidden in one tab's corner, and the Map repeated it in its
+own field. A travel companion should feel alive, which means motion that
+explains, and one search reachable from everywhere.
+
+### Amended 2026-09-26: performance, and a new Place detail
+
+- **No scroll edge treatment.** The progressive blur under pinned controls
+  (D-13's "a scroll edge under pinned controls") is removed everywhere, with
+  no replacement. Once a page was scrolled it redrew two full-screen
+  `BackdropFilter`s and two masks on every frame, the largest cost on every
+  scrolling screen, for an effect nobody had noticed. A pinned control
+  carries its own surface.
+- **Tabs are built once and kept.** The home shell no longer rebuilds a tab
+  on every switch; a tab is built when first chosen and kept offstage, its
+  tickers muted, while another is shown. Map and Explore no longer rebuild
+  from nothing on each visit, and they keep their state (doc 07).
+- **Place detail, editorial and few words.** Supersedes the Place detail
+  bullet above. The photo stage takes just over half the screen, clean: no
+  words and no badges on it. The page rises over its foot on a rounded
+  edge. Back, and share with the heart on one white capsule, stay pinned.
+  On the page, with air between each part: the name large, then "Nature
+  in Peñablanca" (the kind and the town) as one quiet line; the
+  description as the lede, a new type step (`type.lede`, 20/550) and the
+  page's one emphasised line; the audio guide as one capsule; the hours on
+  one line, then two quiet buttons, Plan your visit (a sheet with entry,
+  best time and access in full, and the CMS tags as capsules) and Getting
+  there (a menu: On the map, Directions); the story growing open in place;
+  Around here. FEATURED and AR leave the page; they are the feed's. No
+  schema change: the CMS already holds these fields as they are shown.
+- **No coloured tiles.** The pattern is retired app-wide. Profile's three
+  and a trip's Take this trip offline become rows on the white ground, a
+  glyph in its meaning's colour leading. `ColorTileRow` is gone.
+- **Audio guide: a capsule and a player sheet.** Supersedes the audio
+  guide bullet above. On the page, one white capsule (play, "Audio guide",
+  the stop count on the control); while a stop plays it names the stop and
+  its place in the guide. A tap opens the player, a sheet over a scrim
+  owned by the section, so it is always this place's: the stop playing,
+  progress, previous, play and next, then every stop. The running stop is a
+  solid green numeral that eases out and in where it lands, replacing the
+  sliding pill, which rushed when it jumped several stops.
+- **A trip's header.** The route map is clean, with no title on a scrim.
+  The page rises over its foot on the same rounded edge as Place detail,
+  carrying the trip's name large and its dates. "Expand map" on a white
+  capsule says the map opens.
+- **Why.** On a phone, Explore and Map jittered while scrolling and on
+  every tab switch, and Place detail read as a stack of words at one
+  weight, with colour blocks competing for attention. The rules that keep
+  the performance causes out: no `BackdropFilter`; tabs are kept, never
+  rebuilt on a switch; a feed is slivers, one per section; an animation
+  drives paint or layout, never build; a list item mounts with no animation
+  controllers; performance is judged in a profile build.
+
+### Amended 2026-09-26, later: the status bar, the bar, and transitions
+
+- **A ground under the status bar.** Removing the scroll edge also removed
+  the only thing between scrolled content and the status bar: cards, text
+  and map pins ran under the clock and the battery. Every screen now keeps
+  an opaque ground there in the page's white (`StatusBarGround`); the home
+  shell carries one for every tab. A header photo or map at rest still
+  reaches the top edge, and the ground closes in as the page reaches it.
+  This narrows "content is edge to edge" above.
+- **The bar is one capsule that shrinks.** Supersedes "search has its own
+  white circle" and the fold into one circle. Search is the capsule's last
+  cell. On a deliberate scroll the whole bar scales down to one touch
+  target tall, every cell still one tap, instead of folding into a circle
+  that hid three sections behind a tap.
+- **Transitions, the iOS way.** Every pushed screen slides in from the
+  trailing edge over the one it came from, which drifts back and dims a
+  touch; Android's back gesture drives the same path under the finger. A
+  tab switch is a short cross-fade with no white between tabs. The
+  fade-through and shared-axis transitions between screens are gone, and a
+  pushed screen no longer fades its sections in over the slide.
+- **Why.** On a phone, content under the status bar read as broken; the
+  folded bar hid sections; and both transitions blinked through white over
+  full-screen opacity layers. Tracing the jitter found motion widgets that
+  rebuilt their content from nothing the moment they settled (every
+  screen's sections, about half a second after it opened); they now settle
+  in the same tree.
+
+### Amended 2026-09-26, last: photos that open, Keep or skip, trips, the map
+
+- **A place's photo opens into its page.** Opened from a photo, a place
+  zooms (`ZoomPage`): the photo grows into the page's own while the page
+  fades in, the screen beneath still, and back shrinks it home. The featured
+  card now opens from anywhere on it; its caption had covered the tap.
+- **Keep or skip on a dark stage.** The front card's photo fills the
+  screen, blurred by decoding it tiny, and changes with the drag. Keep and
+  Skip are buttons too, in the card's colour, a new deep tone per kind
+  (`role.kind`, `tokens.json`) until photos carry their own. "More details"
+  goes; the card opens the place.
+- **A trip's page: the map is the button.** The Expand map pill and the
+  floating "Open on the map" go; the full-screen map carries Open in Map
+  and each stop's directions, and each stop after the first gives its
+  distance from the one before.
+- **The map flies.** Choosing a place pulls the camera back, crosses and
+  settles in, on a motion of its own with no bounce; tiles appear without
+  a fade.
+- **Why.** The featured cards did not answer most taps; Keep or skip read
+  as empty and gesture-only; the trip page had three ways into one map;
+  and the map dragged street-level tiles across every move. Tracing it
+  found every photo flight re-decoding its photo each frame, which real
+  photos would have shown as flicker.
+
+## D-15 · Type half a step lighter; iOS-styled menus and groups on Material (2026-09-23) · PROPOSED
+
+**Status.** Proposed on `feat/home-screen`; the team confirms before merge.
+
+**Decision.**
+
+- **Type.** The Satoshi ramp moves half a step lighter: display 900 to 800,
+  headings 800 to 750, labels 700 to 650, body 600 to 550, and nothing below
+  550. Satoshi is variable, so 750, 650 and 550 are real instances set on the
+  `wght` axis. `tokens.json` goes to 2.2.0.
+- **Menus.** One menu, `AppMenu`, on `RawMenuAnchor`. The label comes
+  first and the glyph trails it, the reference platform's order. Every item
+  has a glyph, and groups are separate surfaces with a gap between them. It
+  grows out of its source and folds back into it on `AppMotion.chrome`.
+  Profile's Appearance and the itinerary's more menu both use it.
+- **Groups over media.** `BarItemGroup.overMedia` is a white capsule over a
+  photo or a map, and an item in it can open a menu.
+- **Motion.** Modal sheets ride the chrome spring, through `SpringCurve`.
+  Dialogs settle in from 1.08 scale and leave by fading. The itinerary
+  route becomes a platform page, so a trip's row can grow into its map as a
+  `Hero`.
+- **Still Material widgets, and still D-13.** No Cupertino widget is used.
+
+**Why.** On a device, 2.0's weights read heavy across a whole screen. The
+Material dropdown opened from nowhere, and its rows sat on uneven slots. The
+aim was an iOS feel on Android. Cupertino widgets would have to be themed
+twice, since they read `CupertinoTheme`. Their edge swipe fights Android's
+back gesture. Their sheets and alerts also rise from a fixed edge instead of
+from their source. So the feel is built from our own tokens.
+
 ## D-11 · Offline tiles — source decided, renderer pending a spike (2026-08-07)
 
 **Partially accepted.** Full analysis in `docs/research/map-tiles.md`.

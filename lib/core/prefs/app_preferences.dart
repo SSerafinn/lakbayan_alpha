@@ -22,6 +22,11 @@ abstract interface class AppPreferences {
 
   Future<void> setThemeMode(ThemeMode mode);
 
+  /// Calmer motion chosen in the app, on top of the phone's own setting.
+  bool get reduceMotion;
+
+  Future<void> setReduceMotion(bool value);
+
   /// Destination ids most recently opened, newest first, at most
   /// [recentlyViewedCap]. A history, not user data: it does not sync.
   List<String> get recentlyViewedIds;
@@ -45,6 +50,7 @@ class HivePreferences implements AppPreferences {
   static const _seenLanding = "seenLanding";
   static const _themeMode = "themeMode";
   static const _recentlyViewed = "recentlyViewed";
+  static const _reduceMotion = "reduceMotion";
 
   final Box<dynamic> _box;
 
@@ -74,6 +80,12 @@ class HivePreferences implements AppPreferences {
   Future<void> setThemeMode(ThemeMode mode) => _box.put(_themeMode, mode.name);
 
   @override
+  bool get reduceMotion => _box.get(_reduceMotion, defaultValue: false) as bool;
+
+  @override
+  Future<void> setReduceMotion(bool value) => _box.put(_reduceMotion, value);
+
+  @override
   List<String> get recentlyViewedIds =>
       (_box.get(_recentlyViewed) as List?)?.cast<String>() ?? const [];
 
@@ -90,6 +102,7 @@ class InMemoryPreferences implements AppPreferences {
   bool _seenLanding;
   ThemeMode _themeMode = ThemeMode.system;
   List<String> _recentlyViewed = const [];
+  bool _reduceMotion = false;
 
   @override
   bool get hasSeenLanding => _seenLanding;
@@ -102,6 +115,12 @@ class InMemoryPreferences implements AppPreferences {
 
   @override
   Future<void> setThemeMode(ThemeMode mode) async => _themeMode = mode;
+
+  @override
+  bool get reduceMotion => _reduceMotion;
+
+  @override
+  Future<void> setReduceMotion(bool value) async => _reduceMotion = value;
 
   @override
   List<String> get recentlyViewedIds => _recentlyViewed;

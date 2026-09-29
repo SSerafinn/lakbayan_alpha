@@ -137,6 +137,19 @@ class LakbayanColors extends ThemeExtension<LakbayanColors> {
     DestinationCategory.unknown => scheme.onSurfaceVariant,
   };
 
+  /// A kind's deep tone (`role.kind`), for Keep or skip only: a photo-less
+  /// card, its stage and its Keep and Skip buttons. The same in both modes,
+  /// since that screen is always dark; white reads on every one.
+  Color kindTone(DestinationCategory category) => switch (category) {
+    DestinationCategory.nature => AppColors.kindNature,
+    DestinationCategory.food => AppColors.kindFood,
+    DestinationCategory.church => AppColors.kindChurch,
+    DestinationCategory.heritage => AppColors.kindHeritage,
+    DestinationCategory.museum => AppColors.kindMuseum,
+    DestinationCategory.landmark => AppColors.kindLandmark,
+    DestinationCategory.unknown => AppColors.ink700,
+  };
+
   @override
   LakbayanColors copyWith({
     Color? gold,

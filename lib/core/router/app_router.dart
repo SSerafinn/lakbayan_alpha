@@ -1,5 +1,5 @@
-import "package:animations/animations.dart";
 import "package:flutter/foundation.dart";
+import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
 
@@ -14,7 +14,9 @@ import "../../features/explore/presentation/home_shell.dart";
 import "../../features/landing/presentation/landing_screen.dart";
 import "../../features/itineraries/presentation/itinerary_screen.dart";
 import "../../features/offline/presentation/downloads_screen.dart";
+import "../../features/profile/presentation/settings_screen.dart";
 import "../prefs/app_preferences.dart";
+import "../widgets/motion/page_transitions.dart";
 
 abstract final class Routes {
   static const splash = "/splash";
@@ -36,21 +38,63 @@ abstract final class Routes {
   /// Everything saved with the heart. Reached from Profile.
   static const saved = "/saved";
 
-  /// One of the user's own itineraries. Pushed from the Itineraries tab.
-  static String itinerary(String id) => "/itinerary/$id";
+  /// Appearance and accessibility. Reached from Explore's header and from
+  /// Profile.
+  static const settings = "/settings";
 
-  /// Destination Detail. Pushed, not replaced — wireframe 1d opens it as a
-  /// sheet over whatever is beneath.
-  static String destination(String id) => "/destination/$id";
+  /// One of the user's own itineraries. Pushed from the Itineraries tab, and
+  /// from the add-to-trip confirmation with [added], the stop just put on it,
+  /// which the screen scrolls to and lands.
+  static String itinerary(String id, {String? added}) => Uri(
+    path: "/itinerary/$id",
+    queryParameters: added == null ? null : {"added": added},
+  ).toString();
+
+  /// Destination Detail. Pushed, not replaced. [from] names the surface the
+  /// cover flies from; a deep link has none, and the screen simply appears.
+  static String destination(String id, {HeroSource? from}) => Uri(
+    path: "/destination/$id",
+    queryParameters: from == null ? null : {"from": from.name},
+  ).toString();
 }
 
-/// The app router, with the auth redirect.
+/// The surfaces a place's photo can open it from. A hero tag must be unique
+/// on a screen and one place can show twice, so the tag carries its surface;
+/// it travels in the URL, so the route stays deep-linkable. Opened with one,
+/// a place zooms from that photo (`ZoomPage`); a deep link is pushed.
+enum HeroSource {
+  featured,
+  popular,
+  whereToEat,
+  browse,
+  list,
+  stop,
+  stopCard,
+  map,
+  mapCard,
+  search,
+  swipe,
+  around,
+}
+
+/// The `Hero` tag for [id]'s cover on [from].
+String coverHeroTag(String id, HeroSource from) => "cover:${from.name}:$id";
+
+/// The `Hero` tag for a trip: its row on the Itineraries tab and the route map
+/// at the top of the trip, so one grows into the other.
+String tripHeroTag(String id) => "trip:$id";
+
+extension PopOrHome on BuildContext {
+  /// Back, or Home when there is nothing to go back to (a deep link).
+  void popOrHome() => canPop() ? pop() : go(Routes.home);
+}
+
+/// The app router, with the auth redirect. Every route arrives on the
+/// theme's push, except a place opened from its photo, which zooms.
 ///
-/// Note this is **not** a hard auth gate. Wireframe 1b offers "Skip for now —
-/// browse as guest", and notes that guest skip keeps discovery open while
-/// saving a tour prompts auth. So the redirect only forces the auth screen for
-/// a cold start; once the user is signed in *or* has chosen guest, everything
-/// is reachable. Per-action gating belongs on the save actions themselves.
+/// **Not** a hard auth gate (wireframe 1b: guests keep discovery): the
+/// redirect only forces auth on a cold start; once signed in or a guest,
+/// everything is reachable, and saving actions gate themselves.
 final appRouterProvider = Provider<GoRouter>((ref) {
   final router = GoRouter(
     initialLocation: Routes.splash,
@@ -74,18 +118,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           here == Routes.landing ||
           here == Routes.signIn;
 
-      // No account yet. The landing pages are an introduction, so they run
-      // **once per device** and afterwards the entry point is sign-in.
-      //
-      // Showing them on every signed-out launch quietly undid the guest
-      // escape hatch: guest mode is session-only by design (see
-      // [GuestMode]), so someone browsing as a guest is signed out again on
-      // the next launch — and would have had to swipe through three pages of
-      // onboarding to reach "Skip for now" every single time. Wireframe 1b
-      // has guest keeping discovery open, not gated behind a carousel.
-      //
-      // Both routes stay reachable while signed out, so the back gesture out
-      // of sign-in still works.
+      // No account yet: the landing pages run once per device, then sign-in
+      // is the entry. Guest mode is session-only ([GuestMode]), so showing
+      // them every launch would bury "Skip for now" behind the carousel each
+      // time. Both stay reachable, so back out of sign-in still works.
       if (!mayEnter) {
         final atEntry = here == Routes.landing || here == Routes.signIn;
         if (atEntry) return null;
@@ -109,30 +145,27 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: Routes.signIn,
-        // Shared axis, vertical: Material's own pattern for screens with a
-        // navigational relationship, onboarding into auth among them.
-        pageBuilder: (context, state) => CustomTransitionPage<void>(
-          key: state.pageKey,
-          transitionDuration: const Duration(milliseconds: 420),
-          reverseTransitionDuration: const Duration(milliseconds: 360),
-          child: const SignInScreen(),
-          transitionsBuilder: (context, animation, secondary, child) =>
-              SharedAxisTransition(
-                animation: animation,
-                secondaryAnimation: secondary,
-                transitionType: SharedAxisTransitionType.vertical,
-                child: child,
-              ),
-        ),
+        builder: (context, state) => const SignInScreen(),
       ),
       GoRoute(
         path: Routes.home,
         builder: (context, state) => const HomeShell(),
       ),
+      // Opened from a photo, the photo grows into the page and the page
+      // fades in around it; a deep link is pushed.
       GoRoute(
         path: "/destination/:id",
-        builder: (context, state) =>
-            DestinationDetailScreen(id: state.pathParameters["id"]!),
+        pageBuilder: (context, state) {
+          final from = HeroSource.values
+              .asNameMap()[state.uri.queryParameters["from"]];
+          final screen = DestinationDetailScreen(
+            id: state.pathParameters["id"]!,
+            from: from,
+          );
+          return from == null
+              ? MaterialPage<void>(key: state.pageKey, child: screen)
+              : ZoomPage<void>(key: state.pageKey, child: screen);
+        },
       ),
       GoRoute(
         path: Routes.swipe,
@@ -149,13 +182,21 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             const PlacesListScreen(list: PlacesList.saved),
       ),
       GoRoute(
+        path: Routes.settings,
+        builder: (context, state) => const SettingsScreen(),
+      ),
+      GoRoute(
         path: Routes.downloads,
         builder: (context, state) => const DownloadsScreen(),
       ),
+      // The trip's row grows into the route map with a `Hero` as the page
+      // slides in under it.
       GoRoute(
         path: "/itinerary/:id",
-        builder: (context, state) =>
-            ItineraryScreen(id: state.pathParameters["id"]!),
+        builder: (context, state) => ItineraryScreen(
+          id: state.pathParameters["id"]!,
+          added: state.uri.queryParameters["added"],
+        ),
       ),
       // Debug-only: the living design system specimen. Excluded from release so
       // it cannot be reached in a shipped build.

@@ -2,6 +2,7 @@ import "package:animated_text_kit/animated_text_kit.dart";
 import "package:flutter/material.dart";
 
 import "../../../core/theme/app_icons.dart";
+import "../../../core/theme/app_motion.dart";
 import "../../../core/theme/app_dimens.dart";
 import "../../../core/theme/app_typography.dart";
 
@@ -40,7 +41,10 @@ class LandingPageContent extends StatelessWidget {
         children: [
           const SizedBox(height: AppSpace.x6),
           SizedBox(
-            height: AppSize.brandDisplayBlock,
+            // Two greeting lines at the user's text size plus the block's
+            // headroom, so the copy below never shifts while the greeting
+            // types in, and never overflows at a large text size.
+            height: _greetingBlock(context),
             // The greeting types itself out and repeats forever, which is the
             // character of the screen — and exactly what someone who has asked
             // the system to reduce motion does not want looping at them. They
@@ -187,7 +191,7 @@ class SwipeHintState extends State<SwipeHint>
               children: [
                 AnimatedOpacity(
                   opacity: widget.atEnd ? 1 : 0,
-                  duration: const Duration(milliseconds: 260),
+                  duration: AppMotion.edge,
                   child: Padding(
                     padding: const EdgeInsets.only(right: AppSpace.x2),
                     child: Text(
@@ -198,15 +202,17 @@ class SwipeHintState extends State<SwipeHint>
                     ),
                   ),
                 ),
+                // Glyph built once and only translated.
                 AnimatedBuilder(
                   animation: _nudge,
-                  builder: (context, _) => Transform.translate(
+                  child: Icon(
+                    AppIcons.chevron,
+                    size: AppSize.iconLarge,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                  builder: (context, chevron) => Transform.translate(
                     offset: Offset(AppSpace.x2 * _nudge.value, 0),
-                    child: Icon(
-                      AppIcons.chevron,
-                      size: AppSize.iconLarge,
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
+                    child: chevron,
                   ),
                 ),
               ],
@@ -216,4 +222,14 @@ class SwipeHintState extends State<SwipeHint>
       ),
     );
   }
+}
+
+/// [AppSize.brandDisplayBlock] at 1x, and taller by what two scaled lines of
+/// [AppTypography.brandDisplay] need beyond two unscaled ones.
+double _greetingBlock(BuildContext context) {
+  const style = AppTypography.brandDisplay;
+  final line = style.fontSize! * style.height!;
+  final scaled = MediaQuery.textScalerOf(context).lineHeightOf(style);
+  final grows = (scaled - line) * 2;
+  return (AppSize.brandDisplayBlock + (grows > 0 ? grows : 0)).ceilToDouble();
 }

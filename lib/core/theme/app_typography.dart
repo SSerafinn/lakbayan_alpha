@@ -2,16 +2,8 @@ import "package:flutter/material.dart";
 
 import "app_colors.dart";
 
-/// The type ramp (`type.*` in tokens.json 2.0.0, D-13).
-///
-/// Type carries structure on its own (design doc 03). One face, **Satoshi**,
-/// set heavy: 900 for the display step, 800 for headings, 700 for labels,
-/// 600 for body; lighter reads thin on a phone. Barabara is the one loud voice.
-///
-/// Satoshi is a **variable** font: `fontWeight` alone picks the file's default
-/// instance, so every style also sets the `wght` axis. Colour is not in the
-/// ramp; the theme applies `onSurface` and a call site colours only what
-/// means something. Use only these steps.
+/// The app's type ramp. One face (Satoshi, variable) with styles defined once
+/// here so every widget picks from the same set. Colour is applied by the theme.
 abstract final class AppTypography {
   static const family = "Satoshi";
 
@@ -23,28 +15,39 @@ abstract final class AppTypography {
   /// Headings tighten as they grow; the repo's own scale says the same.
   static TextStyle _heading({
     required double size,
-    required FontWeight weight,
+    required double weight,
     required double height,
     required double letterSpacing,
-  }) => TextStyle(
-    fontFamily: family,
-    fontSize: size,
-    fontWeight: weight,
-    fontVariations: [FontVariation("wght", weight.value.toDouble())],
+  }) => _style(
+    size: size,
+    weight: weight,
     height: height,
     letterSpacing: letterSpacing,
   );
 
   static TextStyle _body({
     required double size,
-    required FontWeight weight,
+    required double weight,
     required double height,
     double letterSpacing = 0,
+  }) => _style(
+    size: size,
+    weight: weight,
+    height: height,
+    letterSpacing: letterSpacing,
+  );
+
+  /// Satoshi is variable; `fontWeight` picks the named weight, `wght` carries the exact value.
+  static TextStyle _style({
+    required double size,
+    required double weight,
+    required double height,
+    required double letterSpacing,
   }) => TextStyle(
     fontFamily: family,
     fontSize: size,
-    fontWeight: weight,
-    fontVariations: [FontVariation("wght", weight.value.toDouble())],
+    fontWeight: FontWeight.values[((weight / 100).round() - 1).clamp(0, 8)],
+    fontVariations: [FontVariation("wght", weight)],
     height: height,
     letterSpacing: letterSpacing,
   );
@@ -54,7 +57,7 @@ abstract final class AppTypography {
   /// An editorial opener. One per screen at most.
   static final display = _heading(
     size: 38,
-    weight: FontWeight.w900,
+    weight: 800,
     height: 1.05,
     letterSpacing: -1.1,
   );
@@ -62,7 +65,7 @@ abstract final class AppTypography {
   /// A place name over its photo.
   static final hero = _heading(
     size: 28,
-    weight: FontWeight.w800,
+    weight: 750,
     height: 1.1,
     letterSpacing: -0.6,
   );
@@ -70,7 +73,7 @@ abstract final class AppTypography {
   /// The screen's title.
   static final titleLarge = _heading(
     size: 24,
-    weight: FontWeight.w800,
+    weight: 750,
     height: 1.1,
     letterSpacing: -0.4,
   );
@@ -78,7 +81,7 @@ abstract final class AppTypography {
   /// A section heading.
   static final titleMedium = _heading(
     size: 19,
-    weight: FontWeight.w800,
+    weight: 750,
     height: 1.15,
     letterSpacing: -0.2,
   );
@@ -86,7 +89,7 @@ abstract final class AppTypography {
   /// A heading over a grouped section.
   static final groupHeading = _heading(
     size: 17,
-    weight: FontWeight.w800,
+    weight: 750,
     height: 1.25,
     letterSpacing: -0.1,
   );
@@ -94,90 +97,53 @@ abstract final class AppTypography {
   /// A card or row title.
   static final titleSmall = _heading(
     size: 17,
-    weight: FontWeight.w700,
+    weight: 650,
     height: 1.25,
     letterSpacing: -0.1,
   );
 
-  // Reading text and labels: Satoshi 600 for body, 700 for labels. Anything
+  // Reading text and labels: Satoshi 550 for body, 650 for labels. Anything
   // lighter reads thin at phone sizes.
 
   /// Reading text: descriptions, stories, narration transcripts.
-  static final bodyLarge = _body(
-    size: 17,
-    weight: FontWeight.w600,
-    height: 1.5,
+  static final bodyLarge = _body(size: 17, weight: 550, height: 1.4);
+
+  /// A place's one-sentence pitch (`type.lede`): larger than reading text
+  /// and lighter than a heading, the page's one emphasised line.
+  static final lede = _body(
+    size: 20,
+    weight: 550,
+    height: 1.35,
+    letterSpacing: -0.2,
   );
 
   /// The default body.
-  static final bodyMedium = _body(
-    size: 15,
-    weight: FontWeight.w600,
-    height: 1.45,
-  );
+  static final bodyMedium = _body(size: 15, weight: 550, height: 1.35);
 
   /// Buttons, tab labels, row titles that are not headings.
-  static final labelLarge = _body(
-    size: 15,
-    weight: FontWeight.w700,
-    height: 1.2,
-  );
+  static final labelLarge = _body(size: 15, weight: 650, height: 1.2);
 
   /// A row's second line and small metadata: one step lighter than a label
   /// so the title above it keeps the weight.
-  static final secondLine = _body(
-    size: 13,
-    weight: FontWeight.w600,
-    height: 1.3,
-  );
+  static final secondLine = _body(size: 13, weight: 550, height: 1.25);
 
   /// Metadata and chips.
-  static final labelMedium = _body(
-    size: 13,
-    weight: FontWeight.w700,
-    height: 1.3,
-  );
-
-  /// The label under a category glyph on Home's strip.
-  static final glyphLabel = _body(
-    size: 12,
-    weight: FontWeight.w700,
-    height: 1.2,
-  );
-
-  /// A tab bar label under its glyph; the selected one steps up a weight.
-  static final tabLabel = _body(size: 11, weight: FontWeight.w700, height: 1.2);
-  static final tabLabelSelected = _body(
-    size: 11,
-    weight: FontWeight.w800,
-    height: 1.2,
-  );
+  static final labelMedium = _body(size: 13, weight: 650, height: 1.3);
 
   /// Captions.
-  static final labelSmall = _body(
-    size: 12,
-    weight: FontWeight.w600,
-    height: 1.3,
-  );
+  static final labelSmall = _body(size: 12, weight: 550, height: 1.3);
 
   /// Badges and all-caps labels: 11, 700, wide tracking. Render the text
   /// uppercase at the call site; Flutter has no `textCase`.
   static final caps = _body(
     size: 11,
-    weight: FontWeight.w800,
+    weight: 750,
     height: 1,
     letterSpacing: 0.8,
   );
 
-  /// Landing-page hero.
-  ///
-  /// Barabara is a static OTF, so unlike the ramp above there is no `wght`
-  /// axis to set. Its cmap covers **A to Z, digits and punctuation only**:
-  /// there are no lowercase glyphs, so any lowercase character silently falls
-  /// back to another face. Copy set in this style must be uppercase.
-  ///
-  /// Sized to fit an eight-character line at 360dp of usable width; display
-  /// faces sit tall in the line box, hence the generous `height`.
+  /// Landing-page hero face (Barabara). Uppercase-only font — lowercase glyphs
+  /// fall back silently, so copy set here must be uppercase.
   static const brandDisplay = TextStyle(
     fontFamily: brandFamily,
     fontSize: 48,
@@ -197,9 +163,7 @@ abstract final class AppTypography {
     color: AppColors.textOnLightGreen,
   );
 
-  /// Material's [TextTheme], one ramp step per slot, so stock widgets inherit
-  /// the ramp without each call site restating a style. Colour is applied by
-  /// the theme, not here.
+  /// Material [TextTheme] mapping — one ramp step per slot so stock widgets inherit the ramp.
   static TextTheme textTheme() => TextTheme(
     displayLarge: display,
     displayMedium: display,
@@ -217,4 +181,13 @@ abstract final class AppTypography {
     labelMedium: labelMedium,
     labelSmall: labelSmall,
   );
+}
+
+/// Laid-out height of one line of a ramp step at the user's text size.
+///
+/// Scale each style independently — Android 14+ scales large text less than
+/// small, so scaling a sum of heights as one font comes out short.
+extension TextLineHeight on TextScaler {
+  double lineHeightOf(TextStyle style) =>
+      scale(style.fontSize!) * (style.height ?? 1);
 }

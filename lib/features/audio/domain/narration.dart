@@ -84,11 +84,6 @@ class NarratorState {
 
   final String? error;
 
-  bool get isActive =>
-      phase == NarratorPhase.playing ||
-      phase == NarratorPhase.paused ||
-      phase == NarratorPhase.loading;
-
   NarratorState copyWith({
     NarratorPhase? phase,
     Duration? position,

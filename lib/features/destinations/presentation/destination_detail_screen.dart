@@ -1,3 +1,5 @@
+import "dart:math" show max;
+
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
@@ -8,36 +10,44 @@ import "../../../core/theme/app_dimens.dart";
 import "../../../core/theme/app_icons.dart";
 import "../../../core/theme/app_motion.dart";
 import "../../../core/theme/app_typography.dart";
-import "../../../core/theme/lakbayan_colors.dart";
-import "../../../core/widgets/grouped_section.dart";
-import "../../../core/widgets/lakbayan_badge.dart";
-import "../../../core/widgets/media_tile.dart";
-import "../../../core/widgets/quiet_note.dart";
-import "../../../core/widgets/scroll_edge.dart";
-import "../../../core/widgets/section_heading.dart";
-import "../../../core/widgets/storage_image.dart";
-import "../../../core/widgets/symbol_button.dart";
+import "../../../core/widgets/chrome/app_menu.dart";
+import "../../../core/widgets/chrome/app_sheet.dart";
+import "../../../core/widgets/chrome/system_bars.dart";
+import "../../../core/widgets/content/lakbayan_badge.dart";
+import "../../../core/widgets/content/media_tile.dart";
+import "../../../core/widgets/content/page_dots.dart";
+import "../../../core/widgets/content/quiet_note.dart";
+import "../../../core/widgets/content/section_heading.dart";
+import "../../../core/widgets/content/storage_image.dart";
+import "../../../core/widgets/controls/bar_item_group.dart";
+import "../../../core/widgets/controls/symbol_button.dart";
+import "../../../core/widgets/motion/motion.dart";
+import "../../../core/widgets/motion/page_transitions.dart";
 import "../../audio/presentation/audio_guide_section.dart";
 import "../../explore/domain/home_tab.dart";
 import "../../itineraries/presentation/add_to_itinerary_sheet.dart";
-import "../../maps/domain/directions.dart";
+import "../../maps/presentation/map_view.dart" show showDirections;
 import "../domain/destination_providers.dart";
 import "../domain/recently_viewed.dart";
 import "save_heart.dart";
 
-/// Place detail. **One job:** decide whether to go, then add it to a trip.
+/// Place detail. **Job:** decide whether to go, then put it on a trip.
 /// **Emotion:** being there already.
 ///
-/// Top to bottom: the hero with town and name on its scrim; a row of
-/// read-only badges (featured, AR, category, tags); the description, the
-/// history folded to four lines; the audio guide inline, stops and player;
-/// Plan your visit, one grouped section ending in the map row; Nearby as
-/// two tiles with the distance in blue; More in the town; and, pinned, the
-/// one primary action, Add to itinerary.
+/// A clean photo stage under the status bar; the page rises over its foot on
+/// a rounded edge. Back, and share with the heart, stay pinned. On the page:
+/// the name with "kind in town", the lede, the audio guide capsule, the hours
+/// with Plan your visit (a sheet of every fact) and Getting there, the story
+/// growing open in place, Around here. Floating: Add to trip. Only name,
+/// town, description and coordinates are required in the CMS; any other
+/// part is simply absent when empty, and free text renders as written.
 class DestinationDetailScreen extends ConsumerStatefulWidget {
-  const DestinationDetailScreen({required this.id, super.key});
+  const DestinationDetailScreen({required this.id, this.from, super.key});
 
   final String id;
+
+  /// The surface the cover flew from; null for a deep link.
+  final HeroSource? from;
 
   @override
   ConsumerState<DestinationDetailScreen> createState() =>
@@ -60,189 +70,299 @@ class _DestinationDetailScreenState
   @override
   Widget build(BuildContext context) {
     final destination = ref.watch(destinationByIdProvider(widget.id));
-
     return destination.when(
       loading: () =>
           const Scaffold(body: Center(child: CircularProgressIndicator())),
       error: (e, _) => MessageScreen("Couldn't load this destination.\n$e"),
       data: (d) => d == null
           ? const MessageScreen("This destination is no longer available.")
-          : Scaffold(body: _Content(destination: d)),
+          : Scaffold(
+              body: _PinnedActionScope(
+                child: EntranceScope(
+                  child: _Content(destination: d, from: widget.from),
+                ),
+              ),
+            ),
     );
   }
 }
 
-class _Content extends ConsumerWidget {
-  const _Content({required this.destination});
+class _Content extends StatefulWidget {
+  const _Content({required this.destination, required this.from});
 
   final Destination destination;
+  final HeroSource? from;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final bottomInset = MediaQuery.viewPaddingOf(context).bottom;
-    // The pinned action's region: button, its padding, the gesture inset.
-    final actionHeight =
-        AppSize.primaryButton + AppSpace.gutter * 2 + bottomInset;
+  State<_Content> createState() => _ContentState();
+}
+
+class _ContentState extends State<_Content> {
+  /// Read by the photo's drift and by the pinned controls' change of
+  /// surface; neither rebuilds the page.
+  final _scroll = ScrollController();
+
+  @override
+  void dispose() {
+    _scroll.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final destination = widget.destination;
+    final actionHeight = _PinnedAction.extentOf(context);
+    final topInset = MediaQuery.viewPaddingOf(context).top;
+    final stage = _PhotoStage.heightOf(context);
+    final controlsTop = topInset + AppSpace.x2;
+    // The page's edge reaches the controls' foot: from here they sit on the
+    // white page rather than on the photo.
+    final groundAt =
+        stage - _PhotoStage.edge - controlsTop - AppSize.minTouchTarget;
 
     return Stack(
       children: [
-        ScrollEdge(
-          style: ScrollEdgeStyle.hard,
-          bottom: actionHeight,
-          child: CustomScrollView(
-            slivers: [
-              SliverToBoxAdapter(child: _Hero(destination: destination)),
-              SliverPadding(
-                padding: EdgeInsets.fromLTRB(
-                  AppSpace.gutter,
-                  AppSpace.gutter,
-                  AppSpace.gutter,
-                  actionHeight + AppSpace.section,
-                ),
-                sliver: SliverList.list(
-                  children: [
-                    _Badges(destination: destination),
-                    _Prose(destination: destination),
-                    _AudioGuide(id: destination.id),
-                    const SizedBox(height: AppSpace.section),
-                    _PlanYourVisit(destination: destination),
-                    _Nearby(id: destination.id),
-                    _MoreInTown(destination: destination),
-                  ],
-                ),
+        CustomScrollView(
+          controller: _scroll,
+          slivers: [
+            SliverToBoxAdapter(
+              child: _PhotoStage(
+                destination: destination,
+                from: widget.from,
+                scroll: _scroll,
+                height: stage,
               ),
-            ],
+            ),
+            SliverPadding(
+              padding: EdgeInsets.fromLTRB(
+                AppSpace.gutter,
+                0,
+                AppSpace.gutter,
+                actionHeight + AppSpace.section,
+              ),
+              // The page arrives under the photo in reading order. A lazy
+              // list: Around here is not built until it is near.
+              sliver: SliverList.list(
+                children: [
+                  Entrance(child: _Title(destination: destination)),
+                  Entrance(order: 1, child: _Lede(destination: destination)),
+                  Entrance(order: 2, child: _AudioGuide(id: destination.id)),
+                  Entrance(order: 3, child: _Visit(destination: destination)),
+                  Entrance(order: 4, child: _Story(destination: destination)),
+                  Entrance(
+                    order: 5,
+                    child: _AroundHere(destination: destination),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        // The photo keeps the status bar at rest; the page's white closes
+        // in under it as the name arrives there.
+        StatusBarGround.below(scroll: _scroll, contentTop: stage),
+        Positioned(
+          top: controlsTop,
+          left: AppSpace.x2,
+          right: AppSpace.x2,
+          child: _PinnedControls(
+            destination: destination,
+            scroll: _scroll,
+            groundAt: groundAt,
           ),
         ),
-        Positioned(
-          left: 0,
-          right: 0,
-          bottom: 0,
-          child: _PinnedAction(destination: destination),
+        _PinnedAction(
+          label: "Add to trip",
+          icon: AppIcons.add,
+          onPressed: () => showAddToItinerary(
+            context,
+            destinationId: destination.id,
+            destinationName: destination.name,
+          ),
         ),
       ],
     );
   }
 }
 
-/// The photos, pageable when there are several, under a scrim carrying the
-/// town and the name. Back, share and the save heart sit on their own
-/// circles.
-class _Hero extends StatefulWidget {
-  const _Hero({required this.destination});
+/// The photos, clean and pageable when there are several. The page's rounded
+/// edge sits over their foot, carrying the dots, so the page reads as rising
+/// over the photo. As the page scrolls up over it, the photo drifts at half
+/// speed.
+class _PhotoStage extends StatefulWidget {
+  const _PhotoStage({
+    required this.destination,
+    required this.from,
+    required this.scroll,
+    required this.height,
+  });
 
   final Destination destination;
+  final HeroSource? from;
+  final ScrollController scroll;
+  final double height;
+
+  /// The page's rounded edge over the photo's foot.
+  static const edge = AppSpace.x6;
+
+  /// About this much of the screen goes to the photo, leaving the name and
+  /// the lede in view under it.
+  static const _share = 0.55;
+
+  /// Just over half the screen, and never shorter than the route map's
+  /// header, so a small phone still gets a photo rather than a strip.
+  static double heightOf(BuildContext context) {
+    final screen = MediaQuery.sizeOf(context).height;
+    final top = MediaQuery.viewPaddingOf(context).top;
+    return max(screen * _share, top + AppSize.routePreview).ceilToDouble();
+  }
 
   @override
-  State<_Hero> createState() => _HeroState();
+  State<_PhotoStage> createState() => _PhotoStageState();
 }
 
-class _HeroState extends State<_Hero> {
-  final _controller = PageController();
+class _PhotoStageState extends State<_PhotoStage> {
+  final _pages = PageController();
   int _page = 0;
 
   @override
   void dispose() {
-    _controller.dispose();
+    _pages.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final topInset = MediaQuery.viewPaddingOf(context).top;
     final destination = widget.destination;
     final images = destination.images;
+    final from = widget.from;
+    final scheme = Theme.of(context).colorScheme;
+
+    final Widget photos = images.isEmpty
+        ? const ImagePlaceholder(borderRadius: BorderRadius.zero)
+        : PageView.builder(
+            controller: _pages,
+            onPageChanged: (i) => setState(() => _page = i),
+            itemCount: images.length,
+            // Only the cover carries the tag: it is the one image the tile
+            // that opened this screen shares a flight with.
+            itemBuilder: (context, i) => i == 0 && from != null
+                ? PhotoHero(
+                    tag: coverHeroTag(destination.id, from),
+                    child: StorageImage(path: images[i]),
+                  )
+                : StorageImage(path: images[i]),
+          );
 
     return SizedBox(
-      height: AppSize.detailHero,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          if (images.isEmpty)
-            const ImagePlaceholder(borderRadius: BorderRadius.zero)
-          else
-            PageView.builder(
-              controller: _controller,
-              onPageChanged: (i) => setState(() => _page = i),
-              itemCount: images.length,
-              // Only the cover page carries the tag: it is the one image the
-              // "Popular this week" tile can share a continuity flight with.
-              itemBuilder: (context, i) => i == 0
-                  ? Hero(
-                      tag: destination.popularHeroTag,
-                      child: StorageImage(path: images[i]),
-                    )
-                  : StorageImage(path: images[i]),
+      height: widget.height,
+      // The drifting photo stays inside its stage.
+      child: ClipRect(
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            if (MediaQuery.disableAnimationsOf(context))
+              photos
+            else
+              _Drift(scroll: widget.scroll, child: photos),
+            // Light status bar icons over the photo only: once the page's
+            // white edge is under the status bar, the icons turn dark.
+            const Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: _PhotoStage.edge,
+              child: SystemBars(overPhoto: true, child: SizedBox.expand()),
             ),
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: IgnorePointer(
-              child: MediaScrim(
-                padding: const EdgeInsets.fromLTRB(
-                  AppSpace.gutter,
-                  AppSpace.x12 * 2,
-                  AppSpace.gutter,
-                  AppSpace.gutter,
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              height: _PhotoStage.edge,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: scheme.surface,
+                  borderRadius: AppRadii.sheetTop,
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      destination.town,
-                      style: AppTypography.labelMedium.copyWith(
-                        color: Colors.white,
-                      ),
-                    ),
-                    Text(
-                      destination.name,
-                      style: AppTypography.hero.copyWith(color: Colors.white),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    if (images.length > 1) ...[
-                      const SizedBox(height: AppSpace.x2),
-                      _PageDots(count: images.length, current: _page),
-                    ],
-                  ],
+                child: Center(
+                  child: PageDots(count: images.length, current: _page),
                 ),
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Photo drifts at half the page's scroll speed: a translation read from the
+/// scroll offset, photo built once so a scroll repaints without rebuilding.
+class _Drift extends StatelessWidget {
+  const _Drift({required this.scroll, required this.child});
+
+  final ScrollController scroll;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => AnimatedBuilder(
+    animation: scroll,
+    child: child,
+    builder: (context, child) {
+      final offset = scroll.hasClients && scroll.offset > 0
+          ? scroll.offset
+          : 0.0;
+      return Transform.translate(offset: Offset(0, offset / 2), child: child);
+    },
+  );
+}
+
+/// The space between the page's parts: more than a section gap, so each part
+/// stands on its own without a rule or a card to separate it.
+const _block = AppSpace.x6;
+
+/// The name first and large, then what and where as one quiet line: "Nature
+/// in Peñablanca". No badges: FEATURED is the feed's business, not this
+/// page's.
+class _Title extends StatelessWidget {
+  const _Title({required this.destination});
+
+  final Destination destination;
+
+  /// The kind as a noun, to sit in front of the town. Null for a kind this
+  /// build does not know, which leaves the town alone.
+  static String? _kindOf(DestinationCategory category) => switch (category) {
+    DestinationCategory.church => "Church",
+    DestinationCategory.nature => "Nature",
+    DestinationCategory.heritage => "Heritage site",
+    DestinationCategory.museum => "Museum",
+    DestinationCategory.food => "Place to eat",
+    DestinationCategory.landmark => "Landmark",
+    DestinationCategory.unknown => null,
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final kind = _kindOf(destination.category);
+    final line = kind == null
+        ? destination.town
+        : "$kind in ${destination.town}";
+    return Padding(
+      padding: const EdgeInsets.only(top: AppSpace.x2),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Semantics(
+            header: true,
+            child: Text(destination.name, style: AppTypography.hero),
           ),
-          Positioned(
-            top: topInset + AppSpace.x2,
-            left: AppSpace.x2,
-            child: SymbolButton(
-              icon: AppIcons.back,
-              tooltip: "Back",
-              onTap: () =>
-                  context.canPop() ? context.pop() : context.go(Routes.home),
+          const SizedBox(height: AppSpace.x1),
+          Text(
+            line,
+            style: AppTypography.bodyMedium.copyWith(
+              color: scheme.onSurfaceVariant,
             ),
-          ),
-          Positioned(
-            top: topInset + AppSpace.x2,
-            right: AppSpace.x2 + AppSize.heroSave + AppSpace.x2,
-            child: SymbolButton(
-              icon: AppIcons.share,
-              tooltip: "Share",
-              onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text(
-                      "Sharing will be available in a future update.",
-                    ),
-                    duration: Duration(seconds: 2),
-                  ),
-                );
-              },
-            ),
-          ),
-          Positioned(
-            top: topInset + AppSpace.x2,
-            right: AppSpace.x2,
-            child: SaveHeart(destination.id, style: SaveHeartStyle.hero),
           ),
         ],
       ),
@@ -250,101 +370,356 @@ class _HeroState extends State<_Hero> {
   }
 }
 
-/// Which photo is showing. Small white capsules, the current one longer.
-class _PageDots extends StatelessWidget {
-  const _PageDots({required this.count, required this.current});
-
-  final int count;
-  final int current;
-
-  @override
-  Widget build(BuildContext context) => Row(
-    children: [
-      for (var i = 0; i < count; i++)
-        Padding(
-          padding: const EdgeInsets.only(right: AppSpace.x1),
-          child: AnimatedContainer(
-            duration: AppMotion.edge,
-            width: i == current ? AppSpace.x4 : AppSpace.x1 + 2,
-            height: AppSpace.x1 + 2,
-            decoration: ShapeDecoration(
-              color: Colors.white.withValues(alpha: i == current ? 1 : 0.5),
-              shape: const StadiumBorder(),
-            ),
-          ),
-        ),
-    ],
-  );
-}
-
-/// Read-only: featured, AR, the category, the tags. Nothing computed:
-/// `openHours` is free text, so there is no OPEN NOW.
-class _Badges extends StatelessWidget {
-  const _Badges({required this.destination});
+/// The description, the CMS's one sentence about the place, set as the lede:
+/// larger than reading text and lighter than a heading, the page's one
+/// emphasised line.
+class _Lede extends StatelessWidget {
+  const _Lede({required this.destination});
 
   final Destination destination;
 
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(bottom: AppSpace.x4),
-    child: Wrap(
-      spacing: AppSpace.x2,
-      runSpacing: AppSpace.x2,
-      children: [
-        if (destination.featured) const LakbayanBadge.featured(),
-        if (destination.hasAR) const LakbayanBadge.ar(),
-        LakbayanBadge(destination.category.label, kind: BadgeKind.info),
-        for (final tag in destination.tags)
-          LakbayanBadge(tag, kind: BadgeKind.info),
-      ],
+  Widget build(BuildContext context) {
+    final description = destination.description.trim();
+    if (description.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(top: AppSpace.x4),
+      child: Text(description, style: AppTypography.lede),
+    );
+  }
+}
+
+/// Back alone on its circle at the leading top; share and the heart on one
+/// white capsule at the trailing top (PREFERENCES: symbols over a photo
+/// share one capsule, back stays alone). Pinned, so back is always one tap
+/// away. Once the page is under them they take the grey step up, as a
+/// control on the white page does (`SymbolButton.onGround`): once, on the
+/// chrome spring, when the page crosses them, not on every scroll frame.
+class _PinnedControls extends StatefulWidget {
+  const _PinnedControls({
+    required this.destination,
+    required this.scroll,
+    required this.groundAt,
+  });
+
+  final Destination destination;
+  final ScrollController scroll;
+
+  /// The scroll offset at which the page's edge reaches the controls.
+  final double groundAt;
+
+  @override
+  State<_PinnedControls> createState() => _PinnedControlsState();
+}
+
+class _PinnedControlsState extends State<_PinnedControls> {
+  bool _onGround = false;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.scroll.addListener(_check);
+  }
+
+  @override
+  void didUpdateWidget(_PinnedControls old) {
+    super.didUpdateWidget(old);
+    if (old.scroll != widget.scroll) {
+      old.scroll.removeListener(_check);
+      widget.scroll.addListener(_check);
+    }
+    _check();
+  }
+
+  @override
+  void dispose() {
+    widget.scroll.removeListener(_check);
+    super.dispose();
+  }
+
+  void _check() {
+    final scroll = widget.scroll;
+    final onGround = scroll.hasClients && scroll.offset > widget.groundAt;
+    if (onGround != _onGround) setState(() => _onGround = onGround);
+  }
+
+  void _share() => ScaffoldMessenger.of(context).showSnackBar(
+    const SnackBar(
+      content: Text("Sharing will be available in a future update."),
+      duration: Duration(seconds: 2),
     ),
   );
-}
-
-/// The description in full; the history folded to four lines behind "More".
-class _Prose extends StatefulWidget {
-  const _Prose({required this.destination});
-
-  final Destination destination;
-
-  @override
-  State<_Prose> createState() => _ProseState();
-}
-
-class _ProseState extends State<_Prose> {
-  bool _expanded = false;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final history = widget.destination.history?.trim() ?? "";
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(widget.destination.description, style: AppTypography.bodyLarge),
-        if (history.isNotEmpty) ...[
-          const SizedBox(height: AppSpace.x3),
-          Text(
-            history,
-            style: AppTypography.bodyMedium.copyWith(
-              color: scheme.onSurfaceVariant,
+    final id = widget.destination.id;
+    return AppMotionBuilder(
+      end: _onGround ? 1 : 0,
+      builder: (context, t, _) {
+        final tone = Color.lerp(
+          scheme.surface,
+          scheme.surfaceContainerHigh,
+          t.clamp(0.0, 1.0),
+        )!;
+        return Row(
+          children: [
+            SymbolButton(
+              icon: AppIcons.back,
+              tooltip: "Back",
+              onTap: context.popOrHome,
+              background: tone,
             ),
-            maxLines: _expanded ? null : 4,
-            overflow: _expanded ? null : TextOverflow.ellipsis,
-          ),
-          TextButton(
-            onPressed: () => setState(() => _expanded = !_expanded),
-            style: TextButton.styleFrom(padding: EdgeInsets.zero),
-            child: Text(_expanded ? "Less" : "More"),
+            const Spacer(),
+            BarItemGroup.overMedia(
+              background: tone,
+              items: [
+                BarItem(
+                  icon: AppIcons.share,
+                  tooltip: "Share",
+                  onPressed: _share,
+                ),
+                BarItem.control(SaveHeart(id, style: SaveHeartStyle.bar)),
+              ],
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+/// A CMS free-text fact, trimmed, or null when the editor left it empty.
+String? _fact(String? value) =>
+    value == null || value.trim().isEmpty ? null : value.trim();
+
+/// Visiting, in as few words as it takes: the hours on one line, the one
+/// fact that decides whether to go now; then two quiet buttons. Plan your
+/// visit opens a sheet with every practical fact in full and the tags;
+/// Getting there opens a menu from itself with On the map and Directions.
+class _Visit extends ConsumerWidget {
+  const _Visit({required this.destination});
+
+  final Destination destination;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final scheme = Theme.of(context).colorScheme;
+    final practical = destination.practical;
+    final hours = _fact(practical?.openHours);
+    final plan =
+        hours != null ||
+        _fact(practical?.entryFee) != null ||
+        _fact(practical?.bestSeason) != null ||
+        _fact(practical?.accessibility) != null ||
+        destination.tags.any((tag) => tag.trim().isNotEmpty);
+
+    void onTheMap() {
+      ref.read(mapSelectedIdProvider.notifier).select(destination.id);
+      ref.read(browseShowsGridProvider.notifier).set(false);
+      ref.read(selectedHomeTabProvider.notifier).select(HomeTab.map);
+      context.go(Routes.home);
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(top: _block),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (hours != null) ...[
+            Semantics(
+              label: "Hours, $hours",
+              excludeSemantics: true,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    // Onto the first line's centre.
+                    padding: const EdgeInsets.only(top: AppSpace.x1 / 2),
+                    child: Icon(
+                      AppIcons.clock,
+                      size: AppSize.glyph,
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(width: AppSpace.x3),
+                  Expanded(child: Text(hours, style: AppTypography.bodyLarge)),
+                ],
+              ),
+            ),
+            const SizedBox(height: AppSpace.x3),
+          ],
+          Row(
+            children: [
+              if (plan) ...[
+                Expanded(
+                  child: Pressable(
+                    child: OutlinedButton(
+                      onPressed: () => showAppSheet<void>(
+                        context,
+                        builder: (_) => _PlanSheet(destination: destination),
+                      ),
+                      child: const Text(
+                        "Plan your visit",
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: AppSpace.x2),
+              ],
+              Expanded(
+                // The menu grows out of the button that opened it (doc 04).
+                child: AppMenu(
+                  groups: [
+                    [
+                      AppMenuItem(
+                        label: "On the map",
+                        icon: AppIcons.map,
+                        onSelected: onTheMap,
+                      ),
+                      AppMenuItem(
+                        label: "Directions",
+                        icon: AppIcons.directions,
+                        onSelected: () => showDirections(context, destination),
+                      ),
+                    ],
+                  ],
+                  builder: (context, controller) => Pressable(
+                    child: OutlinedButton(
+                      onPressed: controller.isOpen
+                          ? controller.close
+                          : controller.open,
+                      child: const Text(
+                        "Getting there",
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Plan your visit: every practical fact the CMS holds, each in full under
+/// its name, then what the place is known for, its tags, as capsules.
+class _PlanSheet extends StatelessWidget {
+  const _PlanSheet({required this.destination});
+
+  final Destination destination;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final practical = destination.practical;
+    final facts = [
+      if (_fact(practical?.openHours) case final hours?)
+        (icon: AppIcons.clock, label: "Hours", value: hours),
+      if (_fact(practical?.entryFee) case final fee?)
+        (icon: AppIcons.entry, label: "Entry", value: fee),
+      if (_fact(practical?.bestSeason) case final season?)
+        (icon: AppIcons.season, label: "Best time", value: season),
+      if (_fact(practical?.accessibility) case final access?)
+        (icon: AppIcons.info, label: "Access", value: access),
+    ];
+    final tags = [
+      for (final tag in destination.tags)
+        if (tag.trim().isNotEmpty) tag.trim(),
+    ];
+
+    return AppSheet(
+      title: "Plan your visit",
+      slivers: [
+        SliverPadding(
+          padding: appSheetBodyPadding,
+          sliver: SliverList.list(
+            children: [
+              for (final (index, fact) in facts.indexed) ...[
+                if (index > 0) const SizedBox(height: AppSpace.x4),
+                _PlanFact(
+                  icon: fact.icon,
+                  label: fact.label,
+                  value: fact.value,
+                ),
+              ],
+              if (tags.isNotEmpty) ...[
+                if (facts.isNotEmpty) const SizedBox(height: _block),
+                Text(
+                  "Known for",
+                  style: AppTypography.labelMedium.copyWith(
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: AppSpace.x2),
+                Wrap(
+                  spacing: AppSpace.x2,
+                  runSpacing: AppSpace.x2,
+                  children: [
+                    for (final tag in tags)
+                      LakbayanBadge(tag, kind: BadgeKind.info),
+                  ],
+                ),
+              ],
+            ],
+          ),
+        ),
       ],
     );
   }
 }
 
-/// The stops and the player, inline: the guide is content, not a setting.
-/// Absent entirely when the place has no stops.
+/// One practical fact in the sheet: its glyph, its name small, its value in
+/// full at reading size.
+class _PlanFact extends StatelessWidget {
+  const _PlanFact({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return MergeSemantics(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: AppSize.glyph, color: scheme.onSurfaceVariant),
+          const SizedBox(width: AppSpace.x3),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: AppTypography.secondLine.copyWith(
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
+                Text(value, style: AppTypography.bodyLarge),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The audio guide as one capsule, right under the lede: listening is what
+/// the app is for once you are there. Absent entirely when the place has no
+/// stops.
 class _AudioGuide extends ConsumerWidget {
   const _AudioGuide({required this.id});
 
@@ -355,125 +730,68 @@ class _AudioGuide extends ConsumerWidget {
     final stops = ref.watch(destinationSegmentsProvider(id)).value ?? const [];
     if (stops.isEmpty) return const SizedBox.shrink();
     return Padding(
-      padding: const EdgeInsets.only(top: AppSpace.section),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const SectionHeading("Audio guide"),
-          const SizedBox(height: AppSpace.x2),
-          AudioGuideSection(destinationId: id, segments: stops),
-        ],
-      ),
+      padding: const EdgeInsets.only(top: _block),
+      // The capsule names itself, so no heading over it.
+      child: AudioGuideSection(destinationId: id, segments: stops),
     );
   }
 }
 
-/// The practical facts as rows, each only when set, ending in the map row in
-/// blue. Rendered as written: `openHours` cannot be computed against.
-class _PlanYourVisit extends ConsumerWidget {
-  const _PlanYourVisit({required this.destination});
+/// The history under its own heading, at full reading weight, cut at a
+/// deliberate three lines so it stops mid-thought: a hook, not a caption.
+/// Continue reading grows it open in place on the chrome spring, and Show
+/// less folds it back the same way; under reduced motion the two cross-fade.
+class _Story extends StatefulWidget {
+  const _Story({required this.destination});
 
   final Destination destination;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final brand = context.lakbayan;
-    final practical = destination.practical;
-    final facts = <(String, String?)>[
-      ("Hours", practical?.openHours),
-      ("Entry", practical?.entryFee),
-      ("Best time to go", practical?.bestSeason),
-      ("Getting around", practical?.accessibility),
-    ];
-
-    return GroupedSection(
-      heading: "Plan your visit",
-      children: [
-        for (final (label, value) in facts)
-          if (value != null && value.trim().isNotEmpty)
-            GroupedRow(title: label, subtitle: value.trim()),
-        GroupedRow(
-          title: "See it on the map",
-          subtitle: destination.town,
-          subtitleColor: brand.spatial,
-          leadingGlyph: AppIcons.directions,
-          glyphColor: brand.spatial,
-          onTap: () {
-            ref.read(mapSelectedIdProvider.notifier).select(destination.id);
-            ref.read(browseShowsGridProvider.notifier).set(false);
-            ref.read(selectedHomeTabProvider.notifier).select(HomeTab.map);
-            context.go(Routes.home);
-          },
-        ),
-        GroupedRow(
-          title: "Take me there",
-          subtitle: "Opens your map app",
-          leadingGlyph: AppIcons.drive,
-          glyphColor: brand.spatial,
-          onTap: () async {
-            // Resolved before the await: this is a ConsumerWidget, so there
-            // is no `mounted` to check afterwards.
-            final messenger = ScaffoldMessenger.of(context);
-            final opened = await openDirections(
-              lat: destination.coords.lat,
-              lng: destination.coords.lng,
-              label: destination.name,
-            );
-            if (opened) return;
-            messenger.showSnackBar(
-              const SnackBar(
-                content: Text("Couldn't open a map app for directions."),
-              ),
-            );
-          },
-        ),
-      ],
-    );
-  }
+  State<_Story> createState() => _StoryState();
 }
 
-/// The two closest places, distance in blue under each.
-class _Nearby extends ConsumerWidget {
-  const _Nearby({required this.id});
+class _StoryState extends State<_Story> {
+  bool _expanded = false;
 
-  final String id;
+  static const _collapsedLines = 3;
+
+  static const _grow = AppMotion.span;
+  static final _spring = SpringCurve(AppMotion.chrome, _grow);
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final nearby = ref.watch(nearbyProvider(id));
-    final origin = ref.watch(destinationByIdProvider(id)).value;
-    if (nearby.isEmpty || origin == null) return const SizedBox.shrink();
-    final brand = context.lakbayan;
-
+  Widget build(BuildContext context) {
+    final history = widget.destination.history?.trim() ?? "";
+    if (history.isEmpty) return const SizedBox.shrink();
+    final text = Text(
+      history,
+      style: AppTypography.bodyLarge,
+      maxLines: _expanded ? null : _collapsedLines,
+      overflow: _expanded ? null : TextOverflow.ellipsis,
+    );
     return Padding(
-      padding: const EdgeInsets.only(top: AppSpace.section),
+      padding: const EdgeInsets.only(top: _block),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SectionHeading("Nearby"),
+          const SectionHeading("The story"),
           const SizedBox(height: AppSpace.x2),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              for (final (index, place) in nearby.indexed) ...[
-                if (index > 0) const SizedBox(width: AppSpace.x3),
-                Expanded(
-                  child: MediaTile(
-                    media: place.coverImage == null
-                        ? const ImagePlaceholder(
-                            borderRadius: BorderRadius.zero,
-                          )
-                        : StorageImage(path: place.coverImage!),
-                    aspectRatio: 4 / 3,
-                    title: place.name,
-                    subtitle:
-                        "${distanceLabel(distanceBetween(origin, place))} away",
-                    subtitleColor: brand.spatial,
-                    onTap: () => context.push(Routes.destination(place.id)),
-                  ),
-                ),
-              ],
-            ],
+          if (MediaQuery.disableAnimationsOf(context))
+            FadeSwap(id: _expanded, alignment: Alignment.topLeft, child: text)
+          else
+            AnimatedSize(
+              duration: _grow,
+              curve: _spring,
+              alignment: Alignment.topCenter,
+              child: text,
+            ),
+          TextButton(
+            onPressed: () => setState(() => _expanded = !_expanded),
+            style: TextButton.styleFrom(padding: EdgeInsets.zero),
+            child: FadeSwap(
+              id: _expanded,
+              alignment: Alignment.centerLeft,
+              child: Text(_expanded ? "Show less" : "Continue reading"),
+            ),
           ),
         ],
       ),
@@ -481,65 +799,202 @@ class _Nearby extends ConsumerWidget {
   }
 }
 
-/// The rest of the town, so the screen leads somewhere. Skips this place
-/// and the two already shown as Nearby.
-class _MoreInTown extends ConsumerWidget {
-  const _MoreInTown({required this.destination});
+/// The nearest places, their distance on the photo, then the rest of the
+/// town: one rail, so the screen leads somewhere without another list.
+class _AroundHere extends ConsumerWidget {
+  const _AroundHere({required this.destination});
 
   final Destination destination;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final shown = {
-      destination.id,
-      for (final place in ref.watch(nearbyProvider(destination.id))) place.id,
-    };
-    final town = ref
-        .watch(townsProvider)
-        .where((t) => t.name == destination.town)
-        .firstOrNull;
-    final others = [
-      for (final place in town?.places ?? const <Destination>[])
-        if (!shown.contains(place.id)) place,
-    ].take(3).toList();
-    if (others.isEmpty) return const SizedBox.shrink();
+    final places = ref.watch(aroundHereProvider(destination.id));
+    if (places.isEmpty) return const SizedBox.shrink();
 
     return Padding(
-      padding: const EdgeInsets.only(top: AppSpace.section),
-      child: GroupedSection(
-        heading: "More in ${destination.town}",
+      padding: const EdgeInsets.only(top: _block),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          for (final place in others)
-            GroupedRow(
-              title: place.name,
-              subtitle: place.category.label,
-              leading: CoverImage(place.coverImage),
-              onTap: () => context.push(Routes.destination(place.id)),
+          const SectionHeading("Around here"),
+          const SizedBox(height: AppSpace.x1),
+          SizedBox(
+            height: AppSize.railTile * 5 / 4,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              clipBehavior: Clip.none,
+              itemCount: places.length,
+              separatorBuilder: (_, _) => const SizedBox(width: AppSpace.x2),
+              itemBuilder: (context, index) {
+                final (:place, :line) = places[index];
+                return SizedBox(
+                  width: AppSize.railTile,
+                  child: MediaTile(
+                    // A neighbour's photo opens into its page, as every
+                    // place photo does.
+                    media: PhotoHero(
+                      tag: coverHeroTag(place.id, HeroSource.around),
+                      child: CoverImage(place.coverImage),
+                    ),
+                    aspectRatio: 4 / 5,
+                    overlay: true,
+                    dense: true,
+                    title: place.name,
+                    subtitle: line,
+                    onTap: () => context.push(
+                      Routes.destination(place.id, from: HeroSource.around),
+                    ),
+                  ),
+                );
+              },
             ),
+          ),
         ],
       ),
     );
   }
 }
 
-/// The one primary action, pinned. Takes its own SafeArea so the surface
-/// reaches the edge and the button does not.
+/// Add to trip, floating at the bottom trailing corner: a green capsule that
+/// folds to its glyph while reading. Takes its own `SafeArea`.
 class _PinnedAction extends StatelessWidget {
-  const _PinnedAction({required this.destination});
+  const _PinnedAction({
+    required this.label,
+    required this.icon,
+    required this.onPressed,
+  });
 
-  final Destination destination;
+  final String label;
+  final IconData icon;
+  final VoidCallback? onPressed;
+
+  /// The button, its gutter all round, and the gesture inset under it.
+  static double extentOf(BuildContext context) =>
+      AppSize.primaryButton +
+      AppSpace.gutter * 2 +
+      MediaQuery.viewPaddingOf(context).bottom;
 
   @override
-  Widget build(BuildContext context) => SafeArea(
-    top: false,
-    minimum: const EdgeInsets.all(AppSpace.gutter),
-    child: FilledButton(
-      onPressed: () => showAddToItinerary(
-        context,
-        destinationId: destination.id,
-        destinationName: destination.name,
+  Widget build(BuildContext context) {
+    final compact = _Compact.of(context);
+    return Positioned(
+      right: 0,
+      bottom: 0,
+      // Own RepaintBoundary so folding repaints only the action.
+      child: RepaintBoundary(
+        child: SafeArea(
+          top: false,
+          minimum: const EdgeInsets.all(AppSpace.gutter),
+          child: Pressable(
+            enabled: onPressed != null,
+            child: Tooltip(
+              message: label,
+              excludeFromSemantics: true,
+              child: FilledButton(
+                onPressed: onPressed,
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size.square(AppSize.primaryButton),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: (AppSize.primaryButton - AppSize.glyph) / 2,
+                  ),
+                ),
+                child: Semantics(
+                  label: label,
+                  excludeSemantics: true,
+                  child: AppMotionBuilder(
+                    end: compact ? 0 : 1,
+                    builder: (context, t, _) {
+                      final open = t.clamp(0.0, 1.0);
+                      return Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(icon, size: AppSize.glyph),
+                          if (open > 0)
+                            ClipRect(
+                              child: Align(
+                                alignment: Alignment.centerLeft,
+                                widthFactor: open,
+                                child: Padding(
+                                  padding: const EdgeInsets.only(
+                                    left: AppSpace.x2,
+                                  ),
+                                  child: Opacity(
+                                    opacity: open,
+                                    child: Text(label, maxLines: 1),
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
       ),
-      child: const Text("Add to itinerary"),
-    ),
-  );
+    );
+  }
+}
+
+/// Folds [_PinnedAction] after a deliberate scroll down, opens it on a scroll
+/// up or at the top, and keeps it folded at the bottom over the last row.
+class _PinnedActionScope extends StatefulWidget {
+  const _PinnedActionScope({required this.child});
+
+  final Widget child;
+
+  @override
+  State<_PinnedActionScope> createState() => _PinnedActionScopeState();
+}
+
+class _PinnedActionScopeState extends State<_PinnedActionScope> {
+  bool _compact = false;
+  double _travel = 0;
+
+  static const _foldAfter = AppSpace.x12;
+  static const _openAfter = AppSpace.x6;
+
+  bool _onScroll(ScrollNotification notification) {
+    final metrics = notification.metrics;
+    if (metrics.axis != Axis.vertical || notification.depth != 0) return false;
+    if (notification is! ScrollUpdateNotification) return false;
+    final atTop = metrics.pixels <= metrics.minScrollExtent;
+    final atBottom = metrics.pixels >= metrics.maxScrollExtent;
+    final delta = notification.scrollDelta ?? 0;
+    if ((delta > 0) != (_travel > 0)) _travel = 0;
+    _travel += delta;
+    final compact = atTop
+        ? false
+        : atBottom
+        ? true
+        : _travel > _foldAfter
+        ? true
+        : _travel < -_openAfter
+        ? false
+        : _compact;
+    if (compact != _compact) setState(() => _compact = compact);
+    return false;
+  }
+
+  @override
+  Widget build(BuildContext context) =>
+      NotificationListener<ScrollNotification>(
+        onNotification: _onScroll,
+        child: _Compact(compact: _compact, child: widget.child),
+      );
+}
+
+class _Compact extends InheritedWidget {
+  const _Compact({required this.compact, required super.child});
+
+  final bool compact;
+
+  static bool of(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<_Compact>()?.compact ?? false;
+
+  @override
+  bool updateShouldNotify(_Compact old) => compact != old.compact;
 }

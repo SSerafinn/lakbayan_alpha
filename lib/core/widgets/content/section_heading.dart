@@ -1,8 +1,8 @@
 import "package:flutter/material.dart";
 
-import "../theme/app_dimens.dart";
-import "../theme/app_typography.dart";
-import "../theme/lakbayan_colors.dart";
+import "../../theme/app_dimens.dart";
+import "../../theme/app_typography.dart";
+import "../../theme/lakbayan_colors.dart";
 
 /// A section heading in sentence case, with an optional "See all" in spatial
 /// blue on the right. No eyebrow above it: the heading is the whole label.
