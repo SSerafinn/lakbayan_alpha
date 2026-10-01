@@ -1,4 +1,5 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
     <!-- The INTERNET permission is required for development. Specifically,
          the Flutter tool needs it to communicate with the running application
          to allow setting breakpoints, to provide hot reload, etc.
@@ -9,5 +10,34 @@
          default since API 28, which makes emulator connections fail with an
          opaque timeout rather than a useful error. Debug build type ONLY —
          this never reaches a release APK. -->
-    <application android:usesCleartextTraffic="true" />
+    <application android:usesCleartextTraffic="true">
+
+        <!-- Stops Android creating the default Firebase app on its own.
+
+             `FirebaseInitProvider` runs before `main()` and builds `[DEFAULT]`
+             from `google-services.json`, which is the real dev project. A
+             default app cannot be replaced once it exists, so when
+             `bootstrapFirebase` then asked for the `demo-` project in emulator
+             mode, Firebase refused and the app carried on with the real
+             project's options — pointed at the emulators, but under the wrong
+             project id.
+
+             The emulator keeps each project's data apart. So the phone read
+             `project-lakbayan`, which is empty, while the seeder and the CMS
+             filled `demo-lakbayan`: sign-in worked, every list came back
+             empty, nothing logged an error, and the banner said connected.
+             It also quietly undid the reason `demo-` options exist at all —
+             with the real options in place, anything not routed to an
+             emulator would have reached the real project.
+
+             Removed here, the first app created is the one Dart asks for:
+             the demo project in emulator mode, `firebase_options.dart`
+             otherwise, which names the same project this provider would
+             have. Debug build type ONLY; profile and release keep native
+             auto-init, where there is no second project to confuse it with. -->
+        <provider
+            android:name="com.google.firebase.provider.FirebaseInitProvider"
+            android:authorities="${applicationId}.firebaseinitprovider"
+            tools:node="remove" />
+    </application>
 </manifest>

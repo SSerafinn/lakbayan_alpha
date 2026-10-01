@@ -21,6 +21,14 @@ import "package:firebase_core/firebase_core.dart";
 ///
 /// A `demo-` project has no backend at all. Firebase refuses to contact one, so
 /// that failure mode is impossible by construction rather than by care.
+///
+/// **That only holds if these options are the ones in force**, and on Android
+/// they were not. `FirebaseInitProvider` built the default app from
+/// `google-services.json` before `main()` ran, a default app cannot be
+/// replaced, and emulator mode carried on with the real project's options —
+/// the exact arrangement this file exists to rule out. The debug manifest now
+/// removes that provider, and `bootstrapFirebase` reports
+/// `emulatorsWrongProject` if the app ever comes up as anything else.
 /// The id must match the `--project` flag on the `emulators` service in
 /// `docker-compose.yml`.
 const FirebaseOptions demoFirebaseOptions = FirebaseOptions(
