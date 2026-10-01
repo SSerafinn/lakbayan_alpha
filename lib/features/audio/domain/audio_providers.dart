@@ -16,9 +16,9 @@ part "audio_providers.g.dart";
 ///
 /// A function rather than a repository so a test can substitute one line. It
 /// lives here rather than reusing `storageUrlProvider` from
-/// `core/widgets/storage_image.dart` on purpose: that one belongs to a widget,
-/// and the domain layer importing a widget file to reach it would invert the
-/// dependency the feature-first layout exists to keep straight.
+/// `core/widgets/content/storage_image.dart` on purpose: that one belongs to a
+/// widget, and the domain layer importing a widget file to reach it would
+/// invert the dependency the feature-first layout exists to keep straight.
 typedef AudioUrlResolver = Future<String> Function(String storagePath);
 
 /// Downloaded recording if there is one, otherwise a Storage download URL.

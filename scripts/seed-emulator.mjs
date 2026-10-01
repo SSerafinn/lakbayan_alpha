@@ -14,6 +14,13 @@
 // content — were three separate chores. `grant-admin.mjs` remains the tool for
 // promoting a *real* person on a *real* project; this is the emulator shortcut.
 //
+// Beyond destinations and tours it seeds the things a feature needs before it
+// can be seen at all: three local guides, one recorded narration, and a bundle
+// per town so the Downloads screen has something to list. Each was once a
+// throwaway script written to test one screen, twice over, which is the sign
+// it belonged here. A town is downloadable only if its map pack has been
+// rendered on this machine — see the offline bundles section below.
+//
 // Re-runnable: documents are keyed by slug, so running it again overwrites
 // rather than duplicates.
 //
@@ -26,6 +33,8 @@
 //
 // Use `import-content.mjs` for real content from the province. This is scaffolding.
 
+import { createHash } from "node:crypto";
+import { existsSync, readFileSync } from "node:fs";
 import { deflateSync } from "node:zlib";
 
 import { applicationDefault, initializeApp } from "firebase-admin/app";
@@ -34,6 +43,7 @@ import { FieldValue, getFirestore } from "firebase-admin/firestore";
 import { getStorage } from "firebase-admin/storage";
 
 import { slugify } from "./lib/slug.mjs";
+import { toneWav } from "./lib/tone.mjs";
 
 const PROJECT_ID = "demo-lakbayan";
 const SCHEMA_VERSION = 2;
@@ -62,6 +72,18 @@ initializeApp({
 
 const db = getFirestore();
 const bucket = getStorage().bucket();
+
+/**
+ * Bytes written to Storage this run, by path. A bundle's `size` is the sum of
+ * what a phone would download, and the only honest way to know that is to
+ * have counted it on the way in.
+ */
+const stored = new Map();
+
+async function store(path, bytes, contentType) {
+  await bucket.file(path).save(bytes, { contentType });
+  stored.set(path, bytes.length);
+}
 
 // ---------------------------------------------------------------------------
 // Preflight
@@ -392,9 +414,7 @@ for (const d of DESTINATIONS) {
   const ref = db.collection("destinations").doc(slug);
 
   const imagePath = `destinations/${slug}/images/cover.png`;
-  await bucket
-    .file(imagePath)
-    .save(solidPng(640, 360, d.colour), { contentType: "image/png" });
+  await store(imagePath, solidPng(640, 360, d.colour), "image/png");
 
   await ref.set({
     name: d.name,
@@ -475,9 +495,7 @@ for (const t of TOURS) {
   // Same derived id as the CMS and the importer — see docs/DATA_MODEL.md.
   const id = slugify(t.title);
   const coverImg = `tours/${id}/cover.png`;
-  await bucket
-    .file(coverImg)
-    .save(solidPng(640, 360, t.colour), { contentType: "image/png" });
+  await store(coverImg, solidPng(640, 360, t.colour), "image/png");
 
   await db.collection("tours").doc(id).set({
     title: t.title,
@@ -491,8 +509,179 @@ for (const t of TOURS) {
   console.log(`  ${t.title} (${id}) — ${t.stops.length} stops`);
 }
 
+// ---------------------------------------------------------------------------
+// One recorded narration
+//
+// Every stop above is `ttsText` only, which the phone reads aloud itself. That
+// touches none of what a recording does — a Storage path, a download, a file
+// on disk, a scrubber — so one stop gets a real audio file as well. A stop
+// with both plays the recording, which is the data model's own preference
+// order, and its script stays as the fallback.
+//
+// A tone rather than a voice: nothing to commit, nothing to license, and with
+// the network off it is unmistakably a file and not the device's own voice.
+// ---------------------------------------------------------------------------
+
+const RECORDED = { destination: "callao-cave", stop: "stop-01" };
+const recordingPath =
+  `destinations/${RECORDED.destination}/audio/${RECORDED.stop}.wav`;
+
+await store(recordingPath, toneWav({ seconds: 3 }), "audio/wav");
+await db
+  .collection("destinations")
+  .doc(RECORDED.destination)
+  .collection("segments")
+  .doc(RECORDED.stop)
+  .update({ audioUrl: recordingPath });
+console.log(`\n  Recording on ${RECORDED.destination}/${RECORDED.stop} (a 3s tone)`);
+
+// ---------------------------------------------------------------------------
+// Local guides
+//
+// Invented people. `guides` is the one content collection that is not
+// world-readable — `firestore.rules` requires sign-in — so the section only
+// appears in the app once somebody has signed in.
+//
+// The numbers use the 0900 prefix on purpose. The app turns a contact into a
+// one-tap call, and a made-up number on a prefix that is in use would ring a
+// stranger the first time somebody tested the card. 0900 is not on the
+// published list of Philippine mobile prefixes; `example.com` is reserved for
+// exactly this by RFC 2606.
+//
+// Between them they cover the shapes `contactUri` has to read: two numbers in
+// one field, an email, and a single number with a country code.
+// ---------------------------------------------------------------------------
+
+const GUIDES = [
+  {
+    name: "Mang Ben Dela Cruz",
+    town: "Peñablanca",
+    specialties: ["caving", "river trekking"],
+    contact: "0900 555 0101 / 0900 555 0102",
+    verified: true,
+    featured: true,
+  },
+  {
+    name: "Aling Rosa Baccay",
+    town: "Piat",
+    specialties: ["pilgrimage", "heritage"],
+    contact: "rosa.baccay@example.com",
+    verified: true,
+    featured: false,
+  },
+  {
+    name: "Kuya Jun Tamayao",
+    town: "Santa Ana",
+    // No specialties, so the card shows the contact itself on its second line.
+    specialties: [],
+    contact: "+63 900 555 0142",
+    verified: false,
+    featured: false,
+  },
+];
+
+for (const g of GUIDES) {
+  await db
+    .collection("guides")
+    .doc(slugify(g.name))
+    .set({
+      ...g,
+      createdAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+}
+console.log(`  ${GUIDES.length} local guides (sign in to see them)`);
+
+// ---------------------------------------------------------------------------
+// Offline bundles
+//
+// One per town, the manifest a phone reads before it downloads. In a real
+// project `generateOfflineBundle` writes these; here they are written
+// directly, to the same shape, so the Downloads screen has something to list.
+//
+// A town is `ready` only when its map pack is in Storage — the same rule the
+// function applies. The pack is not in the repo: it is megabytes of rendered
+// tiles, built by the pipeline in docs/DOCKER.md and gitignored under
+// `tiles/`. So a town whose pack has been rendered on this machine is seeded
+// `ready` and can be downloaded; every other town is seeded `pending`, which
+// the app shows as "Not ready" and declines to download. Both are states the
+// screen has to handle, and this way a fresh clone still sees one of them.
+// ---------------------------------------------------------------------------
+
+/** townId → the destinations in it, as the function would group them. */
+const towns = new Map();
+for (const d of DESTINATIONS) {
+  const townId = slugify(d.town);
+  if (!towns.has(townId)) towns.set(townId, { name: d.town, ids: [] });
+  towns.get(townId).ids.push(slugify(d.name));
+}
+
+let ready = 0;
+for (const [townId, town] of towns) {
+  const tilePackRef = `tiles/${townId}/pack.pmtiles`;
+  const packFile = new URL(
+    `../tiles/${townId}.raster.pmtiles`,
+    import.meta.url,
+  );
+  const hasPack = existsSync(packFile);
+  if (hasPack) {
+    await store(tilePackRef, readFileSync(packFile), "application/octet-stream");
+  }
+
+  // Everything a phone would fetch for this town: each place's photos, any
+  // recording, and the pack. Derived from what was just written rather than
+  // listed again, so the two cannot disagree.
+  const destinationIds = [...town.ids].sort();
+  const assets = [...stored.keys()]
+    .filter(
+      (path) =>
+        path === tilePackRef ||
+        destinationIds.some((id) => path.startsWith(`destinations/${id}/`)),
+    )
+    .sort();
+  const size = assets.reduce((sum, path) => sum + stored.get(path), 0);
+
+  // A fingerprint of the content, so re-seeding unchanged content keeps the
+  // version — a phone that already downloaded the town stays current — and
+  // changing a photo or a stop makes it "Update available". The same idea as
+  // the function's version, not the same algorithm.
+  const version = createHash("sha256")
+    .update(JSON.stringify(assets.map((path) => [path, stored.get(path)])))
+    .digest("hex")
+    .slice(0, 12);
+
+  await db
+    .collection("offlineBundles")
+    .doc(townId)
+    .set({
+      townId,
+      name: town.name,
+      destinationIds,
+      tilePackRef,
+      size,
+      version,
+      status: hasPack ? "ready" : "pending",
+      generatedAt: FieldValue.serverTimestamp(),
+    });
+
+  if (hasPack) ready++;
+  console.log(
+    `  Bundle ${townId} — ${hasPack ? "ready" : "pending (no map pack)"}, ` +
+      `${destinationIds.length} place(s), ${(size / 1024 / 1024).toFixed(2)} MB`,
+  );
+}
+
+if (ready === 0) {
+  console.log(
+    "\n  No town can be downloaded yet: none has a rendered map pack under\n" +
+      '  tiles/. "Map tile packs" in docs/DOCKER.md builds one; seed again\n' +
+      "  afterwards and that town becomes ready.",
+  );
+}
+
 console.log(
-  `\nSeeded ${written} published destinations and ${TOURS.length} tours into ` +
-    `the emulator (${process.env.FIRESTORE_EMULATOR_HOST}).`,
+  `\nSeeded ${written} published destinations, ${TOURS.length} tours, ` +
+    `${GUIDES.length} guides and ${towns.size} town bundles (${ready} ready) ` +
+    `into the emulator (${process.env.FIRESTORE_EMULATOR_HOST}).`,
 );
 console.log("Emulator UI: http://localhost:4000/firestore");
