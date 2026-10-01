@@ -21,6 +21,23 @@ enum FirebaseBootstrapStatus {
   /// `FIREBASE_EMULATOR_HOST` after a DHCP change, or Docker not running.
   emulatorsUnreachable,
 
+  /// The SDKs are pointed at the emulator suite, but as a different project
+  /// from the one it and the seeder use.
+  ///
+  /// The emulator keeps each project's data apart, so this is the quietest
+  /// failure there is: sign-in works, every read *succeeds*, and every list
+  /// comes back empty. Nothing is unreachable and nothing is denied.
+  ///
+  /// It happens when a default Firebase app already existed before
+  /// [bootstrapFirebase] ran — on Android, `FirebaseInitProvider` building
+  /// one from `google-services.json`. A default app cannot be replaced, so
+  /// the real project's options stay in force. The debug manifest removes that
+  /// provider; this status is what says so if it ever comes back, or if some
+  /// other platform grows the same habit.
+  ///
+  /// It outranks [emulatorsUnreachable]: starting the suite would not fix it.
+  emulatorsWrongProject,
+
   /// Firebase is up and pointing at a real project.
   live,
 
@@ -66,12 +83,33 @@ Future<FirebaseBootstrapStatus> bootstrapFirebase() async {
   }
 
   try {
-    await _initializeApp(demoFirebaseOptions);
+    final app = await _initializeApp(demoFirebaseOptions);
+    // Connected whichever project came up. If it is the wrong one, the three
+    // SDKs below are at least kept off its real backend.
     await _connectEmulators();
     _enableOfflinePersistence();
 
-    if (await _emulatorAnswered()) {
-      return FirebaseBootstrapStatus.emulators;
+    final status = emulatorStatusFor(
+      wanted: demoFirebaseOptions.projectId,
+      actual: app.options.projectId,
+      answered: await _emulatorAnswered(),
+    );
+    if (status == FirebaseBootstrapStatus.emulators) return status;
+
+    if (status == FirebaseBootstrapStatus.emulatorsWrongProject) {
+      debugPrint(
+        "Firebase came up as '${app.options.projectId}', not "
+        "'${demoFirebaseOptions.projectId}'.\n"
+        "A default app existed before this ran and cannot be replaced, so its "
+        "options are in force. The emulators keep each project's data apart: "
+        "reads will succeed and come back empty, and writes will land where "
+        "the seeder and the CMS never look.\n"
+        "  - Android: android/app/src/debug/AndroidManifest.xml must remove "
+        "FirebaseInitProvider, or it builds [DEFAULT] from "
+        "google-services.json before main().\n"
+        "  - Anything not routed to an emulator is reaching the real project.",
+      );
+      return status;
     }
     debugPrint(
       "Firebase emulators did NOT answer on ${AppConfig.emulatorHost}.\n"
@@ -92,6 +130,24 @@ Future<FirebaseBootstrapStatus> bootstrapFirebase() async {
     debugPrintStack(stackTrace: st);
     return FirebaseBootstrapStatus.unavailable;
   }
+}
+
+/// What emulator mode reports, from which project came up and whether the
+/// suite answered.
+///
+/// Split out so the ordering can be tested without a Firebase to initialise.
+/// The wrong project wins over an unreachable suite: it is a fault in how the
+/// app was built, and it would still be there once the suite was running.
+@visibleForTesting
+FirebaseBootstrapStatus emulatorStatusFor({
+  required String wanted,
+  required String actual,
+  required bool answered,
+}) {
+  if (actual != wanted) return FirebaseBootstrapStatus.emulatorsWrongProject;
+  return answered
+      ? FirebaseBootstrapStatus.emulators
+      : FirebaseBootstrapStatus.emulatorsUnreachable;
 }
 
 /// Did anything actually answer at [AppConfig.emulatorHost]?
@@ -147,6 +203,11 @@ void _enableOfflinePersistence() {
 
 /// Creates the default [FirebaseApp], tolerating one already existing.
 ///
+/// **The app it returns may not be the one asked for.** An existing default
+/// app is adopted as it is, with whatever options it was built from, because
+/// nothing can replace it. Callers that care which project they got have to
+/// look — [bootstrapFirebase] does, through [emulatorStatusFor].
+///
 /// On Android the `FirebaseInitProvider` content provider can create the
 /// `[DEFAULT]` app before `main()` ever runs — Analytics and Crashlytics both
 /// drag it in. Calling `initializeApp` again then dies with
@@ -154,6 +215,11 @@ void _enableOfflinePersistence() {
 /// surfaces in Dart as a bare `PlatformException`, not a typed
 /// `FirebaseException`. So adopt the existing app rather than matching on an
 /// error code.
+///
+/// That provider is still there in profile and release, where the app it
+/// builds is the same real project the caller asks for and adopting it is
+/// harmless. Debug removes it in the manifest, because there the caller may be
+/// asking for the demo project instead.
 Future<FirebaseApp> _initializeApp(FirebaseOptions options) async {
   if (Firebase.apps.isNotEmpty) return Firebase.app();
   try {

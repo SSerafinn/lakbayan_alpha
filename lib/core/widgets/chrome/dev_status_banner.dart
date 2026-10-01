@@ -3,6 +3,7 @@ import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
 import "../../config/app_config.dart";
+import "../../firebase/demo_firebase_options.dart";
 import "../../firebase/firebase_bootstrap.dart";
 import "../../firebase/firebase_status_provider.dart";
 import "../../theme/app_dimens.dart";
@@ -71,6 +72,17 @@ class _Strip extends StatelessWidget {
         scheme.onErrorContainer,
         AppIcons.offline,
         "No emulator at ${AppConfig.emulatorHost} — lists will look empty",
+      ),
+      // The one that looked exactly like success: reachable, signed in, and
+      // reading an empty database that is not the one anybody seeded. It
+      // names the project the suite uses, because "which project am I on" is
+      // the question nobody thinks to ask when everything appears to work.
+      FirebaseBootstrapStatus.emulatorsWrongProject => (
+        scheme.errorContainer,
+        scheme.onErrorContainer,
+        AppIcons.warning,
+        "Not the emulators' project (${demoFirebaseOptions.projectId}) — "
+            "lists will look empty",
       ),
       FirebaseBootstrapStatus.unavailable => (
         scheme.errorContainer,

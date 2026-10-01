@@ -68,6 +68,20 @@ void main() {
     expect(find.textContaining("lists will look empty"), findsOneWidget);
   });
 
+  testWidgets("says so when the app is on the wrong project", (tester) async {
+    // The failure that looked like success: the suite reachable, sign-in
+    // working, and every list empty because the app was reading a project
+    // nobody had seeded. It went unnoticed on Android for weeks behind a
+    // strip that said "Emulators".
+    await pump(tester, FirebaseBootstrapStatus.emulatorsWrongProject);
+
+    expect(find.textContaining("Not the emulators' project"), findsOneWidget);
+    expect(find.textContaining("demo-lakbayan"), findsOneWidget);
+    expect(find.textContaining("lists will look empty"), findsOneWidget);
+    // And never the reassuring wording alongside it.
+    expect(find.textContaining("Emulators ·"), findsNothing);
+  });
+
   testWidgets("stays out of the way on a live build", (tester) async {
     await pump(tester, FirebaseBootstrapStatus.live);
 

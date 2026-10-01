@@ -127,20 +127,48 @@ Without those defines the app still boots, but skips Firebase entirely and logs
 why. `AppConfig.useFirebaseEmulators` is a `const`, so the emulator branch is
 tree-shaken out of release builds — a shipped app cannot be pointed at a laptop.
 
-### Known startup noise until `flutterfire configure` is run
+### Android: which project the app comes up as
 
-Every launch logs an unhandled `PlatformException`:
+In emulator mode the app must run as `demo-lakbayan`, the project the suite is
+started with and the one `seed-emulator.mjs` and the CMS write to. The emulator
+keeps each project's data apart, so an app on any other project id reads an
+empty database: sign-in works, every list is empty, and nothing logs an error.
 
+On Android that is not automatic. `FirebaseInitProvider` runs before `main()`
+and builds the default Firebase app from `google-services.json` — the real dev
+project. A default app cannot be replaced, so the demo options
+`bootstrapFirebase` asks for were refused and the real project's stayed in
+force. Two things now prevent it:
+
+- `android/app/src/debug/AndroidManifest.xml` removes `FirebaseInitProvider`,
+  so the first app created is the one Dart asks for. Debug build type only.
+- `bootstrapFirebase` compares the project that came up with the one it asked
+  for, and the strip along the bottom says **"Not the emulators' project"** if
+  they differ. Before, it said "Emulators" either way.
+
+If that strip ever appears, look at the debug manifest first. To see what the
+suite holds for each project, with admin rights:
+
+```bash
+curl -s -H "Authorization: Bearer owner" "http://localhost:8080/v1/projects/demo-lakbayan/databases/(default)/documents/destinations"
 ```
-java.lang.IllegalStateException: FirebaseApp name [DEFAULT] already exists!
-```
 
-**This is benign and the app works** — `bootstrapFirebase` catches it and adopts
-the existing app, which is why `Firebase emulators: ...` prints right after. The
-cause is running with placeholder options and no `google-services.json`: Android's
-`FirebaseInitProvider` and our explicit `initializeApp` race to create `[DEFAULT]`.
-It disappears once Phase 1 runs `flutterfire configure` and a real
-`google-services.json` lets native auto-init succeed. Don't chase it before then.
+Swap in `project-lakbayan` to look at the other one. Documents there mean an
+app has been writing under the wrong project.
+
+**This used to say the opposite.** An earlier version of this section called
+the `FirebaseApp name [DEFAULT] already exists!` exception benign startup noise
+that would disappear once `google-services.json` let native auto-init succeed.
+Auto-init succeeding was the fault: it is what put the real project in place.
+
+### Android: one engine, not two
+
+`MainActivity` extends `AudioServiceActivity`. The `audio_service` plugin keeps a
+cached Flutter engine, and attached to an activity running any other engine it
+builds that cached one itself and runs `main()` in it — the whole app a second
+time, headless, in the same process. The sign was every startup line in the log
+appearing twice. If a log ever shows `Lakbayan config` twice again, that is
+what has come back.
 
 ## Do not mix host and container builds carelessly
 
