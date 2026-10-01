@@ -7,6 +7,7 @@ import "package:motor/motor.dart";
 import "../../../core/models/destination.dart";
 import "../../../core/theme/app_dimens.dart";
 import "../../../core/theme/app_motion.dart";
+import "../../../core/theme/app_typography.dart";
 import "../../../core/theme/lakbayan_colors.dart";
 import "../../../core/widgets/content/stop_numeral.dart";
 import "../../maps/domain/tile_source.dart";
@@ -32,11 +33,16 @@ class RouteMap extends ConsumerStatefulWidget {
     required this.expandedPadding,
     this.focused,
     this.onStopTap,
+    this.restCreditInset = 0,
     super.key,
   });
 
   final List<RouteStop> stops;
   final bool expanded;
+
+  /// How much of the map's foot something else covers at rest — the page's
+  /// rounded top on the trip screen — so the credit sits above it.
+  final double restCreditInset;
 
   /// The size this map ends at for the current state.
   final Size frame;
@@ -175,11 +181,63 @@ class _RouteMapState extends ConsumerState<RouteMap>
               ),
           ],
         ),
-        if (widget.expanded) MapAttribution(source: source),
+        // ODbL wants credit wherever the tiles appear (`tile_source.dart`),
+        // and the header at rest is where they appear most. The full control
+        // is kept for the map somebody can actually use.
+        if (widget.expanded)
+          MapAttribution(source: source)
+        else
+          _RestCredit(source: source, inset: widget.restCreditInset),
       ],
     );
   }
 
   /// How much larger the stop on the strip's current card draws.
   static const _focusScale = 1.25;
+}
+
+/// The credit on the map at rest, as plain text in the corner.
+///
+/// Not [MapAttribution]: that is a control, an info button that opens a
+/// panel with the copyright link, and at rest the header ignores every touch
+/// because a tap expands it. A control there would be dead. The credit
+/// itself is what the licence asks for; the expanded map still carries the
+/// full control with its link.
+class _RestCredit extends StatelessWidget {
+  const _RestCredit({required this.source, required this.inset});
+
+  final TileSource source;
+  final double inset;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Align(
+      alignment: Alignment.bottomRight,
+      child: Padding(
+        padding: EdgeInsets.only(
+          right: AppSpace.x2,
+          bottom: inset + AppSpace.x1,
+        ),
+        child: DecoratedBox(
+          decoration: ShapeDecoration(
+            color: scheme.surface,
+            shape: const StadiumBorder(),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpace.x2,
+              vertical: AppSpace.x1,
+            ),
+            child: Text(
+              source.attribution,
+              style: AppTypography.labelSmall.copyWith(
+                color: scheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }

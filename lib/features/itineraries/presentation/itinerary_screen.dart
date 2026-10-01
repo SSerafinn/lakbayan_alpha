@@ -296,6 +296,9 @@ class _OverviewState extends ConsumerState<_Overview> {
                 expanded: _expanded,
                 focused: focused,
                 onStopTap: _onPinTap,
+                // The page's rounded top covers the map's foot at rest; the
+                // credit sits above it rather than under it.
+                restCreditInset: _pageEdge,
                 frame: Size(
                   screen.width,
                   _expanded ? screen.height : restHeight,

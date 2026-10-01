@@ -1,3 +1,5 @@
+import "dart:async";
+
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
@@ -35,6 +37,26 @@ class _HomeChromeLayerState extends ConsumerState<HomeChromeLayer> {
   final _controller = TextEditingController();
   final _searchKey = GlobalKey();
 
+  /// Typing held back until it pauses, as the wireframe asks.
+  ///
+  /// The field shows every letter at once; only the query waits. Without it
+  /// each keystroke re-sorted the matches and replayed their entrance, so
+  /// "callao" was six searches and six staggered animations — on the
+  /// low-end phones this app is for, that is the jank. Browse had exactly
+  /// this before search moved here in #77, and lost it in the move.
+  Timer? _debounce;
+
+  /// Long enough that a word is one search, short enough not to feel like
+  /// waiting. Declared here because nothing else uses it.
+  static const _settle = Duration(milliseconds: 250);
+
+  void _onQuery(String value) {
+    _debounce?.cancel();
+    _debounce = Timer(_settle, () {
+      if (mounted) ref.read(homeQueryProvider.notifier).update(value);
+    });
+  }
+
   /// Reads where the search cell is now (the bar may be shrunk), in this
   /// layer's space, so the field lifts out of exactly that spot: drawn in
   /// by the capsule's inset, a pill inside the bar.
@@ -59,6 +81,9 @@ class _HomeChromeLayerState extends ConsumerState<HomeChromeLayer> {
 
   /// Folded back into the cell: forget what was typed and chosen.
   void _forget() {
+    // First: a keystroke still waiting would otherwise land after the clear
+    // and bring the old query back into a search nobody has open.
+    _debounce?.cancel();
     _controller.clear();
     ref.read(homeQueryProvider.notifier).update("");
     ref.read(searchCategoryProvider.notifier).clear();
@@ -72,6 +97,7 @@ class _HomeChromeLayerState extends ConsumerState<HomeChromeLayer> {
 
   @override
   void dispose() {
+    _debounce?.cancel();
     _controller.dispose();
     super.dispose();
   }
@@ -99,7 +125,7 @@ class _HomeChromeLayerState extends ConsumerState<HomeChromeLayer> {
             open: _open,
             origin: _origin,
             controller: _controller,
-            onChanged: ref.read(homeQueryProvider.notifier).update,
+            onChanged: _onQuery,
             onClose: _close,
             onFolded: _forget,
           ),

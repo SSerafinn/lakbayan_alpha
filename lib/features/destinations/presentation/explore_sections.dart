@@ -1,10 +1,10 @@
+import "dart:async";
 import "dart:math" show pi;
 
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
 import "package:motor/motor.dart";
-import "package:url_launcher/url_launcher.dart";
 
 import "../../../core/models/destination.dart";
 import "../../../core/models/guide.dart";
@@ -210,13 +210,40 @@ class LocalGuides extends ConsumerWidget {
   }
 }
 
-class _GuideCard extends StatelessWidget {
+class _GuideCard extends ConsumerWidget {
   const _GuideCard({required this.guide});
 
   final Guide guide;
 
+  /// Call or email them, and say so when the phone cannot.
+  ///
+  /// The card's second line is what they lead, not how to reach them, so a
+  /// failed tap has to hand the contact over itself. A tablet with no dialer,
+  /// or a phone with no mail app, is exactly where this used to leave
+  /// somebody with a card that did nothing and no number to copy.
+  Future<void> _reach(BuildContext context, WidgetRef ref, Uri uri) async {
+    // Resolved before the await: a widget like this has no `mounted` to check
+    // afterwards.
+    final messenger = ScaffoldMessenger.of(context);
+    var opened = false;
+    try {
+      opened = await ref.read(contactLauncherProvider)(uri);
+    } catch (_) {
+      // No handler for the scheme throws on some platforms rather than
+      // answering false. Either way the answer is the same message.
+    }
+    if (opened) return;
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(
+          "No app here can open that. Reach ${guide.name} at ${guide.contact}.",
+        ),
+      ),
+    );
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
     final uri = contactUri(guide.contact);
     final leads = guide.specialties.isEmpty
@@ -233,7 +260,9 @@ class _GuideCard extends StatelessWidget {
         shape: const RoundedRectangleBorder(borderRadius: AppRadii.mdAll),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
-          onTap: uri == null ? null : () => launchUrl(uri),
+          onTap: uri == null
+              ? null
+              : () => unawaited(_reach(context, ref, uri)),
           child: Padding(
             padding: const EdgeInsets.all(AppSpace.x3),
             child: Column(
