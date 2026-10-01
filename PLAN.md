@@ -207,6 +207,27 @@ and `flutter test` before committing; commit with `/commit`.
       `my-docs/backend-requests/itinerary-days.md`.
 - [x] **Tabs keep their scroll position.** `HomeShell` keeps each visited
       tab alive offstage and cross-fades between them.
+- [x] **Local guides on Explore** (#77), reading the existing `guides`
+      collection. Signed-in only, as the rules require, so a guest sees no
+      section at all — whether to tell guests it exists is an open product
+      question. A tap calls or emails; #78 made it dial the first number
+      rather than every digit in the field joined together, and hand over
+      the contact itself when the phone has nothing to open it with.
+- [x] **Follow-up on the #77 review** (#78). The search debounce, lost when
+      search moved from Browse into the bar, is back. The trip header credits
+      OpenStreetMap at rest, where it had shown tiles with none. `SwipeDeck`,
+      `TripDates` and `ItineraryActions` have tests, having arrived with
+      none. Confirmed on a Galaxy A34 on 2026-10-01.
+- [x] **Photographs in the sample preview** (#79). Nine of the ten sample
+      places carry a real photograph from Wikimedia Commons, credited in
+      `assets/images/samples/CREDITS.md` and under Profile → Photo credits.
+      Anguib Beach keeps the placeholder: no freely licensed photograph of it
+      exists, and a stand-in would be a different beach under its name.
+      They add about 1.7 MB to every build, releases included.
+- [x] **The seeder covers what a device test needs.** `seed-emulator.mjs`
+      now writes three guides, one recorded narration and a bundle per town,
+      `ready` where the map pack has been rendered locally and `pending`
+      otherwise. Each had been a throwaway script, written twice.
 - **DoD:** download a town → maps + audio guides work fully offline. **Met.**
       The pack draws the basemap, and photos and recordings now come off disk
       through `localAssetFor`, so a downloaded town needs no network at all.
@@ -218,8 +239,11 @@ and `flutter test` before committing; commit with `/commit`.
   have since been fixed on `feat/home-screen`.
   None of them is what Beta means here — an offline town is — but a reader
   comparing the tag against the ticks deserves to know which is which.
-  Neither hardware check has been run either: the airplane-mode pass (#71) and
-  the `geo:` hand-off (#72) are both still tests-only.
+  Of the two hardware checks, one is done. The `geo:` hand-off (#72) was
+  confirmed on a Galaxy A34 on 2026-10-01: "Take me there" opens the phone's
+  map app with the place pinned. **The airplane-mode pass (#71) has still not
+  been run.** A downloaded town working with the network off is the claim this
+  milestone rests on, and it is proven by tests, not yet by a phone.
 - [x] **Spike — resolved without hardware, and it changed the renderer.**
       `scripts/extract-tiles.mjs` builds a town pack from the destinations'
       coords using D-11's buffer union (4.6× fewer tiles than a whole

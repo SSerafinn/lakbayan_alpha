@@ -95,8 +95,12 @@ cd scripts && npm install
 node seed-emulator.mjs
 ```
 
-That gives you six published Cagayan destinations — two with audio guides — and
-an admin account, `test@gmail.com` / `password`. Pass a different address as an
+That gives you six published Cagayan destinations — two with audio guides, one
+stop of which is a real recording — two tours, three local guides, a bundle per
+town for the Downloads screen, and an admin account, `test@gmail.com` /
+`password`. A town is only *downloadable* once its map pack has been rendered on
+your machine ([Map tile packs](docs/DOCKER.md#map-tile-packs)); until then it is
+seeded as not ready, which the app shows as such. Pass a different address as an
 argument if you prefer. Re-run it whenever you like: documents are keyed by slug,
 so it overwrites rather than duplicates.
 
@@ -372,11 +376,58 @@ project, and both are prevented by settings listed there.
 
 ### Releases
 
-`PLAN.md` defines three milestones. When `staging` → `main` lands one, tag it:
+`PLAN.md` defines three milestones. Cutting one is four steps, in this order.
+
+**1. Bump `version:` in `pubspec.yaml`**, in the PR that prepares the release.
+With the tag, never ahead of it — the comment on that line records what
+happened both times it drifted.
+
+**2. Promote.** Open `staging` → `main` and merge it with a **merge commit, not
+a squash**. A squash would fold every commit since the last release into one
+and leave `main` unable to say what it contains.
+
+**3. Tag `main`.**
 
 ```bash
-git tag -a v0.1.0-m1 -m "M1 Alpha: auth, schema, app shell" && git push --tags
+git tag -a v0.4.0-m2 -m "M2 Beta: an offline town end to end"
 ```
+
+```bash
+git push origin v0.4.0-m2
+```
+
+One tag by name rather than `--tags`, which pushes every local tag you have.
+
+**4. Merge `main` back into `staging`**, straight away, through a small PR:
+
+```bash
+git switch -c chore/sync-main-into-staging origin/staging
+```
+
+```bash
+git merge origin/main
+```
+
+```bash
+git push -u origin chore/sync-main-into-staging
+```
+
+Open it against `staging` and merge it with a **merge commit** as well.
+
+Step 4 is not housekeeping; skip it and the next release is blocked. Both
+branches require a PR to be up to date before it merges, and the promotion
+leaves a merge commit on `main` that `staging` does not have. So the next
+`staging` → `main` is refused as behind — and the obvious repair, a PR from
+`main` into `staging`, is refused too, because `main` lacks everything
+`staging` has gained since. Updating the branch from GitHub fails for the same
+reason: it would push to a protected branch. The one shape both rules accept is
+a branch cut *from* `staging` with `main` merged into it, which is what the
+commands above build.
+
+Done right after a release the two trees are identical and the PR changes no
+files. It has to be a merge commit: a squash would land a new commit on
+`staging` without making `main`'s commits its ancestors, and nothing would be
+unblocked. This cost a release three pull requests to discover (#74, #75, #76).
 
 ## Layout
 

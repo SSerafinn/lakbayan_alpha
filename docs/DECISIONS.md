@@ -145,9 +145,29 @@ land, and green alone could not distinguish a primary action from a saved
 place at a distance. Naming the roles and tightening the rhythm made both
 legible on a 393dp phone.
 
-## D-16 · Glyph-only bar with search in the middle; a tighter rhythm (2026-09-23) · PROPOSED
+## D-16 · Glyph-only bar with search in the middle; a tighter rhythm (2026-09-23) · ACCEPTED (2026-10-01)
 
-**Status.** Proposed on `feat/home-screen`; the team confirms before merge.
+**Status.** Accepted 2026-10-01. It was proposed on `feat/home-screen` for the
+team to confirm before merge, and #77 merged first; the acceptance came after,
+once the merged build had been run on a phone. Said plainly because the order
+matters to anyone reading the history: for two days the app ran on a decision
+this log still called proposed.
+
+Accepted with it are the four deviations #77 raised for review: the dark theme
+on Keep or skip, where every other screen stays white first; the trip page
+having no filled primary action, an exception to DESIGN_SYSTEM's one per screen
+because there the map is the action; the icon-only directions arrow on stop
+cards; and the kind colours (`color.kind.*`).
+
+Two things in the text below do not match the repository, and are noted here
+rather than rewritten, since the wording is its author's:
+
+- The audio-guide paragraph says the stop pill and the tab bar's indicator
+  "both call `indexedRect` (`core/widgets/motion.dart`)". No `indexedRect`
+  exists in `lib/`; a later commit in #77 removed or renamed it.
+- Several passages cite documents that are not in this repository — "design
+  doc 04", `CLAUDE.local.md`, and elsewhere in the code `my-docs/…`,
+  "STANDARDS" and "PREFERENCES". A reader cannot follow those references.
 
 **Decision.**
 
@@ -332,9 +352,11 @@ explains, and one search reachable from everywhere.
   found every photo flight re-decoding its photo each frame, which real
   photos would have shown as flicker.
 
-## D-15 · Type half a step lighter; iOS-styled menus and groups on Material (2026-09-23) · PROPOSED
+## D-15 · Type half a step lighter; iOS-styled menus and groups on Material (2026-09-23) · ACCEPTED (2026-10-01)
 
-**Status.** Proposed on `feat/home-screen`; the team confirms before merge.
+**Status.** Accepted 2026-10-01, together with D-16 and on the same footing:
+proposed on `feat/home-screen`, merged in #77 before the team had confirmed
+it, and accepted once the merged build had been run on a phone.
 
 **Decision.**
 
