@@ -217,13 +217,31 @@ and `flutter test` before committing; commit with `/commit`.
       search moved from Browse into the bar, is back. The trip header credits
       OpenStreetMap at rest, where it had shown tiles with none. `SwipeDeck`,
       `TripDates` and `ItineraryActions` have tests, having arrived with
-      none. Confirmed on a Galaxy A34 on 2026-10-01.
+      none. On a Galaxy A34 on 2026-10-01 the debounce was confirmed, and
+      the credit was seen on the trip header over live emulator data. The
+      guide-contact fix has **not** been checked on a phone: see the note on
+      #81 below for why an earlier report of it could not have been one.
 - [x] **Photographs in the sample preview** (#79). Nine of the ten sample
       places carry a real photograph from Wikimedia Commons, credited in
       `assets/images/samples/CREDITS.md` and under Profile → Photo credits.
       Anguib Beach keeps the placeholder: no freely licensed photograph of it
       exists, and a stand-in would be a different beach under its name.
       They add about 1.7 MB to every build, releases included.
+- [x] **Android runs as the emulators' project, and starts once** (#81).
+      In emulator mode the app came up as `project-lakbayan`, the real dev
+      project, because `FirebaseInitProvider` builds the default Firebase app
+      from `google-services.json` before `main()` and a default app cannot be
+      replaced. The seeder and the CMS write `demo-lakbayan`, and the
+      emulator keeps each project's data apart, so a phone signed in fine and
+      read an empty database, with nothing denied and nothing logged — in
+      every session back to 2026-09-14. The debug manifest now removes that
+      provider, and the dev strip says "Not the emulators' project" if the
+      two ever differ again. It was also a safety gap: with the real options
+      in force, anything not routed to an emulator reached the real project.
+      Separately, `audio_service` was spawning a second engine and running
+      `main()` twice on every launch; `MainActivity` now extends
+      `AudioServiceActivity`. Confirmed on a Galaxy A34: one startup, and a
+      profile and an itinerary written from the phone land in `demo-lakbayan`.
 - [x] **The seeder covers what a device test needs.** `seed-emulator.mjs`
       now writes three guides, one recorded narration and a bundle per town,
       `ready` where the map pack has been rendered locally and `pending`
@@ -244,6 +262,14 @@ and `flutter test` before committing; commit with `/commit`.
   map app with the place pinned. **The airplane-mode pass (#71) has still not
   been run.** A downloaded town working with the network off is the claim this
   milestone rests on, and it is proven by tests, not yet by a phone.
+  **Until #81 it could not have been run at all.** On Android the app was
+  reading a different project inside the emulator from the one the seeder
+  fills, so Downloads listed no town to download. Every phone check before
+  #81 was therefore made in the sample-data preview, which is populated
+  whatever the backend holds. That is good enough for the `geo:` hand-off,
+  search, the map credit and the photographs, none of which need a backend.
+  It is not good enough for anything that exists only in emulator data: the
+  guide cards and the Downloads screen.
 - [x] **Spike — resolved without hardware, and it changed the renderer.**
       `scripts/extract-tiles.mjs` builds a town pack from the destinations'
       coords using D-11's buffer union (4.6× fewer tiles than a whole
