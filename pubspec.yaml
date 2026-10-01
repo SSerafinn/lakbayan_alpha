@@ -61,7 +61,7 @@ dependencies:
   # Nothing in lib/ or test/ imports latlong2 directly; it arrives through
   # flutter_map. Raise it only alongside a tile package that wants 0.10.
   latlong2: ^0.9.1
-  lottie: ^3.3.2
+  lottie: ^3.6.1
   motor: ^1.1.0
   # Declared rather than leant on transitively through path_provider:
   # features/offline joins Storage paths to device paths, and a direct import
