@@ -3,11 +3,22 @@ import "../../../core/models/destination.dart";
 /// Sample content for previewing the real screens without Firestore, toggled
 /// from the Profile tab in debug builds (`sampleDataProvider`). Real names,
 /// with `popular`, `featured` and `hasAR` spread so every section has
-/// something to show. No photography yet — every card falls back to the
-/// placeholder tile rather than borrow a branding asset as a stand-in photo.
+/// something to show.
+///
+/// Nine of the ten carry a real photograph of the real place, bundled under
+/// `assets/images/samples/` and credited in `sample_photo_credits.dart`. A
+/// flat colour tells you nothing about how a card crops a tall church or
+/// whether a title reads over a bright sky; a photograph does.
+///
+/// Anguib Beach is left on the placeholder deliberately. No freely licensed
+/// photograph of it exists, and the rule this file already kept — never
+/// borrow a stand-in — applies to somebody else's beach as much as to a
+/// branding asset. It also keeps one photo-less card in the preview, which
+/// real content will have too.
 const sampleDestinations = <Destination>[
   Destination(
     id: "callao-cave",
+    images: ["assets/images/samples/callao-cave.jpg"],
     name: "Callao Cave",
     town: "Peñablanca",
     category: DestinationCategory.nature,
@@ -34,6 +45,7 @@ const sampleDestinations = <Destination>[
   ),
   Destination(
     id: "palaui-island",
+    images: ["assets/images/samples/palaui-island.jpg"],
     name: "Palaui Island",
     town: "Santa Ana",
     category: DestinationCategory.nature,
@@ -56,6 +68,7 @@ const sampleDestinations = <Destination>[
   ),
   Destination(
     id: "basilica-minore-de-piat",
+    images: ["assets/images/samples/basilica-minore-de-piat.jpg"],
     name: "Basilica Minore de Piat",
     town: "Piat",
     category: DestinationCategory.church,
@@ -78,6 +91,7 @@ const sampleDestinations = <Destination>[
   ),
   Destination(
     id: "buntun-bridge",
+    images: ["assets/images/samples/buntun-bridge.jpg"],
     name: "Buntun Bridge",
     town: "Tuguegarao",
     category: DestinationCategory.landmark,
@@ -87,6 +101,7 @@ const sampleDestinations = <Destination>[
   ),
   Destination(
     id: "cape-engano-lighthouse",
+    images: ["assets/images/samples/cape-engano-lighthouse.jpg"],
     name: "Cape Engaño Lighthouse",
     town: "Santa Ana",
     category: DestinationCategory.heritage,
@@ -98,6 +113,7 @@ const sampleDestinations = <Destination>[
   ),
   Destination(
     id: "pinacanauan-river",
+    images: ["assets/images/samples/pinacanauan-river.jpg"],
     name: "Pinacanauan River",
     town: "Peñablanca",
     category: DestinationCategory.nature,
@@ -108,6 +124,7 @@ const sampleDestinations = <Destination>[
   ),
   Destination(
     id: "pancit-batil-patung",
+    images: ["assets/images/samples/pancit-batil-patung.jpg"],
     name: "Pancit Batil Patung",
     town: "Tuguegarao",
     category: DestinationCategory.food,
@@ -127,6 +144,7 @@ const sampleDestinations = <Destination>[
   ),
   Destination(
     id: "iguig-calvary-hills",
+    images: ["assets/images/samples/iguig-calvary-hills.jpg"],
     name: "Iguig Calvary Hills",
     town: "Iguig",
     category: DestinationCategory.church,
@@ -136,6 +154,7 @@ const sampleDestinations = <Destination>[
   ),
   Destination(
     id: "cagayan-museum",
+    images: ["assets/images/samples/cagayan-museum.jpg"],
     name: "Cagayan Museum and Historical Research Center",
     town: "Tuguegarao",
     category: DestinationCategory.museum,
