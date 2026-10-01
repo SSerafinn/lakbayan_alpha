@@ -14,6 +14,7 @@ import "../../../core/widgets/motion/motion.dart";
 import "../../auth/domain/auth_providers.dart";
 import "../../destinations/domain/destination_providers.dart";
 import "../../explore/domain/home_tab.dart";
+import "sample_photo_credits_sheet.dart";
 
 /// Profile (D-16).
 ///
@@ -218,6 +219,12 @@ class _DebugRows extends ConsumerWidget {
             ref.read(selectedHomeTabProvider.notifier).select(HomeTab.explore);
           },
           child: Text(sample ? "Use live data" : "Preview with sample data"),
+        ),
+        // Beside the switch that shows them, and there whether or not the
+        // preview is on: the photographs are in the build either way.
+        TextButton(
+          onPressed: () => showSamplePhotoCredits(context),
+          child: const Text("Photo credits"),
         ),
       ],
     );

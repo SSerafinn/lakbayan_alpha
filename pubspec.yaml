@@ -96,6 +96,13 @@ flutter:
 
   assets:
     - assets/images/
+    # Listed on its own: an asset directory is not recursive, so the line
+    # above does not reach in here. Photographs for the debug sample preview
+    # only (`sampleDataProvider`), each credited in CREDITS.md beside them.
+    # They ship in every build, because Flutter cannot leave an asset out by
+    # build mode — about 1.7 MB that a release never shows. Drop this line
+    # for the release build, or accept the weight.
+    - assets/images/samples/
 
   # Bundled rather than fetched via google_fonts: offline-first is a hard
   # guardrail, and google_fonts downloads at first run by default.
