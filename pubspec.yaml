@@ -22,18 +22,18 @@ dependencies:
   animations: ^3.0.0
   audio_service: ^0.18.19
   cached_network_image: ^3.4.1
-  cloud_firestore: ^6.9.0
-  cloud_functions: ^6.4.0
+  cloud_firestore: ^6.10.0
+  cloud_functions: ^6.5.0
   connectivity_plus: ^7.3.1
   # go_router 18 depends on cupertino_ui, whose IconData reference this font
   # family. Without the package every build warns "Expected to find fonts for
   # CupertinoIcons"; it is tree-shaken to a few KB in practice.
   cupertino_icons: ^1.0.8
-  firebase_analytics: ^12.5.0
-  firebase_auth: ^6.6.1
-  firebase_core: ^4.13.0
-  firebase_crashlytics: ^5.3.0
-  firebase_storage: ^13.5.0
+  firebase_analytics: ^12.6.0
+  firebase_auth: ^6.7.0
+  firebase_core: ^4.15.0
+  firebase_crashlytics: ^5.4.0
+  firebase_storage: ^13.6.0
   flutter:
     sdk: flutter
   flutter_map: ^8.3.1
@@ -47,7 +47,7 @@ dependencies:
   go_router: ^18.0.1
   google_sign_in: ^7.2.0
   hive_ce: ^2.19.3
-  hive_ce_flutter: ^2.3.4
+  hive_ce_flutter: ^2.4.0
   json_annotation: ^4.12.0
   just_audio: ^0.10.6
   # ^0.9.1, not ^0.10.1, and this is load-bearing rather than laziness.
@@ -61,7 +61,7 @@ dependencies:
   # Nothing in lib/ or test/ imports latlong2 directly; it arrives through
   # flutter_map. Raise it only alongside a tile package that wants 0.10.
   latlong2: ^0.9.1
-  lottie: ^3.3.2
+  lottie: ^3.6.1
   motor: ^1.1.0
   # Declared rather than leant on transitively through path_provider:
   # features/offline joins Storage paths to device paths, and a direct import
