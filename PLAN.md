@@ -332,8 +332,15 @@ CMS consumes that contract; it does not redefine it.
 - [ ] Firebase Hosting target + deploy.
 
 ## CMS-1 · Weeks 4–6 — Destinations  → **unblocks mobile Phase 2**
-- [ ] Dashboard *(screen 2)* — activity feed and quick actions. The live counts
+- [x] Dashboard *(screen 2)* — activity feed and quick actions. The live counts
       shipped with CMS-0; this box is the rest of the screen.
+      *Plus a **Needs attention** list, which is the part that earns the
+      screen: drafts with what they still lack (ready ones first), towns whose
+      offline bundle is missing, behind the content or incomplete, and tours
+      with stops visitors cannot see — each linking to where the fix happens.
+      The feed is built from `updatedAt`, not an audit log, so deletions do not
+      appear and publishing reads as an edit; who made an edit is known for
+      destinations only, since tours and guides record no `updatedBy`.*
 - [x] Destinations list — the table pattern reused by every later list *(screen 3)*.
       *(Search, status filter, bulk publish/unpublish.)*
 - [x] Destination Editor: Details, Location and Media tabs *(screen 4)*.

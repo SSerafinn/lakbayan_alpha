@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { BadgeCheck, Star } from "lucide-react";
 import {
   createGuide,
@@ -98,6 +99,23 @@ export function GuidesPage() {
     setDraft(rest);
     setEditing(g.id);
   }
+
+  // Arriving from the dashboard: `?new` opens a blank editor, `?edit=<id>`
+  // opens that guide. Consumed once and cleared, as on Tours.
+  const [params, setParams] = useSearchParams();
+  useEffect(() => {
+    if (rows === null) return;
+    const edit = params.get("edit");
+    if (!params.has("new") && !edit) return;
+    if (params.has("new")) {
+      openNew();
+    } else {
+      const g = rows.find((r) => r.id === edit);
+      if (g) openEdit(g);
+      else toast.error("Guide not found", "They may have been removed since.");
+    }
+    setParams({}, { replace: true });
+  }, [rows, params, setParams, toast]);
 
   async function save() {
     const errors = validate(draft);

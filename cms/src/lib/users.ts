@@ -1,4 +1,10 @@
-import { collection, getDocs, orderBy, query } from "firebase/firestore";
+import {
+  collection,
+  getCountFromServer,
+  getDocs,
+  orderBy,
+  query,
+} from "firebase/firestore";
 import { httpsCallable, type FunctionsError } from "firebase/functions";
 import { db, functions } from "./firebase";
 import type { AdminMember, AppUser } from "../types/user";
@@ -14,6 +20,17 @@ export async function listUsers(): Promise<AppUser[]> {
     query(collection(db, "users"), orderBy("createdAt", "desc")),
   );
   return snap.docs.map((d) => ({ uid: d.id, ...d.data() }) as AppUser);
+}
+
+/**
+ * How many people have signed in to the app.
+ *
+ * An aggregation query rather than `listUsers().length`: the dashboard wants
+ * the number, and this collection is the one that grows without bound.
+ */
+export async function countUsers(): Promise<number> {
+  const snap = await getCountFromServer(collection(db, "users"));
+  return snap.data().count;
 }
 
 // The two callables in functions/src/admin.ts. Typed at the call site because
