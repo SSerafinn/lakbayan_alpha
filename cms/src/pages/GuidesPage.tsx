@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { BadgeCheck, Star } from "lucide-react";
+import { BadgeCheck, Plus, Star } from "lucide-react";
 import {
   createGuide,
   deleteGuide,
@@ -9,6 +9,7 @@ import {
   updateGuide,
 } from "../lib/guides";
 import { Alert } from "../components/Alert";
+import { PageHeader } from "../components/PageHeader";
 import { Dialog } from "../components/Dialog";
 import { Field, Section, Toggle } from "../components/Form";
 import { useToast } from "../components/toast-context";
@@ -198,16 +199,16 @@ export function GuidesPage() {
 
   return (
     <section className="page">
-      <header className="page-head row">
-        <div>
-          <h1>Local guides</h1>
-          <p className="hint">{counts}</p>
-        </div>
-        <span className="spacer" />
-        <button className="btn-primary" onClick={openNew}>
-          + Add guide
-        </button>
-      </header>
+      <PageHeader
+        title="Local guides"
+        meta={counts}
+        actions={
+          <button className="btn-primary" onClick={openNew}>
+            <Plus size={18} aria-hidden="true" />
+            Add guide
+          </button>
+        }
+      />
 
       {error && (
         <Alert variant="destructive" title="Could not load the directory">

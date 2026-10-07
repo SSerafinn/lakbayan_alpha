@@ -2,6 +2,9 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { listDestinations, setStatus } from "../lib/destinations";
 import { Alert } from "../components/Alert";
+import { PageHeader } from "../components/PageHeader";
+import { formatDate } from "../types/format";
+import { Plus } from "lucide-react";
 import {
   CATEGORIES,
   CATEGORY_LABELS,
@@ -103,19 +106,19 @@ export function DestinationsListPage() {
 
   return (
     <section className="page">
-      <header className="page-head row">
-        <div>
-          <h1>Destinations</h1>
-          <p className="hint">{counts}</p>
-        </div>
-        <span className="spacer" />
-        <button
-          className="btn-primary"
-          onClick={() => navigate("/destinations/new")}
-        >
-          + Add destination
-        </button>
-      </header>
+      <PageHeader
+        title="Destinations"
+        meta={counts}
+        actions={
+          <button
+            className="btn-primary"
+            onClick={() => navigate("/destinations/new")}
+          >
+            <Plus size={18} aria-hidden="true" />
+            New destination
+          </button>
+        }
+      />
 
       {error && (
         <Alert variant="destructive" title="Could not load destinations">
@@ -260,7 +263,7 @@ export function DestinationsListPage() {
                 </td>
                 <td>{d.hasAR ? "✓" : "—"}</td>
                 <td className="hint">
-                  {d.updatedAt?.toDate().toLocaleDateString() ?? "—"}
+                  {formatDate(d.updatedAt)}
                 </td>
                 <td>
                   <Link className="btn-quiet sm" to={`/destinations/${d.id}`}>

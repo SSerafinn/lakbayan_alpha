@@ -10,6 +10,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { Alert } from "../components/Alert";
+import { PageHeader } from "../components/PageHeader";
 import { useAuth } from "../auth/auth-context";
 import { listBundles } from "../lib/bundles";
 import { listDestinations } from "../lib/destinations";
@@ -160,10 +161,24 @@ export function DashboardPage() {
 
   return (
     <section className="page">
-      <header className="page-head">
-        <h1>Dashboard</h1>
-        <p className="hint">Content overview for the Province of Cagayan.</p>
-      </header>
+      <PageHeader
+        title="Dashboard"
+        meta="Content overview for the Province of Cagayan."
+        actions={
+          <>
+            <Link className="btn-secondary" to="/guides?new">
+              Add guide
+            </Link>
+            <Link className="btn-secondary" to="/tours?new">
+              New tour
+            </Link>
+            <Link className="btn-primary" to="/destinations/new">
+              <Plus size={18} aria-hidden="true" />
+              New destination
+            </Link>
+          </>
+        }
+      />
 
       {error && (
         <Alert variant="destructive" title="Could not load the dashboard">
@@ -180,19 +195,6 @@ export function DashboardPage() {
         <Stat label="Tours" value={data?.tours.length} />
         <Stat label="Local guides" value={data?.guides.length} />
         <Stat label="App users" value={data?.users} />
-      </div>
-
-      <div className="quick-actions">
-        <Link className="btn-primary" to="/destinations/new">
-          <Plus size={18} aria-hidden="true" />
-          New destination
-        </Link>
-        <Link className="btn-secondary" to="/tours?new">
-          New tour
-        </Link>
-        <Link className="btn-secondary" to="/guides?new">
-          Add a guide
-        </Link>
       </div>
 
       <div className="dash-grid">

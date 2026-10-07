@@ -46,8 +46,18 @@ rather than a login failure — you *are* signed in, you are just not staff.
 which is also the source the Flutter theme transcribes. That is what keeps the
 two apps from drifting.
 
-No raw hex in stylesheets. Use the custom properties, and prefer semantic names
-(`--lk-primary`) over raw ramps (`--lk-green-500`).
+No raw hex in stylesheets. Use the custom properties, and prefer the design
+system 2.x names, which are what the app uses: the surface ladder
+(`--lk-surface-container-low` for a card), colour roles (`--lk-role-primary`,
+`--lk-role-primary-text`, `--lk-role-error`), the type ramp
+(`--lk-type-label-large-size` …) and shapes (`--lk-shape-md`). The 1.0.0 names
+(`--lk-shadow-*`, `--lk-text-h1-*`, `--lk-radius-*`) are still emitted for
+compatibility; do not reach for them in new styles. How the CMS applies the
+design system, and where it departs from the phone-sized rules, is D-17 in
+`docs/DECISIONS.md`.
+
+Satoshi is loaded from the repo's `assets/fonts/`, the same files the app
+bundles. `vite.config.ts` allows the dev server to read that one folder.
 
 The design system's rules apply here too: **gold is never a button**, and green
 text on a light background must be `/700` or darker for AA. See

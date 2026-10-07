@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { ShieldCheck } from "lucide-react";
 import { useAuth } from "../auth/auth-context";
 import { Alert } from "../components/Alert";
+import { PageHeader } from "../components/PageHeader";
+import { formatDate } from "../types/format";
 import { Dialog } from "../components/Dialog";
 import { Field, Section } from "../components/Form";
 import { useToast } from "../components/toast-context";
@@ -131,14 +133,7 @@ export function UsersPage() {
 
   return (
     <section className="page">
-      <header className="page-head row">
-        <div>
-          <h1>Users &amp; roles</h1>
-          <p className="hint">
-            {adminCount} · {userCount}
-          </p>
-        </div>
-      </header>
+      <PageHeader title="Users & roles" meta={`${adminCount} · ${userCount}`} />
 
       <Alert variant="info" title="Admin is an account setting, not a document">
         The admin claim is what lets someone publish content. It is set on the
@@ -195,18 +190,22 @@ export function UsersPage() {
                           </td>
                           <td className="hint">{a.email ?? a.uid}</td>
                           <td className="row">
-                            <button
-                              className="btn-quiet sm"
-                              disabled={busy || isMe}
-                              title={
-                                isMe
-                                  ? "You cannot revoke your own access — ask another admin."
-                                  : undefined
-                              }
-                              onClick={() => setConfirmRevoke(a)}
-                            >
-                              Revoke
-                            </button>
+                            {/* Not a disabled button: one that looks pressable
+                                and does nothing, with the reason in a tooltip,
+                                is the least helpful way to say no. */}
+                            {isMe ? (
+                              <span className="hint">
+                                Another admin can revoke yours
+                              </span>
+                            ) : (
+                              <button
+                                className="btn-quiet sm"
+                                disabled={busy}
+                                onClick={() => setConfirmRevoke(a)}
+                              >
+                                Revoke
+                              </button>
+                            )}
                           </td>
                         </tr>
                       );
@@ -320,9 +319,7 @@ export function UsersPage() {
                     </td>
                     <td className="hint">{u.email ?? "—"}</td>
                     <td className="hint">
-                      {u.createdAt
-                        ? u.createdAt.toDate().toLocaleDateString()
-                        : "—"}
+                      {formatDate(u.createdAt)}
                     </td>
                     <td>{u.savedTourIds?.length ?? 0}</td>
                     <td>{u.downloadedTownIds?.length ?? 0}</td>

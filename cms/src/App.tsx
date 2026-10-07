@@ -1,11 +1,14 @@
-import type { ReactNode } from "react";
+import { Fragment, useState, type ReactNode } from "react";
 import {
   createBrowserRouter,
+  Link,
   Navigate,
   NavLink,
   Outlet,
   RouterProvider,
+  useLocation,
 } from "react-router-dom";
+import { CrumbContext } from "./components/crumb-context";
 import { AuthProvider } from "./auth/AuthProvider";
 import { useAuth } from "./auth/auth-context";
 import { LoginPage, NotAuthorised } from "./auth/LoginPage";
@@ -30,21 +33,44 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
+type NavItem = {
+  to: string;
+  label: string;
+  icon: LucideIcon;
+  end?: boolean;
+  /** Starts a group, named by this label, in the sidebar. */
+  group?: string;
+};
+
 /**
  * Sidebar sections, in the wireframe's order.
  *
  * Data rather than seven hand-written links: adding a section is one entry,
- * and the icon travels with it instead of being wired up separately.
+ * and the icon travels with it instead of being wired up separately. Grouped
+ * by what the work is — writing content, getting it onto phones, running the
+ * CMS — so the list reads as three jobs rather than seven peers.
  */
-const NAV: { to: string; label: string; icon: LucideIcon; end?: boolean }[] = [
+const NAV: NavItem[] = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
-  { to: "/destinations", label: "Destinations", icon: MapPin },
+  { to: "/destinations", label: "Destinations", icon: MapPin, group: "Content" },
   { to: "/tours", label: "Tours", icon: Route },
   { to: "/guides", label: "Local guides", icon: UsersRound },
-  { to: "/bundles", label: "Offline bundles", icon: Package },
-  { to: "/users", label: "Users & roles", icon: ShieldCheck },
+  {
+    to: "/bundles",
+    label: "Offline bundles",
+    icon: Package,
+    group: "Distribution",
+  },
+  { to: "/users", label: "Users & roles", icon: ShieldCheck, group: "Admin" },
   { to: "/settings", label: "Settings", icon: Settings },
 ];
+
+/** The section a path belongs to, for the top bar. */
+function sectionFor(pathname: string): NavItem | undefined {
+  return NAV.find((n) =>
+    n.end ? pathname === n.to : pathname === n.to || pathname.startsWith(`${n.to}/`),
+  );
+}
 
 /**
  * Role gate. Every CMS route sits behind it.
@@ -63,35 +89,68 @@ function Gate({ children }: { children: ReactNode }) {
 
 function Shell() {
   const { user, signOut } = useAuth();
+  const { pathname } = useLocation();
+  const section = sectionFor(pathname);
+  // Set by a screen showing one item (the destination editor), so the bar can
+  // name it. Cleared by that screen when it unmounts.
+  const [crumb, setCrumb] = useState<string | null>(null);
+
   return (
     <div className="shell">
       <aside className="sidebar">
         <div className="sidebar-brand">
           <span className="auth-mark small">L</span>
-          <strong>Lakbayan</strong>
+          Lakbayan
         </div>
-        <nav>
-          {NAV.map(({ to, label, icon: Icon, end }) => (
-            <NavLink key={to} to={to} end={end}>
-              <Icon size={18} aria-hidden="true" />
-              {label}
-            </NavLink>
+        <nav aria-label="Sections">
+          {NAV.map(({ to, label, icon: Icon, end, group }) => (
+            <Fragment key={to}>
+              {group && <div className="nav-group">{group}</div>}
+              <NavLink to={to} end={end}>
+                <Icon size={18} aria-hidden="true" />
+                {label}
+              </NavLink>
+            </Fragment>
           ))}
         </nav>
         <div className="sidebar-foot">
-          <span className="hint">{user?.email}</span>
-          <button className="btn-quiet" onClick={() => void signOut()}>
-            Sign out
-          </button>
+          <span className="avatar" aria-hidden="true">
+            {user?.email?.[0] ?? "?"}
+          </span>
+          <div className="sidebar-user">
+            <strong title={user?.email ?? undefined}>{user?.email}</strong>
+            <span className="hint">Administrator</span>
+          </div>
         </div>
+        <button className="btn-quiet sm" onClick={() => void signOut()}>
+          Sign out
+        </button>
       </aside>
       <div className="content">
-        {useEmulators && (
-          <div className="env-banner">
-            Emulators — nothing here touches the live project
-          </div>
-        )}
-        <Outlet />
+        <div className="topbar">
+          <nav className="crumbs" aria-label="Breadcrumb">
+            {crumb && section ? (
+              <>
+                <Link to={section.to}>{section.label}</Link>
+                <span aria-hidden="true">/</span>
+                <span aria-current="page">{crumb}</span>
+              </>
+            ) : (
+              <span aria-current="page">{section?.label}</span>
+            )}
+          </nav>
+          {useEmulators && (
+            <span
+              className="env-pill"
+              title="Nothing here touches the live project"
+            >
+              Emulators
+            </span>
+          )}
+        </div>
+        <CrumbContext.Provider value={setCrumb}>
+          <Outlet />
+        </CrumbContext.Provider>
       </div>
     </div>
   );
