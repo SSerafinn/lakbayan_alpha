@@ -106,6 +106,11 @@ code {
   margin: 0;
 }
 
+::placeholder {
+  color: var(--lk-text-disabled);
+  opacity: 1;
+}
+
 :focus-visible {
   outline: 2px solid var(--lk-role-primary);
   outline-offset: 2px;
@@ -1123,6 +1128,110 @@ input[type="checkbox"] {
   vertical-align: middle;
 }
 
+.tab-count {
+  margin-left: 4px;
+  color: var(--lk-on-surface-variant);
+  font-weight: var(--lk-type-label-medium-weight);
+}
+
+/* ---- destination editor --------------------------------------------------
+   Content on the left; status, filing and placement in a rail on the right
+   that stays put across tabs (D-17). Below 1100px the rail drops beneath. */
+
+.editor-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: var(--lk-space-6);
+  align-items: start;
+  margin-top: var(--lk-space-6);
+}
+.editor-main {
+  min-width: 0;
+}
+.editor-rail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--lk-space-5);
+}
+.editor-rail .fsection {
+  margin-bottom: 0;
+  padding: var(--lk-space-5);
+}
+@media (max-width: 1100px) {
+  .editor-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* The page's own actions sit beside the save state; let them wrap rather
+   than push the title off a narrow screen. */
+.editor .page-actions {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.checklist-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--lk-space-3);
+}
+.checklist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--lk-space-2);
+}
+.checklist li {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--lk-space-2);
+}
+.checklist svg {
+  flex: none;
+  margin-top: 1px;
+}
+.checklist .done svg {
+  color: var(--lk-role-primary);
+}
+.checklist .todo svg {
+  color: var(--lk-role-error);
+}
+/* An unmet item is the way to its fix: a button that reads as the item. */
+.checklist .link-button {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  color: var(--lk-on-surface);
+}
+
+.toggle-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--lk-space-2) 0;
+}
+
+/* The next photo's place in the grid. Dashed: an empty slot, not a card. */
+.thumb.thumb-add {
+  border: 1.5px dashed var(--lk-outline-variant);
+  background: var(--lk-surface);
+  font: inherit;
+  font-weight: 650;
+  color: var(--lk-on-surface-variant);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--lk-space-2);
+}
+.thumb.thumb-add:hover:not(:disabled) {
+  border-color: var(--lk-role-primary);
+  color: var(--lk-role-primary-text);
+}
+
 /* ---- field sections ------------------------------------------------------
    Each group is a card: the grey step, its heading inside. */
 
@@ -1137,6 +1246,18 @@ input[type="checkbox"] {
 }
 .fsection > header {
   margin-bottom: var(--lk-space-4);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+/* A section with its own control (Add stop, say) on the heading's edge. */
+.fsection > header.split {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--lk-space-4);
+}
+.fsection > header > div {
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -1160,6 +1281,9 @@ input[type="checkbox"] {
 }
 .f.wide {
   grid-column: 1 / -1;
+}
+.fgrid.one {
+  grid-template-columns: minmax(0, 1fr);
 }
 .f > label {
   font-size: var(--lk-type-label-medium-size);
@@ -1528,6 +1652,9 @@ table.data .tag-row {
 .save-state {
   font-size: var(--lk-type-second-line-size);
   color: var(--lk-on-surface-variant);
+}
+.savebar .save-state {
+  margin-right: auto;
 }
 .save-state.dirty {
   display: inline-flex;

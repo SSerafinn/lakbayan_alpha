@@ -1,4 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ChangeEvent,
+} from "react";
 import { useBlocker, useNavigate, useParams } from "react-router-dom";
 import { CAGAYAN_TOWNS } from "../types/towns";
 import {
@@ -15,11 +21,16 @@ import { useCrumb } from "../components/crumb-context";
 import { PageHeader } from "../components/PageHeader";
 import { Dialog } from "../components/Dialog";
 import { Field, Section, Toggle } from "../components/Form";
+import { useInView } from "../components/useInView";
 import { useToast } from "../components/toast-context";
 import { ImageThumb } from "../components/ImageThumb";
 import { AudioGuideTab } from "./AudioGuideTab";
 import { formatCoord, searchPlaces, type GeocodeResult } from "../lib/geocode";
 import type { SegmentDraft } from "../types/segment";
+import { editorActions } from "../types/editor";
+import { relativeTime } from "../types/dashboard";
+import { CircleAlert, CircleCheck, ImagePlus } from "lucide-react";
+import type { Timestamp } from "firebase/firestore";
 import {
   CATEGORIES,
   CATEGORY_LABELS,
@@ -31,6 +42,7 @@ import {
   validate,
   type Category,
   type Destination,
+  type ReadinessItem,
 } from "../types/destination";
 
 type Draft = Omit<Destination, "id">;
@@ -93,6 +105,10 @@ export function DestinationEditorPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [slugEdited, setSlugEdited] = useState(!isNew);
+  // A blank new destination is not wrong yet, it is just empty: field errors
+  // wait for the first attempt to save. The checklist in the rail says what
+  // is missing in the meantime, without five red "Required"s on arrival.
+  const [attempted, setAttempted] = useState(!isNew);
   const toast = useToast();
 
   // Mirrors of state the Ctrl+S handler needs. Refs rather than dependencies so
@@ -175,6 +191,9 @@ export function DestinationEditorPage() {
   // a hook cannot sit behind one.
   useCrumb(draft ? draft.name.trim() || "New destination" : null);
 
+  const headRef = useRef<HTMLDivElement>(null);
+  const headInView = useInView(headRef, draft !== null);
+
   if (error && !draft) {
     return (
       <section className="page">
@@ -189,7 +208,7 @@ export function DestinationEditorPage() {
   const set = <K extends keyof Draft>(key: K, value: Draft[K]) =>
     setDraft((d) => (d ? { ...d, [key]: value } : d));
 
-  const errors = validate(draft);
+  const errors = attempted ? validate(draft) : {};
   const checklist = readiness(draft, segments);
   const blockers = publishBlockers(draft, segments);
 
@@ -198,6 +217,9 @@ export function DestinationEditorPage() {
 
   /** Publish, or explain why it cannot be published yet. */
   function onPublish() {
+    // Pressing Publish counts as trying, even when it stops short of saving:
+    // the fields it complains about should say why.
+    setAttempted(true);
     const first = checklist.find((i) => !i.ok);
     if (draft && draft.status !== "published" && first) {
       setTab(first.tab);
@@ -216,6 +238,7 @@ export function DestinationEditorPage() {
     nextStatus?: "draft" | "published",
   ): Promise<string | null> {
     if (!draft) return null;
+    setAttempted(true);
     const next = nextStatus ? { ...draft, status: nextStatus } : draft;
 
     const invalid = validate(next);
@@ -296,25 +319,66 @@ export function DestinationEditorPage() {
   busyRef.current = busy;
   saveRef.current = () => save();
 
+  const actions = editorActions({ status: draft.status, dirty, isNew });
+  const discard = () => {
+    setDraft(saved);
+    setSegments(savedSegments);
+  };
+  const actionButtons = (
+    <>
+      <span className={dirty ? "save-state dirty" : "save-state"}>
+        {actions.state}
+      </span>
+      {actions.discard && (
+        <button className="btn-quiet" onClick={discard} disabled={busy}>
+          Discard
+        </button>
+      )}
+      {actions.secondary && (
+        <button
+          className="btn-secondary"
+          disabled={busy}
+          onClick={() => void save("draft")}
+        >
+          {actions.secondary === "unpublish" ? "Unpublish" : "Save draft"}
+        </button>
+      )}
+      {/* Deliberately NOT disabled when there are blockers. A disabled
+          button cannot explain itself, cannot be focused, and gives no
+          feedback when clicked — so people click it, nothing happens, and
+          they are stuck. Clicking now says what is missing and jumps there. */}
+      {actions.primary && (
+        <button className="btn-primary" disabled={busy} onClick={onPublish}>
+          {actions.primary === "publish" ? "Publish" : "Save"}
+        </button>
+      )}
+    </>
+  );
+
   return (
     <section className="page editor">
-      <PageHeader
-        title={draft.name.trim() || "New destination"}
-        badge={
-          <span
-            className={
-              draft.status === "published" ? "badge ok" : "badge draft"
-            }
-          >
-            {draft.status === "published" ? "Published" : "Draft"}
-          </span>
-        }
-        meta={
-          [draft.town.trim(), CATEGORY_LABELS[draft.category]]
-            .filter(Boolean)
-            .join(" · ") || undefined
-        }
-      />
+      {/* Observed: when the header and its buttons scroll away with edits
+          unsaved, the save bar takes over at the bottom of the screen. */}
+      <div ref={headRef}>
+        <PageHeader
+          title={draft.name.trim() || "New destination"}
+          badge={
+            <span
+              className={
+                draft.status === "published" ? "badge ok" : "badge draft"
+              }
+            >
+              {draft.status === "published" ? "Published" : "Draft"}
+            </span>
+          }
+          meta={
+            [draft.town.trim(), CATEGORY_LABELS[draft.category]]
+              .filter(Boolean)
+              .join(" · ") || undefined
+          }
+          actions={actionButtons}
+        />
+      </div>
 
       {/* A genuine decision point — nothing else can proceed until it is
           answered — so this one is modal rather than an inline banner, which
@@ -343,62 +407,58 @@ export function DestinationEditorPage() {
         lose them.
       </Dialog>
 
-      {/* Unsaved state, save failures and publish blockers used to be three
-          banners stacked above the form, pushing it down the page and staying
-          long after they stopped being useful. They now live where they
-          belong: state in the savebar, events in a toast, decisions in the
-          dialog above. */}
+      <nav className="tabs" aria-label="Editor sections">
+        <button
+          className={tab === "details" ? "tab on" : "tab"}
+          onClick={() => setTab("details")}
+        >
+          Details
+          {unmetIn("details") && <span className="tab-dot" />}
+        </button>
+        <button
+          className={tab === "location" ? "tab on" : "tab"}
+          onClick={() => setTab("location")}
+        >
+          Location
+          {unmetIn("location") && <span className="tab-dot" />}
+        </button>
+        <button
+          className={tab === "media" ? "tab on" : "tab"}
+          onClick={() => setTab("media")}
+        >
+          Photos <span className="tab-count">{draft.images.length}</span>
+          {unmetIn("media") && <span className="tab-dot" />}
+        </button>
+        <button
+          className={tab === "audio" ? "tab on" : "tab"}
+          onClick={() => setTab("audio")}
+        >
+          Audio guide{" "}
+          {segments.length > 0 && (
+            <span className="tab-count">{segments.length}</span>
+          )}
+          {unmetIn("audio") && <span className="tab-dot" />}
+        </button>
+        <button className="tab" disabled title="Arrives with the AR work">
+          AR
+        </button>
+      </nav>
 
-      <div className="editor-card">
-        <nav className="tabs">
-          <button
-            className={tab === "details" ? "tab on" : "tab"}
-            onClick={() => setTab("details")}
-          >
-            Details
-            {unmetIn("details") && <span className="tab-dot" />}
-          </button>
-          <button
-            className={tab === "location" ? "tab on" : "tab"}
-            onClick={() => setTab("location")}
-          >
-            Location
-            {unmetIn("location") && <span className="tab-dot" />}
-          </button>
-          <button
-            className={tab === "media" ? "tab on" : "tab"}
-            onClick={() => setTab("media")}
-          >
-            Media <span className="hint">{draft.images.length}</span>
-            {unmetIn("media") && <span className="tab-dot" />}
-          </button>
-          <button
-            className={tab === "audio" ? "tab on" : "tab"}
-            onClick={() => setTab("audio")}
-          >
-            Audio Guide{" "}
-            {segments.length > 0 && (
-              <span className="hint">{segments.length}</span>
-            )}
-            {unmetIn("audio") && <span className="tab-dot" />}
-          </button>
-          <button className="tab" disabled title="Arrives in CMS-3">
-            AR
-          </button>
-        </nav>
-
-        <div className="editor-panel">
+      {/* Content on the left, the facts about it on the right — after
+          Polaris's product page, which this screen maps onto almost one to
+          one. The rail stays put across tabs, so status and the checklist are
+          in view while you work on photos or the audio guide. */}
+      <div className="editor-grid">
+        <div className="editor-main">
           {tab === "details" && (
             <DetailsTab
               draft={draft}
               errors={errors}
               set={set}
-              slugEdited={slugEdited}
               onNameChange={(name) => {
                 set("name", name);
                 if (!slugEdited) set("slug", slugify(name));
               }}
-              onSlugEdited={() => setSlugEdited(true)}
             />
           )}
 
@@ -423,76 +483,219 @@ export function DestinationEditorPage() {
             />
           )}
         </div>
+
+        <aside className="editor-rail" aria-label="About this destination">
+          <StatusCard
+            status={draft.status}
+            checklist={checklist}
+            savedAt={saved?.updatedAt}
+            onJump={setTab}
+          />
+          <OrganisationCard draft={draft} errors={errors} set={set} />
+          <PlacementCard draft={draft} set={set} />
+          <Section title="Link" single>
+            <Field
+              label="Slug"
+              required
+              error={errors.slug}
+              hint={
+                slugEdited
+                  ? "Used in deep links — changing it breaks links already shared."
+                  : "Follows the name until you edit it."
+              }
+            >
+              <input
+                value={draft.slug}
+                onChange={(e) => {
+                  setSlugEdited(true);
+                  set("slug", slugify(e.target.value));
+                }}
+              />
+            </Field>
+          </Section>
+        </aside>
       </div>
 
-      <div className="savebar">
-        <span className={dirty ? "save-state dirty" : "save-state"}>
-          {dirty ? "Unsaved changes · Ctrl+S" : "All changes saved"}
-        </span>
-        {dirty && (
-          <button
-            className="btn-quiet"
-            onClick={() => {
-              setDraft(saved);
-              setSegments(savedSegments);
-            }}
-            disabled={busy}
-          >
-            Discard
-          </button>
-        )}
-        <span className="spacer" />
-        {draft.status !== "published" && blockers.length > 0 && (
-          <span className="hint">{blockers.length} left before publishing</span>
-        )}
-        {draft.status === "published" ? (
-          <button
-            className="btn-quiet"
-            disabled={busy}
-            onClick={() => void save("draft")}
-          >
-            Unpublish
-          </button>
-        ) : (
-          <button
-            className="btn-secondary"
-            disabled={busy}
-            onClick={() => void save("draft")}
-          >
-            Save as draft
-          </button>
-        )}
-        {/* Deliberately NOT disabled when there are blockers. A disabled
-            button cannot explain itself, cannot be focused, and gives no
-            feedback when clicked — so people click it, nothing happens, and
-            they are stuck. Clicking now says what is missing and jumps there. */}
-        <button className="btn-primary" disabled={busy} onClick={onPublish}>
-          {draft.status === "published" ? "Save" : "Publish"}
-        </button>
-      </div>
+      {dirty && !headInView && (
+        <div className="savebar" role="region" aria-label="Unsaved changes">
+          {actionButtons}
+        </div>
+      )}
     </section>
   );
 }
 
+type SetField = <K extends keyof Draft>(k: K, v: Draft[K]) => void;
+
+/**
+ * The main column's Details tab: what a visitor reads, and the practical
+ * facts for the day. Filing and placement moved to the rail beside it.
+ */
 function DetailsTab({
   draft,
   errors,
   set,
-  slugEdited,
   onNameChange,
-  onSlugEdited,
 }: {
   draft: Draft;
   errors: Record<string, string>;
-  set: <K extends keyof Draft>(k: K, v: Draft[K]) => void;
-  slugEdited: boolean;
+  set: SetField;
   onNameChange: (name: string) => void;
-  onSlugEdited: () => void;
 }) {
-  const [tagInput, setTagInput] = useState("");
+  const practical = (key: keyof NonNullable<Draft["practical"]>) => ({
+    value: draft.practical?.[key] ?? "",
+    onChange: (e: ChangeEvent<HTMLInputElement>) =>
+      set("practical", { ...draft.practical, [key]: e.target.value }),
+  });
 
   return (
     <>
+      <Section
+        title="What visitors read"
+        hint="The card, and the top of the place's page in the app."
+      >
+        <Field label="Name" required error={errors.name} wide>
+          <input
+            value={draft.name}
+            onChange={(e) => onNameChange(e.target.value)}
+          />
+        </Field>
+
+        <Field
+          label="Short description"
+          required
+          error={errors.description}
+          hint={`Shown on cards · ${draft.description.length} / ${MAX_DESCRIPTION}`}
+          wide
+        >
+          <textarea
+            rows={3}
+            maxLength={MAX_DESCRIPTION}
+            value={draft.description}
+            onChange={(e) => set("description", e.target.value)}
+          />
+        </Field>
+
+        <Field label="History and long content" wide>
+          <textarea
+            rows={8}
+            value={draft.history ?? ""}
+            onChange={(e) => set("history", e.target.value)}
+            placeholder="Background for the place's page: what it is, how it came to be, why it matters."
+          />
+        </Field>
+      </Section>
+
+      {/* Each field labelled. They were four bare inputs whose only label was
+          a placeholder, which disappears the moment there is a value — so a
+          filled-in form showed "PHP 20" and "Dry season" with nothing to say
+          which was which. */}
+      <Section
+        title="Plan your visit"
+        hint="Optional, and shown as written — but it is what makes a listing useful on the ground."
+      >
+        <Field label="Entry fee">
+          <input placeholder="PHP 20" {...practical("entryFee")} />
+        </Field>
+        <Field label="Opening hours">
+          <input
+            placeholder="8:00am – 4:00pm daily"
+            {...practical("openHours")}
+          />
+        </Field>
+        <Field label="Best season">
+          <input
+            placeholder="Dry season, November to April"
+            {...practical("bestSeason")}
+          />
+        </Field>
+        <Field label="Accessibility">
+          <input
+            placeholder="184 steps from the road"
+            {...practical("accessibility")}
+          />
+        </Field>
+      </Section>
+    </>
+  );
+}
+
+/**
+ * Where the place stands, and what stands between it and going live.
+ *
+ * The checklist used to be a count in the savebar ("3 left before
+ * publishing"). It is the same `readiness` list the Publish button checks,
+ * now in view on every tab, and each unmet item takes you to its tab.
+ */
+function StatusCard({
+  status,
+  checklist,
+  savedAt,
+  onJump,
+}: {
+  status: Draft["status"];
+  checklist: ReadinessItem[];
+  savedAt?: Timestamp;
+  onJump: (tab: Tab) => void;
+}) {
+  const left = checklist.filter((i) => !i.ok).length;
+  return (
+    <Section
+      title="Status"
+      hint={
+        status === "published"
+          ? "Published — visible to everyone in the app."
+          : "Draft — only admins can see it."
+      }
+      single
+    >
+      <div className="checklist-wrap">
+        <p className="overline">
+          {left === 0
+            ? "Ready to publish"
+            : `${left} thing${left === 1 ? "" : "s"} before it can go live`}
+        </p>
+        <ul className="checklist">
+          {checklist.map((item) => (
+            <li key={item.label} className={item.ok ? "done" : "todo"}>
+              {item.ok ? (
+                <CircleCheck size={18} aria-hidden="true" />
+              ) : (
+                <CircleAlert size={18} aria-hidden="true" />
+              )}
+              {item.ok ? (
+                <span>{item.label}</span>
+              ) : (
+                <button className="link-button" onClick={() => onJump(item.tab)}>
+                  {item.label}
+                  {item.why && <span className="hint">{item.why}</span>}
+                </button>
+              )}
+            </li>
+          ))}
+        </ul>
+        {savedAt && (
+          <p className="hint">
+            Last saved {relativeTime(savedAt.toMillis(), Date.now())}
+          </p>
+        )}
+      </div>
+    </Section>
+  );
+}
+
+/** How the place is filed: the town that groups its offline bundle, its kind, its tags. */
+function OrganisationCard({
+  draft,
+  errors,
+  set,
+}: {
+  draft: Draft;
+  errors: Record<string, string>;
+  set: SetField;
+}) {
+  return (
+    <Section title="Organisation" single>
       {/* The list the town field's `list="towns"` refers to. Without this the
           attribute silently does nothing — which is how "Peñablanca" and
           "Penablanca" end up as two towns, and later two offline bundles. */}
@@ -502,218 +705,126 @@ function DetailsTab({
         ))}
       </datalist>
 
-      <Section title="Identity" hint="How this place is named and filed.">
-        <Field label="Name" required error={errors.name}>
-          <input
-            value={draft.name}
-            onChange={(e) => onNameChange(e.target.value)}
-          />
-        </Field>
-
-        <Field
-          label="Slug"
-          required
-          error={errors.slug}
-          hint={
-            slugEdited
-              ? "Used in deep links — changing it breaks links already shared."
-              : "Auto-generated from the name."
-          }
-        >
-          <input
-            value={draft.slug}
-            onChange={(e) => {
-              onSlugEdited();
-              set("slug", slugify(e.target.value));
-            }}
-          />
-        </Field>
-
-        <Field
-          label="Town / municipality"
-          required
-          error={errors.town}
-          hint="Start typing — Cagayan's municipalities are suggested."
-        >
-          <input
-            value={draft.town}
-            onChange={(e) => set("town", e.target.value)}
-            list="towns"
-            placeholder="e.g. Peñablanca"
-          />
-        </Field>
-
-        <Field label="Category" required>
-          <select
-            value={draft.category}
-            onChange={(e) => set("category", e.target.value as Category)}
-          >
-            {CATEGORIES.map((c) => (
-              <option key={c} value={c}>
-                {CATEGORY_LABELS[c]}
-              </option>
-            ))}
-          </select>
-        </Field>
-      </Section>
-
-      <Section
-        title="Content"
-        hint="What a visitor reads on the card and the detail screen."
+      <Field
+        label="Town or municipality"
+        required
+        error={errors.town}
+        hint="Groups its offline bundle, so pick it from the list."
       >
-        <Field
-          label="Short description"
-          required
-          error={errors.description}
-          hint={`Shown on cards · ${draft.description.length} / ${MAX_DESCRIPTION}`}
-          wide
+        <input
+          value={draft.town}
+          onChange={(e) => set("town", e.target.value)}
+          list="towns"
+          placeholder="Peñablanca"
+        />
+      </Field>
+
+      <Field label="Category" required>
+        <select
+          value={draft.category}
+          onChange={(e) => set("category", e.target.value as Category)}
         >
-          <textarea
-            rows={2}
-            maxLength={MAX_DESCRIPTION}
-            value={draft.description}
-            onChange={(e) => set("description", e.target.value)}
-          />
-        </Field>
+          {CATEGORIES.map((c) => (
+            <option key={c} value={c}>
+              {CATEGORY_LABELS[c]}
+            </option>
+          ))}
+        </select>
+      </Field>
 
-        <Field label="History / long content" wide>
-          <textarea
-            rows={7}
-            value={draft.history ?? ""}
-            onChange={(e) => set("history", e.target.value)}
-            placeholder="Long-form background shown on the detail screen."
-          />
-        </Field>
-      </Section>
-
-      <Section
-        title="Placement"
-        hint="Where this appears in the app once published."
-      >
-        <Field label="Visibility">
-          <div className="toggles">
-            <Toggle
-              label="Show in Popular Places"
-              on={draft.popular}
-              onChange={(v) => set("popular", v)}
-            />
-            <Toggle
-              label="Featured"
-              on={draft.featured}
-              onChange={(v) => set("featured", v)}
-            />
-            <Toggle
-              label="Eligible for Nearby Places"
-              on={draft.nearbyEligible}
-              onChange={(v) => set("nearbyEligible", v)}
-            />
-            <Toggle
-              label="Include in offline bundles"
-              on={draft.offlineEligible}
-              onChange={(v) => set("offlineEligible", v)}
-            />
-            <Toggle
-              label="Museum site (enables AR)"
-              on={draft.isMuseum}
-              onChange={(v) => set("isMuseum", v)}
-            />
-          </div>
-        </Field>
-      </Section>
-
-      <Section
-        title="Visitor information"
-        hint="Optional, but it is what turns a listing into something useful on the ground."
-      >
-        <Field label="Practical info" hint="All optional, shown as written.">
-          <div className="pair-grid">
-            <input
-              placeholder="Entry fee"
-              value={draft.practical?.entryFee ?? ""}
-              onChange={(e) =>
-                set("practical", {
-                  ...draft.practical,
-                  entryFee: e.target.value,
-                })
-              }
-            />
-            <input
-              placeholder="Open hours"
-              value={draft.practical?.openHours ?? ""}
-              onChange={(e) =>
-                set("practical", {
-                  ...draft.practical,
-                  openHours: e.target.value,
-                })
-              }
-            />
-            <input
-              placeholder="Best season"
-              value={draft.practical?.bestSeason ?? ""}
-              onChange={(e) =>
-                set("practical", {
-                  ...draft.practical,
-                  bestSeason: e.target.value,
-                })
-              }
-            />
-            <input
-              placeholder="Accessibility"
-              value={draft.practical?.accessibility ?? ""}
-              onChange={(e) =>
-                set("practical", {
-                  ...draft.practical,
-                  accessibility: e.target.value,
-                })
-              }
-            />
-          </div>
-        </Field>
-
-        <Field label="Tags" wide>
-          <div className="tag-row">
-            {draft.tags.map((t) => (
-              <span key={t} className="badge">
-                {t}
-                <button
-                  className="tag-x"
-                  aria-label={`Remove ${t}`}
-                  onClick={() =>
-                    set(
-                      "tags",
-                      draft.tags.filter((x) => x !== t),
-                    )
-                  }
-                >
-                  ×
-                </button>
-              </span>
-            ))}
-            <input
-              className="tag-input"
-              placeholder="add tag, then Enter or comma"
-              value={tagInput}
-              onChange={(e) => setTagInput(e.target.value)}
-              // Commit on Enter, comma, or blur. Enter-only loses a tag whenever
-              // someone types it and clicks away, which is most of the time.
-              onKeyDown={(e) => {
-                if (e.key !== "Enter" && e.key !== ",") return;
-                e.preventDefault();
-                commitTag();
-              }}
-              onBlur={commitTag}
-            />
-          </div>
-        </Field>
-      </Section>
-    </>
+      <TagsField tags={draft.tags} onChange={(tags) => set("tags", tags)} />
+    </Section>
   );
+}
 
-  function commitTag() {
-    const t = tagInput.trim().toLowerCase().replace(/,$/, "");
-    if (t && !draft.tags.includes(t)) set("tags", [...draft.tags, t]);
-    setTagInput("");
+function TagsField({
+  tags,
+  onChange,
+}: {
+  tags: string[];
+  onChange: (tags: string[]) => void;
+}) {
+  const [input, setInput] = useState("");
+
+  function commit() {
+    const t = input.trim().toLowerCase().replace(/,$/, "");
+    if (t && !tags.includes(t)) onChange([...tags, t]);
+    setInput("");
   }
+
+  return (
+    <Field label="Tags" hint="Press Enter or a comma after each.">
+      <div className="tag-row">
+        {tags.map((t) => (
+          <span key={t} className="badge">
+            {t}
+            <button
+              className="tag-x"
+              aria-label={`Remove ${t}`}
+              onClick={() => onChange(tags.filter((x) => x !== t))}
+            >
+              ×
+            </button>
+          </span>
+        ))}
+        <input
+          className="tag-input"
+          placeholder="Add a tag"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          // Commit on Enter, comma, or blur. Enter-only loses a tag whenever
+          // someone types it and clicks away, which is most of the time.
+          onKeyDown={(e) => {
+            if (e.key !== "Enter" && e.key !== ",") return;
+            e.preventDefault();
+            commit();
+          }}
+          onBlur={commit}
+        />
+      </div>
+    </Field>
+  );
+}
+
+/** Where it shows up in the app once published, each switch saying what it does. */
+function PlacementCard({ draft, set }: { draft: Draft; set: SetField }) {
+  const town = draft.town.trim();
+  return (
+    <Section title="Where it appears" single>
+      <div className="toggles">
+        <Toggle
+          label="Popular places"
+          hint="The rail on Explore."
+          on={draft.popular}
+          onChange={(v) => set("popular", v)}
+        />
+        <Toggle
+          label="Featured"
+          hint="Adds the FEATURED badge."
+          on={draft.featured}
+          onChange={(v) => set("featured", v)}
+        />
+        <Toggle
+          label="Nearby suggestions"
+          hint="May be suggested beside other places."
+          on={draft.nearbyEligible}
+          onChange={(v) => set("nearbyEligible", v)}
+        />
+        <Toggle
+          label="Offline bundle"
+          hint={town ? `Downloaded with ${town}.` : "Downloaded with its town."}
+          on={draft.offlineEligible}
+          onChange={(v) => set("offlineEligible", v)}
+        />
+        <Toggle
+          label="Museum site"
+          hint="Enables the AR tab."
+          on={draft.isMuseum}
+          onChange={(v) => set("isMuseum", v)}
+        />
+      </div>
+    </Section>
+  );
 }
 
 /**
@@ -819,7 +930,10 @@ function LocationTab({
   const bbox = `${lng - 0.01},${lat - 0.01},${lng + 0.01},${lat + 0.01}`;
 
   return (
-    <div className="fgrid">
+    <Section
+      title="Location"
+      hint="Where the pin sits on the map, and what Directions opens."
+    >
       <PlaceSearch onPick={(r) => set("coords", { lat: r.lat, lng: r.lng })} />
 
       <Field label="Latitude" required>
@@ -865,7 +979,7 @@ function LocationTab({
           — right-click a spot and choose “Show address” to read them off.
         </p>
       </Field>
-    </div>
+    </Section>
   );
 }
 
@@ -931,19 +1045,25 @@ function MediaTab({
     }
   }
 
+  const addTile = (
+    <li>
+      <button
+        className="thumb thumb-add"
+        disabled={uploading}
+        onClick={() => fileInput.current?.click()}
+      >
+        <ImagePlus size={22} aria-hidden="true" />
+        {uploading ? "Uploading…" : "Add photos"}
+      </button>
+    </li>
+  );
+
   return (
-    <div className="media">
-      <div className="row">
-        <button
-          className="btn-secondary"
-          disabled={uploading}
-          onClick={() => fileInput.current?.click()}
-        >
-          {uploading ? "Uploading…" : "Add photos"}
-        </button>
-        <span className="hint">
-          The first image is the card photo. 16:9 crops best.
-        </span>
+    <Section
+      title="Photos"
+      hint="The first photo is the card image. 16:9 crops best."
+    >
+      <div className="media f wide">
         <input
           ref={fileInput}
           type="file"
@@ -952,13 +1072,10 @@ function MediaTab({
           hidden
           onChange={(e) => void onPick(e.target.files)}
         />
-      </div>
 
-      {draft.images.length === 0 ? (
-        <div className="empty">
-          <p>No photos yet — a destination cannot be published without one.</p>
-        </div>
-      ) : (
+        {/* The add control sits where the next photo will go, rather than in
+            a toolbar above the grid. With no photos it is the whole grid, and
+            says why one is needed. */}
         <ul className="thumbs">
           {draft.images.map((path, i) => (
             <li key={path}>
@@ -994,8 +1111,15 @@ function MediaTab({
               </div>
             </li>
           ))}
+          {addTile}
         </ul>
-      )}
-    </div>
+
+        {draft.images.length === 0 && (
+          <p className="hint">
+            No photos yet — a destination cannot be published without one.
+          </p>
+        )}
+      </div>
+    </Section>
   );
 }
