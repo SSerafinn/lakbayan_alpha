@@ -19,7 +19,7 @@ import {
 import { listDestinations } from "../lib/destinations";
 import { Alert } from "../components/Alert";
 import { PageHeader } from "../components/PageHeader";
-import { formatDate } from "../types/format";
+import { relativeTime } from "../types/dashboard";
 import { Dialog } from "../components/Dialog";
 import { Field, Section, Toggle } from "../components/Form";
 import { ImageThumb } from "../components/ImageThumb";
@@ -270,65 +270,70 @@ export function ToursPage() {
         <table className="data">
           <thead>
             <tr>
-              <th>Cover</th>
-              <th>Title</th>
-              <th>Stops</th>
+              <th className="thumb-cell" aria-label="Cover" />
+              <th>Tour</th>
               <th>Featured</th>
-              <th>Last updated</th>
+              <th>Last edited</th>
               <th />
             </tr>
           </thead>
           <tbody>
             {filtered.map((t) => {
               const issues = problems(t);
+              const route = t.stops
+                .map((id) => byId.get(id)?.name)
+                .filter(Boolean)
+                .slice(0, 3)
+                .join(" → ");
               return (
                 <tr key={t.id}>
-                  <td className="tour-cover-cell">
+                  <td className="thumb-cell">
                     {t.coverImg ? (
-                      <ImageThumb path={t.coverImg} />
+                      <ImageThumb path={t.coverImg} className="row-thumb" />
                     ) : (
-                      <span className="hint">—</span>
+                      <div className="thumb row-thumb" />
                     )}
                   </td>
+                  {/* Title, then the route as its second line: the stops are
+                      what the tour is, so they belong with its name rather
+                      than in a column of their own. */}
                   <td>
-                    <button className="link-button" onClick={() => openEdit(t)}>
-                      {t.title}
-                    </button>
-                    {issues.length > 0 && (
-                      <span className="badge warn" title="Broken in the app">
-                        {issues.join(", ")}
+                    <div className="cell-title">
+                      <span>
+                        <button
+                          className="link-button"
+                          onClick={() => openEdit(t)}
+                        >
+                          {t.title}
+                        </button>
+                        {issues.length > 0 && (
+                          <span className="badge warn" title="Broken in the app">
+                            {issues.join(", ")}
+                          </span>
+                        )}
                       </span>
-                    )}
-                  </td>
-                  <td>
-                    {t.stops.length}
-                    <span className="hint">
-                      {" "}
-                      {t.stops
-                        .map((id) => byId.get(id)?.name)
-                        .filter(Boolean)
-                        .slice(0, 2)
-                        .join(" → ")}
-                      {t.stops.length > 2 ? " →…" : ""}
-                    </span>
+                      <span className="hint">
+                        {t.stops.length} stop{t.stops.length === 1 ? "" : "s"}
+                        {route && ` · ${route}`}
+                        {t.stops.length > 3 ? " → …" : ""}
+                      </span>
+                    </div>
                   </td>
                   <td>
                     {t.featured ? (
-                      <Star size={14} aria-label="Featured" />
+                      <span className="badge">
+                        <Star size={12} aria-hidden="true" /> Featured
+                      </span>
                     ) : (
                       <span className="hint">—</span>
                     )}
                   </td>
-                  <td className="hint">
-                    {formatDate(t.updatedAt)}
+                  <td className="hint nowrap">
+                    {t.updatedAt
+                      ? relativeTime(t.updatedAt.toMillis(), Date.now())
+                      : "—"}
                   </td>
-                  <td className="row">
-                    <button
-                      className="btn-quiet sm"
-                      onClick={() => openEdit(t)}
-                    >
-                      Edit
-                    </button>
+                  <td className="row actions-cell">
                     <button
                       className="btn-quiet sm"
                       onClick={() => setConfirmDelete(t)}
@@ -489,7 +494,9 @@ function TourEditor({
                 onChange={(e) => void onPickCover(e.target.files)}
               />
             </div>
-            {draft.coverImg && <ImageThumb path={draft.coverImg} />}
+            {draft.coverImg && (
+              <ImageThumb path={draft.coverImg} className="cover-preview" />
+            )}
           </Field>
 
           <Field label="Placement">
@@ -702,7 +709,7 @@ function TableSkeleton() {
       <tbody>
         {Array.from({ length: 4 }, (_, i) => (
           <tr key={i}>
-            <td colSpan={6}>
+            <td colSpan={5}>
               <div className="skeleton" />
             </td>
           </tr>

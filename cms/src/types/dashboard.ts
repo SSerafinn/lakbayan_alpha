@@ -2,6 +2,7 @@ import type { Timestamp } from "firebase/firestore";
 import type { OfflineBundle } from "./bundle";
 import { readiness, type Destination, type Status } from "./destination";
 import type { Guide } from "./guide";
+import { shortDate } from "./format";
 import type { Tour } from "./tour";
 
 /**
@@ -280,11 +281,8 @@ export function relativeTime(at: number, now: number): string {
   if (abs < 60 * 60 * 24 * 7) {
     return rtf.format(Math.round(seconds / 86400), "day");
   }
-  return new Date(at).toLocaleDateString("en", {
-    day: "numeric",
-    month: "short",
-    year: new Date(at).getFullYear() === new Date(now).getFullYear()
-      ? undefined
-      : "numeric",
-  });
+  // Day before month, as formatDate writes it: "1 Sep", never "Sep 1" on one
+  // screen and "1 Sep 2026" on the next.
+  const date = new Date(at);
+  return shortDate(date, date.getFullYear() !== new Date(now).getFullYear());
 }

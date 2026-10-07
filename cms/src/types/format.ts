@@ -10,10 +10,19 @@ import type { Timestamp } from "firebase/firestore";
  */
 export function formatDate(t?: Timestamp | Date | null): string {
   if (!t) return "—";
-  const date = t instanceof Date ? t : t.toDate();
-  return date.toLocaleDateString("en-GB", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
+  return shortDate(t instanceof Date ? t : t.toDate(), true);
+}
+
+// A fixed list, not `toLocaleDateString`: ICU's own abbreviations change
+// between versions ("Sep" became "Sept" in en-GB), so the same date could
+// print two ways on two machines.
+const MONTHS = [
+  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+];
+
+/** "7 Oct", or "7 Oct 2026" with the year. Local time, as the admin sees it. */
+export function shortDate(date: Date, withYear: boolean): string {
+  const dm = `${date.getDate()} ${MONTHS[date.getMonth()]}`;
+  return withYear ? `${dm} ${date.getFullYear()}` : dm;
 }

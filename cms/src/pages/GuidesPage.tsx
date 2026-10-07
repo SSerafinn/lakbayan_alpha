@@ -315,8 +315,7 @@ export function GuidesPage() {
           <thead>
             <tr>
               <th className="tick" />
-              <th>Name</th>
-              <th>Town</th>
+              <th>Guide</th>
               <th>Specialties</th>
               <th>Contact</th>
               <th>Accredited</th>
@@ -335,12 +334,16 @@ export function GuidesPage() {
                     aria-label={`Select ${g.name}`}
                   />
                 </td>
+                {/* Name, then town: the name opens the guide, so there is no
+                    separate Edit button. */}
                 <td>
-                  <button className="link-button" onClick={() => openEdit(g)}>
-                    {g.name}
-                  </button>
+                  <div className="cell-title">
+                    <button className="link-button" onClick={() => openEdit(g)}>
+                      {g.name}
+                    </button>
+                    <span className="hint">{g.town}</span>
+                  </div>
                 </td>
-                <td>{g.town}</td>
                 <td>
                   {g.specialties.length === 0 ? (
                     <span className="hint">—</span>
@@ -366,18 +369,14 @@ export function GuidesPage() {
                 </td>
                 <td>
                   {g.featured ? (
-                    <Star size={14} aria-label="Featured" />
+                    <span className="badge">
+                      <Star size={12} aria-hidden="true" /> Featured
+                    </span>
                   ) : (
                     <span className="hint">—</span>
                   )}
                 </td>
-                <td className="row">
-                  <button
-                    className="btn-quiet sm"
-                    onClick={() => openEdit(g)}
-                  >
-                    Edit
-                  </button>
+                <td className="row actions-cell">
                   <button
                     className="btn-quiet sm"
                     onClick={() => setConfirmDelete(g)}
@@ -581,7 +580,7 @@ function TableSkeleton() {
       <tbody>
         {Array.from({ length: 5 }, (_, i) => (
           <tr key={i}>
-            <td colSpan={8}>
+            <td colSpan={7}>
               <div className="skeleton" />
             </td>
           </tr>
