@@ -1,6 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { ChevronDown, ChevronUp, Star, Trash2, TriangleAlert } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronUp,
+  Plus,
+  Star,
+  Trash2,
+  TriangleAlert,
+} from "lucide-react";
 import {
   deleteCover,
   deleteTour,
@@ -11,6 +18,8 @@ import {
 } from "../lib/tours";
 import { listDestinations } from "../lib/destinations";
 import { Alert } from "../components/Alert";
+import { PageHeader } from "../components/PageHeader";
+import { formatDate } from "../types/format";
 import { Dialog } from "../components/Dialog";
 import { Field, Section, Toggle } from "../components/Form";
 import { ImageThumb } from "../components/ImageThumb";
@@ -183,16 +192,16 @@ export function ToursPage() {
 
   return (
     <section className="page">
-      <header className="page-head row">
-        <div>
-          <h1>Tours</h1>
-          <p className="hint">{counts}</p>
-        </div>
-        <span className="spacer" />
-        <button className="btn-primary" onClick={openNew}>
-          + Add tour
-        </button>
-      </header>
+      <PageHeader
+        title="Tours"
+        meta={counts}
+        actions={
+          <button className="btn-primary" onClick={openNew}>
+            <Plus size={18} aria-hidden="true" />
+            New tour
+          </button>
+        }
+      />
 
       {error && (
         <Alert variant="destructive" title="Could not load tours">
@@ -311,7 +320,7 @@ export function ToursPage() {
                     )}
                   </td>
                   <td className="hint">
-                    {t.updatedAt?.toDate().toLocaleDateString() ?? "—"}
+                    {formatDate(t.updatedAt)}
                   </td>
                   <td className="row">
                     <button

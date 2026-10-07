@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { Package, RefreshCw } from "lucide-react";
 import { Alert } from "../components/Alert";
+import { PageHeader } from "../components/PageHeader";
+import { formatDate } from "../types/format";
 import { useToast } from "../components/toast-context";
 import { listDestinations } from "../lib/destinations";
 import { generateBundle, listBundles } from "../lib/bundles";
@@ -108,16 +110,14 @@ export function BundlesPage() {
 
   return (
     <section className="page">
-      <header className="page-head row">
-        <div>
-          <h1>Offline bundles</h1>
-          <p className="hint">
-            {destinations === null
-              ? "Loading…"
-              : `${rows.length} town${rows.length === 1 ? "" : "s"} with publishable content`}
-          </p>
-        </div>
-      </header>
+      <PageHeader
+        title="Offline bundles"
+        meta={
+          destinations === null
+            ? "Loading…"
+            : `${rows.length} town${rows.length === 1 ? "" : "s"} with publishable content`
+        }
+      />
 
       <Alert variant="info" title="A bundle is a manifest, not an archive">
         Building one records which destinations a town contains, how large the
@@ -198,9 +198,7 @@ export function BundlesPage() {
                     )}
                   </td>
                   <td className="hint">
-                    {row.bundle?.generatedAt
-                      ? row.bundle.generatedAt.toDate().toLocaleDateString()
-                      : "—"}
+                    {formatDate(row.bundle?.generatedAt)}
                   </td>
                   <td className="row">
                     <button

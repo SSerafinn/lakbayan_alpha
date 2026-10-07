@@ -1,3 +1,5 @@
+import { PageHeader } from "../components/PageHeader";
+
 /**
  * Stands in for a screen that is planned but not built.
  *
@@ -13,12 +15,14 @@ export function PlaceholderPage({
 }) {
   return (
     <section className="page">
-      <header className="page-head">
-        <h1>{title}</h1>
-        <p className="hint">
-          Planned for <strong>{phase}</strong> — see PLAN.md, Track B.
-        </p>
-      </header>
+      <PageHeader
+        title={title}
+        meta={
+          <>
+            Planned for <strong>{phase}</strong> — see PLAN.md, Track B.
+          </>
+        }
+      />
       <div className="empty">
         <p>Nothing here yet.</p>
       </div>

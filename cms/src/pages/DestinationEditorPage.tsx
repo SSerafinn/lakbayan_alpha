@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useBlocker, useNavigate, useParams } from "react-router-dom";
+import { useBlocker, useNavigate, useParams } from "react-router-dom";
 import { CAGAYAN_TOWNS } from "../types/towns";
 import {
   createDestination,
@@ -11,6 +11,8 @@ import {
 } from "../lib/destinations";
 import { listSegments, saveSegments } from "../lib/segments";
 import { Alert } from "../components/Alert";
+import { useCrumb } from "../components/crumb-context";
+import { PageHeader } from "../components/PageHeader";
 import { Dialog } from "../components/Dialog";
 import { Field, Section, Toggle } from "../components/Form";
 import { useToast } from "../components/toast-context";
@@ -169,11 +171,17 @@ export function DestinationEditorPage() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
+  // The top bar's "Destinations / …". Called before the early returns below:
+  // a hook cannot sit behind one.
+  useCrumb(draft ? draft.name.trim() || "New destination" : null);
+
   if (error && !draft) {
     return (
-      <Alert variant="destructive" title="Cannot open this destination">
-        {error}
-      </Alert>
+      <section className="page">
+        <Alert variant="destructive" title="Cannot open this destination">
+          {error}
+        </Alert>
+      </section>
     );
   }
   if (!draft) return <div className="boot">Loading…</div>;
@@ -290,21 +298,23 @@ export function DestinationEditorPage() {
 
   return (
     <section className="page editor">
-      <header className="page-head row">
-        <div>
-          <p className="hint">
-            <Link to="/destinations">Destinations</Link> /{" "}
-            {draft.name || "New destination"}
-          </p>
-          <h1>{draft.name || "New destination"}</h1>
-        </div>
-        <span className="spacer" />
-        <span
-          className={draft.status === "published" ? "badge ok" : "badge draft"}
-        >
-          {draft.status === "published" ? "Published" : "Draft"}
-        </span>
-      </header>
+      <PageHeader
+        title={draft.name.trim() || "New destination"}
+        badge={
+          <span
+            className={
+              draft.status === "published" ? "badge ok" : "badge draft"
+            }
+          >
+            {draft.status === "published" ? "Published" : "Draft"}
+          </span>
+        }
+        meta={
+          [draft.town.trim(), CATEGORY_LABELS[draft.category]]
+            .filter(Boolean)
+            .join(" · ") || undefined
+        }
+      />
 
       {/* A genuine decision point — nothing else can proceed until it is
           answered — so this one is modal rather than an inline banner, which

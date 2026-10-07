@@ -1,9 +1,36 @@
 /* Every value here comes from tokens.css, which is generated from
    design/tokens.json. No raw hex, for the same reason the Flutter app forbids
-   it — see docs/DESIGN_SYSTEM.md. */
+   it — see docs/DESIGN_SYSTEM.md.
+
+   The CMS follows design system 2.3 (D-17): a white ground, cards a barely
+   visible grey step up instead of a shadow, four colours with one job each,
+   Satoshi set heavy, sentence case throughout. Its *structure* is an admin's —
+   page header with the actions on the right, a right-hand rail on editors,
+   index tables — after Shopify Polaris, which is built for people who are not
+   developers editing content every day. Where the CMS departs from the
+   phone-sized rules, D-17 says why. */
 @import "./tokens.css";
 
-@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700&family=Inter:wght@400;500;600&display=swap");
+/* The same variable fonts the app bundles, read from the repo rather than
+   copied — vite.config.ts lets the dev server reach that one folder. Until
+   2026-10 this file asked for Satoshi without loading it, so every screen
+   rendered in the operating system's font. */
+@font-face {
+  font-family: "Satoshi";
+  src: url("../../../assets/fonts/Satoshi/Fonts/TTF/Satoshi-Variable.ttf")
+    format("truetype");
+  font-weight: 300 900;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Satoshi";
+  src: url("../../../assets/fonts/Satoshi/Fonts/TTF/Satoshi-VariableItalic.ttf")
+    format("truetype");
+  font-weight: 300 900;
+  font-style: italic;
+  font-display: swap;
+}
 
 * {
   box-sizing: border-box;
@@ -11,11 +38,12 @@
 
 body {
   margin: 0;
-  background: var(--lk-background);
-  color: var(--lk-text-body);
+  background: var(--lk-surface);
+  color: var(--lk-on-surface);
   font-family: var(--lk-font-body);
-  font-size: var(--lk-text-body-size);
-  line-height: var(--lk-text-body-height);
+  font-size: var(--lk-type-body-medium-size);
+  font-weight: var(--lk-type-body-medium-weight);
+  line-height: 1.45;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -23,79 +51,149 @@ h1,
 h2,
 h3 {
   font-family: var(--lk-font-heading);
-  color: var(--lk-text-heading);
+  color: var(--lk-on-surface);
   margin: 0;
 }
+/* The page title. The hero step rather than titleLarge: at desk distance on a
+   wide screen, 24 reads as a section heading. */
 h1 {
-  font-size: var(--lk-text-h1-size);
-  font-weight: var(--lk-text-h1-weight);
-  line-height: var(--lk-text-h1-height);
+  font-size: var(--lk-type-hero-size);
+  font-weight: var(--lk-type-hero-weight);
+  line-height: var(--lk-type-hero-height);
+  letter-spacing: var(--lk-type-hero-tracking);
 }
 h2 {
-  font-size: var(--lk-text-h2-size);
-  font-weight: var(--lk-text-h2-weight);
+  font-size: var(--lk-type-title-medium-size);
+  font-weight: var(--lk-type-title-medium-weight);
+  line-height: var(--lk-type-title-medium-height);
+  letter-spacing: var(--lk-type-title-medium-tracking);
+}
+h3 {
+  font-size: var(--lk-type-title-small-size);
+  font-weight: var(--lk-type-title-small-weight);
 }
 
+strong,
+b {
+  font-weight: 750;
+}
+
+a {
+  color: var(--lk-role-primary-text);
+}
+
+code {
+  font-size: 0.92em;
+  padding: 1px 5px;
+  border-radius: var(--lk-shape-xs);
+  background: var(--lk-surface-container);
+}
+
+/* A small label over a group. Sentence case — the design system has no
+   all-caps eyebrows (2.3); the class name is historical. */
 .overline {
-  font-size: var(--lk-text-overline-size);
-  font-weight: var(--lk-text-overline-weight);
-  letter-spacing: var(--lk-text-overline-tracking);
-  text-transform: uppercase;
-  color: var(--lk-text-secondary);
+  font-size: var(--lk-type-label-medium-size);
+  font-weight: var(--lk-type-label-medium-weight);
+  color: var(--lk-on-surface-variant);
   margin: 0;
 }
 
 .hint {
-  color: var(--lk-text-secondary);
-  font-size: var(--lk-text-caption-size);
+  color: var(--lk-on-surface-variant);
+  font-size: var(--lk-type-second-line-size);
+  font-weight: var(--lk-type-second-line-weight);
+  line-height: 1.4;
   margin: 0;
 }
 
+:focus-visible {
+  outline: 2px solid var(--lk-role-primary);
+  outline-offset: 2px;
+}
+
 /* ---- buttons -------------------------------------------------------------
-   Primary is green, secondary is a blue outline, and gold is never a button.
-   Those are design system rules, not preferences. */
+   Capsules. Exactly one solid green action per view; everything else is white
+   with the hairline. Blue is spatial and never a button; gold is the FEATURED
+   badge and never a button. Those are design system rules, not preferences. */
 
 .btn-primary,
 .btn-secondary,
 .btn-quiet {
-  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--lk-space-2);
+  min-height: 42px;
   padding: 0 var(--lk-space-5);
-  border-radius: var(--lk-radius-pill);
+  border-radius: var(--lk-shape-capsule);
   font: inherit;
-  font-weight: var(--lk-text-label-weight);
-  letter-spacing: var(--lk-text-label-tracking);
+  font-size: var(--lk-type-label-large-size);
+  font-weight: var(--lk-type-label-large-weight);
+  white-space: nowrap;
+  text-decoration: none;
   cursor: pointer;
-  border: none;
+  border: 1px solid transparent;
 }
 
 .btn-primary {
-  background: var(--lk-primary);
+  background: var(--lk-role-primary);
   color: var(--lk-on-primary);
 }
 .btn-primary:hover:not(:disabled) {
   background: var(--lk-primary-pressed);
 }
 .btn-primary:disabled {
-  background: var(--lk-slate-300);
+  background: var(--lk-surface-container-highest);
+  color: var(--lk-text-disabled);
   cursor: not-allowed;
 }
 
 .btn-secondary {
-  background: transparent;
-  color: var(--lk-secondary);
-  border: 1.5px solid var(--lk-secondary);
+  background: var(--lk-surface);
+  color: var(--lk-on-surface);
+  border-color: var(--lk-outline-variant);
 }
-.btn-secondary:hover {
-  background: var(--lk-blue-50);
+.btn-secondary:hover:not(:disabled) {
+  background: var(--lk-surface-container-low);
+}
+.btn-secondary:disabled {
+  color: var(--lk-text-disabled);
+  cursor: not-allowed;
 }
 
 .btn-quiet {
   background: transparent;
-  color: var(--lk-text-on-light-green);
+  color: var(--lk-role-primary-text);
   padding: 0 var(--lk-space-3);
 }
-.btn-quiet:hover {
-  background: var(--lk-green-50);
+.btn-quiet:hover:not(:disabled) {
+  background: var(--lk-surface-container-low);
+}
+.btn-quiet:disabled {
+  color: var(--lk-text-disabled);
+  cursor: not-allowed;
+}
+
+.btn-secondary.sm,
+.btn-quiet.sm,
+.btn-primary.sm {
+  min-height: 32px;
+  padding: 0 var(--lk-space-3);
+  font-size: var(--lk-type-label-medium-size);
+}
+
+.link-button {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  font-weight: 650;
+  color: var(--lk-role-primary-text);
+  cursor: pointer;
+  text-align: left;
+}
+.link-button:hover {
+  text-decoration: underline;
 }
 
 /* ---- auth ---------------------------------------------------------------- */
@@ -105,15 +203,14 @@ h2 {
   display: grid;
   place-items: center;
   padding: var(--lk-space-6);
+  background: var(--lk-surface);
 }
 
 .auth-card {
   width: 100%;
-  max-width: 380px;
-  background: var(--lk-surface);
-  border: 1px solid var(--lk-line);
-  border-radius: var(--lk-radius-lg);
-  box-shadow: var(--lk-shadow-card);
+  max-width: 400px;
+  background: var(--lk-surface-container-low);
+  border-radius: var(--lk-shape-lg);
   padding: var(--lk-space-8);
   display: flex;
   flex-direction: column;
@@ -126,73 +223,78 @@ h2 {
   gap: var(--lk-space-3);
   margin-bottom: var(--lk-space-2);
 }
+.auth-brand h1 {
+  font-size: var(--lk-type-title-large-size);
+}
 
 .auth-mark {
   display: grid;
   place-items: center;
-  width: 48px;
-  height: 48px;
+  width: 44px;
+  height: 44px;
   flex: none;
-  border-radius: 50%;
-  background: var(--lk-primary);
+  border-radius: var(--lk-shape-sm);
+  background: var(--lk-role-primary);
   color: var(--lk-on-primary);
-  font-family: var(--lk-font-heading);
-  font-weight: 700;
-  font-size: 24px;
+  font-weight: 800;
+  font-size: 21px;
 }
 .auth-mark.small {
-  width: 32px;
-  height: 32px;
-  font-size: 16px;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  font-size: 15px;
 }
 
 .auth-card label {
   display: flex;
   flex-direction: column;
-  gap: var(--lk-space-1);
-  font-size: var(--lk-text-label-size);
-  font-weight: var(--lk-text-label-weight);
-  color: var(--lk-text-heading);
+  gap: 6px;
+  font-size: var(--lk-type-label-medium-size);
+  font-weight: var(--lk-type-label-medium-weight);
+  color: var(--lk-on-surface);
 }
 
 .auth-card input {
   height: 44px;
   padding: 0 var(--lk-space-3);
-  border: 1px solid var(--lk-line);
-  border-radius: var(--lk-radius-md);
+  border: 1px solid var(--lk-outline-variant);
+  border-radius: var(--lk-shape-sm);
   font: inherit;
   background: var(--lk-surface);
 }
 .auth-card input:focus {
   outline: none;
-  border-color: var(--lk-primary);
-  border-width: 1.5px;
+  border-color: var(--lk-role-primary);
+  box-shadow: 0 0 0 1px var(--lk-role-primary);
+}
+
+.error-note {
+  margin: 0;
+  color: var(--lk-role-error);
+  font-weight: 650;
 }
 
 /* ---- alerts --------------------------------------------------------------
-   One shape for every status message, after warn-bar, error-note and the
-   readiness panel each invented their own. Structure follows shadcn's Alert:
-   icon rail, title, description, optional trailing actions. */
+   The grey card step with the variant's glyph, not a wash of the variant's
+   colour: the design system tints nothing (2.1). A failure is the exception,
+   and is marked the way the app marks one — a border and a glyph. */
 
 .alert {
   display: flex;
   align-items: flex-start;
   gap: var(--lk-space-3);
-  padding: var(--lk-space-3) var(--lk-space-4);
-  margin-bottom: var(--lk-space-4);
+  padding: var(--lk-space-4);
+  margin-bottom: var(--lk-space-5);
   border: 1px solid transparent;
-  border-radius: var(--lk-radius-md);
-  font-size: var(--lk-text-body-size);
+  border-radius: var(--lk-shape-md);
+  background: var(--lk-surface-container-low);
+  color: var(--lk-on-surface);
 }
 
-/* lucide-react SVG, inheriting the variant's colour. Nothing else needed —
-   an earlier version drew a filled circle with a text glyph knocked out via
-   ::first-letter, which does not apply to a grid container, so every alert
-   rendered as a solid dot with an invisible character. */
 .alert-icon {
   flex: none;
   margin-top: 1px;
-  color: currentColor;
 }
 
 .alert-body {
@@ -200,15 +302,15 @@ h2 {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--lk-space-1);
+  gap: 2px;
 }
 .alert-title {
   margin: 0;
-  font-weight: 600;
+  font-weight: 700;
 }
 .alert-desc {
-  color: inherit;
-  opacity: 0.9;
+  color: var(--lk-on-surface-variant);
+  line-height: 1.5;
 }
 .alert-desc ul {
   margin: var(--lk-space-1) 0 0;
@@ -224,41 +326,34 @@ h2 {
   gap: var(--lk-space-2);
 }
 
-.alert-info {
-  background: var(--lk-info-container);
-  color: var(--lk-on-info-container);
-  border-color: var(--lk-blue-300);
+.alert-info .alert-icon {
+  color: var(--lk-role-spatial);
 }
-.alert-warning {
-  background: var(--lk-warning-container);
-  color: var(--lk-on-warning-container);
-  border-color: var(--lk-gold-300);
+.alert-success .alert-icon {
+  color: var(--lk-role-primary);
 }
-.alert-success {
-  background: var(--lk-success-container);
-  color: var(--lk-on-success-container);
-  border-color: var(--lk-green-300);
+.alert-warning .alert-icon {
+  color: var(--lk-role-error);
 }
 .alert-destructive {
-  background: var(--lk-error-container);
-  color: var(--lk-on-error-container);
-  border-color: var(--lk-error);
+  background: var(--lk-surface);
+  border-color: var(--lk-role-error);
+}
+.alert-destructive .alert-icon {
+  color: var(--lk-role-error);
 }
 
 /* ---- toasts --------------------------------------------------------------
-   Transient confirmations, bottom-right. Persistent state belongs in the
-   savebar and decisions in a dialog — see the note in Toast.tsx. */
+   Transient confirmations, top-right. Ink rather than white: a toast floats
+   over whatever is beneath it, and with no shadows in the system a white one
+   has nothing to separate it from a white page (D-17). */
 
-/* Top-right, not bottom-right: the savebar is sticky along the bottom edge, so
-   a toast there covered Save and Publish — the controls you reach for right
-   after the action that raised it. */
 .toasts {
   position: fixed;
-  top: var(--lk-space-6);
+  top: var(--lk-space-5);
   right: var(--lk-space-6);
   z-index: 50;
   display: flex;
-  /* Reversed so the newest sits at the top of the stack, nearest the corner. */
   flex-direction: column-reverse;
   gap: var(--lk-space-2);
   pointer-events: none;
@@ -271,39 +366,21 @@ h2 {
   gap: var(--lk-space-3);
   width: min(380px, calc(100vw - var(--lk-space-8)));
   padding: var(--lk-space-3) var(--lk-space-4);
-  border: 1px solid var(--lk-line);
-  border-left-width: 3px;
-  border-radius: var(--lk-radius-md);
-  background: var(--lk-surface);
-  box-shadow: var(--lk-shadow-raised);
+  border-radius: var(--lk-shape-sm);
+  background: var(--lk-on-surface);
+  color: var(--lk-surface);
   animation: toast-in 160ms ease-out;
 }
 
-/* Surface stays white and only the left edge and icon carry the variant.
-   A full colour wash reads as an error even when it says "Saved". */
-.toast-success {
-  border-left-color: var(--lk-success);
-}
 .toast-success .toast-icon {
-  color: var(--lk-success);
-}
-.toast-info {
-  border-left-color: var(--lk-info);
+  color: var(--lk-green-300);
 }
 .toast-info .toast-icon {
-  color: var(--lk-info);
+  color: var(--lk-blue-300);
 }
-.toast-warning {
-  border-left-color: var(--lk-warning);
-}
-.toast-warning .toast-icon {
-  color: var(--lk-gold-700);
-}
-.toast-destructive {
-  border-left-color: var(--lk-error);
-}
+.toast-warning .toast-icon,
 .toast-destructive .toast-icon {
-  color: var(--lk-error);
+  color: var(--lk-red-500);
 }
 
 .toast-icon {
@@ -316,13 +393,13 @@ h2 {
 }
 .toast-title {
   margin: 0;
-  font-weight: 600;
-  color: var(--lk-text-heading);
+  font-weight: 700;
+  color: var(--lk-surface);
 }
 .toast-desc {
   margin: 2px 0 0;
-  font-size: var(--lk-text-caption-size);
-  color: var(--lk-text-secondary);
+  font-size: var(--lk-type-second-line-size);
+  color: var(--lk-surface-container-highest);
 }
 .toast-x {
   flex: none;
@@ -330,17 +407,13 @@ h2 {
   border: none;
   padding: 2px;
   cursor: pointer;
-  color: var(--lk-text-secondary);
-  border-radius: var(--lk-radius-sm);
+  color: var(--lk-surface-container-highest);
+  border-radius: var(--lk-shape-xs);
 }
 .toast-x:hover {
-  background: var(--lk-background);
-  color: var(--lk-text-heading);
+  color: var(--lk-surface);
 }
 
-/* Enters from above and leaves the same way, now that the stack is anchored to
-   the top. The exit mirrors the entrance so a toast appears to retract rather
-   than blink out. */
 @keyframes toast-in {
   from {
     opacity: 0;
@@ -355,13 +428,9 @@ h2 {
 }
 
 .toast.leaving {
-  /* `forwards` holds the end state for the ~160ms before React unmounts it,
-     otherwise it snaps back to full opacity for a frame. */
   animation: toast-out 160ms ease-in forwards;
 }
 
-/* Respect a reduced-motion preference — the movement adds nothing essential.
-   The toast still appears and disappears, just without the slide. */
 @media (prefers-reduced-motion: reduce) {
   .toast,
   .toast.leaving {
@@ -374,16 +443,15 @@ h2 {
    stacking come from the platform rather than from us getting them wrong. */
 
 .dialog {
-  width: min(440px, calc(100vw - var(--lk-space-8)));
+  width: min(460px, calc(100vw - var(--lk-space-8)));
   padding: var(--lk-space-6);
-  border: 1px solid var(--lk-line);
-  border-radius: var(--lk-radius-lg);
+  border: none;
+  border-radius: var(--lk-shape-lg);
   background: var(--lk-surface);
-  color: var(--lk-text-body);
-  box-shadow: var(--lk-shadow-raised);
+  color: var(--lk-on-surface);
 }
 .dialog::backdrop {
-  background: rgb(30 39 51 / 0.45);
+  background: rgb(18 18 18 / 0.45);
 }
 
 .dialog-head {
@@ -393,28 +461,24 @@ h2 {
   margin-bottom: var(--lk-space-3);
 }
 .dialog-head h2 {
-  font-size: var(--lk-text-h3-size);
-  font-weight: var(--lk-text-h3-weight);
+  font-size: var(--lk-type-group-heading-size);
 }
-/* Only the icon carries the variant's colour. Tinting the whole surface would
-   make a routine confirmation look like a failure. */
+/* Only the glyph carries the variant. Tinting the surface would make a
+   routine confirmation look like a failure. */
 .dialog-info .dialog-icon {
-  color: var(--lk-info);
+  color: var(--lk-role-spatial);
 }
-.dialog-warning .dialog-icon {
-  color: var(--lk-warning);
+.dialog-warning .dialog-icon,
+.dialog-destructive .dialog-icon {
+  color: var(--lk-role-error);
 }
 .dialog-success .dialog-icon {
-  color: var(--lk-success);
-}
-.dialog-destructive .dialog-icon {
-  color: var(--lk-error);
+  color: var(--lk-role-primary);
 }
 
 .dialog-body {
-  color: var(--lk-text-body);
-  font-size: var(--lk-text-body-size);
-  line-height: var(--lk-text-body-height);
+  color: var(--lk-on-surface-variant);
+  line-height: 1.5;
 }
 
 .dialog-actions {
@@ -430,102 +494,231 @@ h2 {
   min-height: 100vh;
   display: grid;
   place-items: center;
-  color: var(--lk-text-secondary);
+  color: var(--lk-on-surface-variant);
 }
 
 .shell {
   display: grid;
-  grid-template-columns: 240px 1fr;
+  grid-template-columns: 240px minmax(0, 1fr);
   min-height: 100vh;
 }
 
 .sidebar {
+  position: sticky;
+  top: 0;
+  height: 100vh;
   background: var(--lk-surface);
-  border-right: 1px solid var(--lk-line);
-  padding: var(--lk-space-5);
+  border-right: 1px solid var(--lk-outline-variant);
+  padding: var(--lk-space-5) var(--lk-space-3);
   display: flex;
   flex-direction: column;
-  gap: var(--lk-space-6);
+  gap: var(--lk-space-5);
+  overflow-y: auto;
 }
 
 .sidebar-brand {
   display: flex;
   align-items: center;
-  gap: var(--lk-space-2);
-  font-family: var(--lk-font-heading);
-  color: var(--lk-text-on-light-green);
+  gap: var(--lk-space-3);
+  padding: 0 var(--lk-space-2);
+  font-size: var(--lk-type-group-heading-size);
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--lk-on-surface);
 }
 
 .sidebar nav {
   display: flex;
   flex-direction: column;
-  gap: var(--lk-space-1);
+  gap: 2px;
+}
+
+.nav-group {
+  margin: var(--lk-space-3) 0 var(--lk-space-1);
+  padding: 0 var(--lk-space-3);
+  font-size: var(--lk-type-label-small-size);
+  font-weight: 650;
+  color: var(--lk-on-surface-variant);
 }
 
 .sidebar nav a {
   display: flex;
   align-items: center;
   gap: var(--lk-space-3);
-  padding: var(--lk-space-2) var(--lk-space-3);
-  border-radius: var(--lk-radius-md);
-  color: var(--lk-text-body);
+  padding: 9px var(--lk-space-3);
+  border-radius: var(--lk-shape-sm);
+  color: var(--lk-on-surface);
   text-decoration: none;
-  font-weight: 500;
+  font-weight: 600;
+}
+.sidebar nav a svg {
+  color: var(--lk-on-surface-variant);
 }
 .sidebar nav a:hover {
-  background: var(--lk-green-50);
-  color: var(--lk-text-on-light-green);
+  background: var(--lk-surface-container-low);
 }
-/* NavLink adds .active on the matching route — the current section should be
-   obvious without reading the URL. */
+/* NavLink adds .active. The grey step plus green text: selection is green in
+   this system, and a pale green plate is the tint it rules out. */
 .sidebar nav a.active {
-  background: var(--lk-primary-container);
-  color: var(--lk-on-primary-container);
-  font-weight: 600;
+  background: var(--lk-surface-container-low);
+  color: var(--lk-role-primary-text);
+  font-weight: 700;
+}
+.sidebar nav a.active svg {
+  color: var(--lk-role-primary-text);
 }
 
 .sidebar-foot {
   margin-top: auto;
   display: flex;
+  align-items: center;
+  gap: var(--lk-space-3);
+  padding: var(--lk-space-2);
+}
+.avatar {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--lk-surface-container);
+  color: var(--lk-on-surface);
+  font-weight: 750;
+  font-size: var(--lk-type-label-medium-size);
+  text-transform: uppercase;
+}
+.sidebar-user {
+  flex: 1;
+  min-width: 0;
+  display: flex;
   flex-direction: column;
-  gap: var(--lk-space-2);
-  align-items: flex-start;
+}
+.sidebar > .btn-quiet {
+  align-self: flex-start;
+  margin-left: var(--lk-space-2);
+}
+.sidebar-user strong {
+  font-size: var(--lk-type-label-medium-size);
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .content {
-  padding: var(--lk-space-8);
+  min-width: 0;
 }
 
-.env-banner {
-  margin-bottom: var(--lk-space-6);
-  padding: var(--lk-space-2) var(--lk-space-4);
-  border-radius: var(--lk-radius-md);
-  background: var(--lk-green-100);
-  color: var(--lk-text-on-light-green);
-  font-size: var(--lk-text-caption-size);
+/* Where you are, and which backend you are on. Replaces a full-width green
+   banner that repeated itself above every page. */
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  gap: var(--lk-space-3);
+  padding: 0 var(--lk-space-10);
+  background: var(--lk-surface);
+  border-bottom: 1px solid var(--lk-outline-variant);
+}
+.crumbs {
+  display: flex;
+  align-items: center;
+  gap: var(--lk-space-2);
+  min-width: 0;
+  color: var(--lk-on-surface-variant);
   font-weight: 600;
 }
-
-.page-head {
-  margin-bottom: var(--lk-space-6);
-  display: flex;
-  flex-direction: column;
-  gap: var(--lk-space-1);
+.crumbs a {
+  color: var(--lk-on-surface-variant);
+  text-decoration: none;
+}
+.crumbs a:hover {
+  color: var(--lk-on-surface);
+}
+.crumbs [aria-current] {
+  color: var(--lk-on-surface);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.env-pill {
+  margin-left: auto;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 var(--lk-space-3);
+  border: 1px solid var(--lk-outline-variant);
+  border-radius: var(--lk-shape-capsule);
+  font-size: var(--lk-type-label-medium-size);
+  font-weight: 650;
+  color: var(--lk-role-primary-text);
+}
+.env-pill::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--lk-role-primary);
 }
 
-.stat-row {
+.page {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: var(--lk-space-8) var(--lk-space-10) var(--lk-space-12);
+}
+
+/* Title and badge on the left, the page's actions on the right, a line of
+   facts beneath. Left-aligned everywhere: until 2026-10 most pages also
+   carried `.row`, whose flex row collided with this column and centred the
+   title and its button. */
+.page-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: var(--lk-space-6);
+  row-gap: 6px;
+  margin-bottom: var(--lk-space-6);
+}
+.page-title {
   display: flex;
-  gap: var(--lk-space-4);
-  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--lk-space-3);
+  min-width: 0;
+}
+.page-title h1 {
+  overflow-wrap: anywhere;
+}
+.page-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--lk-space-2);
+}
+.page-meta {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--lk-on-surface-variant);
+  font-size: var(--lk-type-body-medium-size);
+}
+
+/* ---- cards and stats -----------------------------------------------------
+   A card is the grey step up from the white ground. No border, no shadow. */
+
+.stat-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--lk-space-3);
   margin-bottom: var(--lk-space-6);
 }
 
 .stat {
-  min-width: 160px;
-  background: var(--lk-surface);
-  border: 1px solid var(--lk-line);
-  border-radius: var(--lk-radius-lg);
-  box-shadow: var(--lk-shadow-card);
+  background: var(--lk-surface-container-low);
+  border-radius: var(--lk-shape-md);
   padding: var(--lk-space-4) var(--lk-space-5);
   display: flex;
   flex-direction: column;
@@ -533,47 +726,51 @@ h2 {
 }
 
 .stat-value {
-  font-family: var(--lk-font-heading);
-  font-size: var(--lk-text-display-size);
+  font-size: var(--lk-type-hero-size);
+  font-weight: var(--lk-type-display-weight);
+  letter-spacing: var(--lk-type-hero-tracking);
   line-height: 1.1;
-  color: var(--lk-text-heading);
+  color: var(--lk-on-surface);
 }
 .stat-value.ok {
-  color: var(--lk-text-on-light-green);
+  color: var(--lk-role-primary-text);
 }
 
 .empty {
-  padding: var(--lk-space-8);
-  border: 1px dashed var(--lk-line);
-  border-radius: var(--lk-radius-lg);
+  padding: var(--lk-space-10) var(--lk-space-8);
+  border-radius: var(--lk-shape-md);
   text-align: center;
-  color: var(--lk-text-secondary);
-  background: var(--lk-surface);
+  color: var(--lk-on-surface-variant);
+  background: var(--lk-surface-container-low);
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: var(--lk-space-3);
 }
+.empty p {
+  margin: 0;
+}
+
+/* Solid steps, pulsing — the system has no gradients. */
+.skeleton {
+  height: 18px;
+  border-radius: var(--lk-shape-xs);
+  background: var(--lk-surface-container);
+  animation: pulse 1.4s ease-in-out infinite;
+}
+@keyframes pulse {
+  50% {
+    opacity: 0.55;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+  }
+}
 
 /* ---- dashboard -----------------------------------------------------------
    Screen 2. The attention list is the work; the stat row is a glance. */
-
-/* Quick actions are links that look like buttons — they navigate, they do not
-   act. Same rule as the buttons above: green primary, blue outline, no gold. */
-a.btn-primary,
-a.btn-secondary {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--lk-space-2);
-  text-decoration: none;
-}
-
-.quick-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--lk-space-2);
-  margin-bottom: var(--lk-space-6);
-}
 
 .dash-grid {
   display: grid;
@@ -583,26 +780,23 @@ a.btn-secondary {
 }
 
 .panel {
-  background: var(--lk-surface);
-  border: 1px solid var(--lk-line);
-  border-radius: var(--lk-radius-lg);
-  box-shadow: var(--lk-shadow-card);
+  background: var(--lk-surface-container-low);
+  border-radius: var(--lk-shape-md);
   padding: var(--lk-space-5);
   display: flex;
   flex-direction: column;
   gap: var(--lk-space-4);
 }
 .panel > header h2 {
-  margin: 0;
-  font-size: var(--lk-text-h3-size);
-  font-weight: var(--lk-text-h3-weight);
+  font-size: var(--lk-type-group-heading-size);
+  font-weight: var(--lk-type-group-heading-weight);
 }
 .panel-empty {
   display: flex;
   align-items: center;
   gap: var(--lk-space-2);
   margin: 0;
-  color: var(--lk-text-secondary);
+  color: var(--lk-on-surface-variant);
 }
 .panel-loading {
   display: flex;
@@ -612,12 +806,12 @@ a.btn-secondary {
 
 .icon-ok {
   flex-shrink: 0;
-  color: var(--lk-text-on-light-green);
+  color: var(--lk-role-primary);
 }
-/* An accent on an icon, never on something you press. */
+/* The warning glyph is the error colour, as on a field; gold is FEATURED's. */
 .icon-warn {
   flex-shrink: 0;
-  color: var(--lk-gold-700);
+  color: var(--lk-role-error);
 }
 
 .attention-group {
@@ -635,21 +829,19 @@ a.btn-secondary {
   display: flex;
   flex-direction: column;
 }
-/* The whole row is the link: the target is the fix, so make it big. The
-   negative margin keeps the text aligned with the heading while the hover
-   fill reaches the panel's padding. */
+/* The whole row is the link: the target is the fix, so make it big. */
 .attention a {
   display: flex;
   align-items: flex-start;
   gap: var(--lk-space-3);
   margin: 0 calc(-1 * var(--lk-space-3));
   padding: var(--lk-space-2) var(--lk-space-3);
-  border-radius: var(--lk-radius-md);
+  border-radius: var(--lk-shape-sm);
   color: inherit;
   text-decoration: none;
 }
 .attention a:hover {
-  background: var(--lk-green-50);
+  background: var(--lk-surface);
 }
 .attention-body,
 .activity-body {
@@ -668,21 +860,17 @@ a.btn-secondary {
   align-items: flex-start;
   gap: var(--lk-space-3);
   padding: var(--lk-space-2) 0;
-  border-bottom: 1px solid var(--lk-line);
-}
-.activity li:last-child {
-  border-bottom: none;
 }
 .activity-icon {
   flex-shrink: 0;
-  color: var(--lk-text-secondary);
+  color: var(--lk-on-surface-variant);
 }
 .activity-body {
   flex: 1;
 }
 .activity-body a {
-  color: var(--lk-text-on-light-green);
-  font-weight: 600;
+  color: var(--lk-on-surface);
+  font-weight: 700;
   text-decoration: none;
 }
 .activity-body a:hover {
@@ -710,18 +898,31 @@ a.btn-secondary {
   margin-bottom: var(--lk-space-4);
 }
 
-.toolbar input,
+/* Fields: white with the hairline, which turns green and two wide on focus
+   (2.3). Search is a capsule, a form field a rounded rectangle. */
+.toolbar input:not([type="checkbox"]),
 .toolbar select,
-.fgrid input,
+.fgrid input:not([type="checkbox"]):not([type="file"]),
 .fgrid select,
-.fgrid textarea {
-  height: 36px;
+.fgrid textarea,
+.stop-add select {
+  height: 40px;
   padding: 0 var(--lk-space-3);
-  border: 1px solid var(--lk-line);
-  border-radius: var(--lk-radius-md);
+  border: 1px solid var(--lk-outline-variant);
+  border-radius: var(--lk-shape-sm);
   background: var(--lk-surface);
   font: inherit;
   color: inherit;
+}
+.toolbar input:not([type="checkbox"]) {
+  min-width: 280px;
+  padding: 0 var(--lk-space-4);
+  border-radius: var(--lk-shape-capsule);
+}
+.toolbar select {
+  border-radius: var(--lk-shape-capsule);
+  padding: 0 var(--lk-space-3) 0 var(--lk-space-4);
+  font-weight: 650;
 }
 .fgrid textarea {
   height: auto;
@@ -729,195 +930,220 @@ a.btn-secondary {
   resize: vertical;
   line-height: 1.5;
 }
-.toolbar input:focus,
-.fgrid input:focus,
+.toolbar input:not([type="checkbox"]):focus,
+.toolbar select:focus,
+.fgrid input:not([type="checkbox"]):focus,
 .fgrid textarea:focus,
-.fgrid select:focus {
+.fgrid select:focus,
+.stop-add select:focus,
+.segment-title:focus {
   outline: none;
-  border-color: var(--lk-primary);
-}
-.toolbar .search {
-  min-width: 240px;
+  border-color: var(--lk-role-primary);
+  box-shadow: 0 0 0 1px var(--lk-role-primary);
 }
 
+/* Index tables sit on the white ground. Rows keep a hairline between them —
+   the one place the CMS draws a divider (D-17): six columns need a line to
+   read across, which a phone's single-column rows do not. */
 table.data {
   width: 100%;
   border-collapse: collapse;
   background: var(--lk-surface);
-  border: 1px solid var(--lk-line);
-  border-radius: var(--lk-radius-lg);
-  overflow: hidden;
 }
 table.data th {
   text-align: left;
-  font-size: var(--lk-text-overline-size);
-  font-weight: 600;
-  letter-spacing: var(--lk-text-overline-tracking);
-  text-transform: uppercase;
-  color: var(--lk-text-secondary);
-  padding: var(--lk-space-3) var(--lk-space-4);
-  border-bottom: 1px solid var(--lk-line);
+  font-size: var(--lk-type-label-medium-size);
+  font-weight: var(--lk-type-label-medium-weight);
+  color: var(--lk-on-surface-variant);
+  padding: var(--lk-space-2) var(--lk-space-3);
+  border-bottom: 1px solid var(--lk-outline-variant);
   white-space: nowrap;
 }
 table.data td {
-  padding: var(--lk-space-3) var(--lk-space-4);
-  border-bottom: 1px solid var(--lk-line);
+  padding: var(--lk-space-3);
+  border-bottom: 1px solid var(--lk-outline-variant);
   vertical-align: middle;
 }
-table.data tr:last-child td {
-  border-bottom: none;
+table.data tbody tr:hover td {
+  background: var(--lk-surface-container-low);
 }
-table.data tr.on {
-  background: var(--lk-green-50);
+table.data tr.on td {
+  background: var(--lk-surface-container-low);
 }
-table.data td a {
-  color: var(--lk-text-on-light-green);
-  font-weight: 600;
+/* A row's name is the way into it, in ink: green links across a whole column
+   turn the table into a wall of colour, and blue is spatial. */
+table.data td a,
+table.data td .link-button {
+  color: var(--lk-on-surface);
+  font-weight: 700;
   text-decoration: none;
 }
-table.data td a:hover {
+table.data td a:hover,
+table.data td .link-button:hover {
   text-decoration: underline;
 }
+table.data td .btn-quiet,
+table.data td .btn-secondary {
+  font-weight: 650;
+}
+/* Action cells carry `.row` for spacing. As a flex box a <td> stops being a
+   table cell — its borders came loose from the rest of the row on Tours — so
+   here it stays a cell and spaces its children instead. */
+table.data td.row {
+  display: table-cell;
+  white-space: nowrap;
+}
+table.data td.row > * + * {
+  margin-left: var(--lk-space-2);
+}
 .tick {
-  width: 36px;
+  width: 40px;
+}
+input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--lk-role-primary);
 }
 
+/* Read-only labels. A status carries a dot as well as its word, so it never
+   rests on colour alone. Sentence case at desk size (D-17). */
 .badge {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   height: 24px;
-  padding: 0 10px;
-  border-radius: var(--lk-radius-sm);
-  background: var(--lk-green-50);
-  color: var(--lk-text-body);
-  font-size: 11px;
-  font-weight: 600;
+  padding: 0 9px;
+  border: 1px solid var(--lk-outline-variant);
+  border-radius: var(--lk-shape-capsule);
+  background: var(--lk-surface);
+  color: var(--lk-on-surface);
+  font-size: var(--lk-type-label-small-size);
+  font-weight: 650;
   white-space: nowrap;
 }
-/* Green for published, neutral for draft, soft gold for warnings.
-   Gold is an accent here — never an action. */
+.badge.ok,
+.badge.draft,
+.badge.warn {
+  border-radius: var(--lk-shape-xs);
+}
+.badge.ok::before,
+.badge.draft::before,
+.badge.warn::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
 .badge.ok {
-  background: var(--lk-green-100);
-  color: var(--lk-text-on-light-green);
+  color: var(--lk-role-primary-text);
+}
+.badge.ok::before {
+  background: var(--lk-role-primary);
 }
 .badge.draft {
-  background: var(--lk-background);
-  color: var(--lk-text-secondary);
-  border: 1px solid var(--lk-line);
+  color: var(--lk-on-surface-variant);
 }
+.badge.draft::before {
+  background: var(--lk-outline);
+}
+/* Something is wrong: the error colour, as the app marks a warning. Gold is
+   FEATURED and nothing else. */
 .badge.warn {
-  background: var(--lk-gold-100);
-  color: var(--lk-gold-700);
+  color: var(--lk-role-error);
+}
+/* Beside a name it needs a gap; alone in a status column it must line up
+   with the badges above and below it. */
+.badge.warn:not(:first-child) {
   margin-left: var(--lk-space-2);
 }
-
-.skeleton {
-  height: 18px;
-  border-radius: var(--lk-radius-sm);
-  background: linear-gradient(
-    90deg,
-    var(--lk-green-50),
-    var(--lk-green-100),
-    var(--lk-green-50)
-  );
+/* A badge that brings its own glyph (Accredited's check) does not also need
+   the dot. */
+.badge:has(svg)::before {
+  display: none;
 }
-
-.btn-secondary.sm,
-.btn-quiet.sm {
-  min-height: 30px;
-  padding: 0 var(--lk-space-3);
-  font-size: 13px;
-  display: inline-flex;
-  align-items: center;
-  text-decoration: none;
+.badge.warn::before {
+  background: var(--lk-role-error);
 }
 
 /* ---- editor -------------------------------------------------------------- */
 
-/* ---- editor surfaces -----------------------------------------------------
-   The tab strip and the panel below it are one card, so the tabs visibly
-   belong to the content they switch. Previously both floated directly on the
-   page background with only a hairline under the tabs, which is what made the
-   editor look like it had lost its containers. */
-
 .editor-card {
   background: var(--lk-surface);
-  border: 1px solid var(--lk-line);
-  border-radius: var(--lk-radius-lg);
-  box-shadow: var(--lk-shadow-card);
-  overflow: hidden;
 }
 .editor-panel {
-  padding: var(--lk-space-6);
+  padding: var(--lk-space-6) 0 0;
 }
 
+/* Tabs underline in green on the white ground — no tinted strip. */
 .tabs {
   display: flex;
-  gap: var(--lk-space-1);
-  padding: 0 var(--lk-space-3);
-  border-bottom: 1px solid var(--lk-line);
-  background: var(--lk-green-50);
+  gap: var(--lk-space-6);
+  border-bottom: 1px solid var(--lk-outline-variant);
 }
 .tab {
+  position: relative;
   background: none;
   border: none;
-  border-bottom: 2px solid transparent;
-  padding: var(--lk-space-3) var(--lk-space-4);
+  padding: var(--lk-space-3) 0;
   font: inherit;
-  font-weight: 600;
-  color: var(--lk-text-secondary);
+  font-size: var(--lk-type-label-large-size);
+  font-weight: var(--lk-type-label-large-weight);
+  color: var(--lk-on-surface-variant);
   cursor: pointer;
 }
-/* A dot on any tab holding an unmet requirement — otherwise a problem on
-   Details is invisible while you are looking at Media. */
-.tab-dot {
-  display: inline-block;
-  width: 6px;
-  height: 6px;
-  margin-left: 6px;
-  border-radius: 50%;
-  background: var(--lk-error);
-  vertical-align: middle;
+.tab:hover:not(:disabled) {
+  color: var(--lk-on-surface);
 }
 .tab.on {
-  color: var(--lk-text-on-light-green);
-  border-bottom-color: var(--lk-primary);
+  color: var(--lk-on-surface);
+}
+.tab.on::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--lk-role-primary);
 }
 .tab:disabled {
   color: var(--lk-text-disabled);
   cursor: not-allowed;
 }
+/* A dot on any tab holding an unmet requirement — otherwise a problem on
+   Details is invisible while you are looking at Media. */
+.tab-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-left: 6px;
+  border-radius: 50%;
+  background: var(--lk-role-error);
+  vertical-align: middle;
+}
 
 /* ---- field sections ------------------------------------------------------
-   Details was one flat grid of nine inputs. Grouping is the whole fix: the
-   same fields, a quarter of the reading effort. */
+   Each group is a card: the grey step, its heading inside. */
 
 .fsection {
-  margin-bottom: var(--lk-space-6);
+  background: var(--lk-surface-container-low);
+  border-radius: var(--lk-shape-md);
+  padding: var(--lk-space-5) var(--lk-space-6) var(--lk-space-6);
+  margin-bottom: var(--lk-space-5);
 }
 .fsection:last-child {
   margin-bottom: 0;
 }
 .fsection > header {
   margin-bottom: var(--lk-space-4);
-  padding-bottom: var(--lk-space-2);
-  border-bottom: 1px solid var(--lk-line);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 .fsection > header h2 {
-  font-size: var(--lk-text-h3-size);
-  font-weight: var(--lk-text-h3-weight);
-}
-
-.link-button {
-  background: none;
-  border: none;
-  padding: 0;
-  font: inherit;
-  font-weight: 600;
-  color: var(--lk-link);
-  cursor: pointer;
-  text-decoration: underline;
+  font-size: var(--lk-type-group-heading-size);
+  font-weight: var(--lk-type-group-heading-weight);
 }
 
 .fgrid {
@@ -929,41 +1155,87 @@ table.data td a:hover {
 .f {
   display: flex;
   flex-direction: column;
-  gap: var(--lk-space-1);
+  gap: 6px;
   min-width: 0;
 }
 .f.wide {
   grid-column: 1 / -1;
 }
 .f > label {
-  font-size: var(--lk-text-label-size);
-  font-weight: 600;
-  color: var(--lk-text-heading);
+  font-size: var(--lk-type-label-medium-size);
+  font-weight: var(--lk-type-label-medium-weight);
+  color: var(--lk-on-surface);
 }
 .req {
-  color: var(--lk-error);
+  color: var(--lk-role-error);
   margin-left: 2px;
 }
 .field-error {
-  color: var(--lk-on-error-container);
-  font-size: var(--lk-text-caption-size);
+  color: var(--lk-role-error);
+  font-size: var(--lk-type-second-line-size);
+  font-weight: 650;
 }
 
+/* Switches, not checkboxes: each of these turns a placement on or off, and a
+   switch says that at a glance. Still a real checkbox underneath, so the
+   keyboard, the label and the screen reader all work as before. */
 .toggles {
   display: flex;
   flex-direction: column;
-  gap: var(--lk-space-2);
-  border: 1px solid var(--lk-line);
-  border-radius: var(--lk-radius-md);
-  padding: var(--lk-space-3);
   background: var(--lk-surface);
+  border: 1px solid var(--lk-outline-variant);
+  border-radius: var(--lk-shape-sm);
+  padding: 0 var(--lk-space-4);
 }
 .toggle {
   display: flex;
   align-items: center;
-  gap: var(--lk-space-2);
-  font-size: var(--lk-text-body-size);
+  justify-content: space-between;
+  gap: var(--lk-space-3);
+  min-height: 48px;
+  font-weight: 600;
   cursor: pointer;
+}
+.toggles .toggle + .toggle {
+  border-top: 1px solid var(--lk-outline-variant);
+}
+.toggle input {
+  order: 2;
+  appearance: none;
+  padding: 0;
+  border: 0;
+  flex: none;
+  position: relative;
+  width: 40px;
+  height: 24px;
+  margin: 0;
+  border-radius: var(--lk-shape-capsule);
+  background: var(--lk-surface-container-highest);
+  cursor: pointer;
+  transition: background 120ms ease;
+}
+.toggle input::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--lk-surface);
+  transition: transform 120ms ease;
+}
+.toggle input:checked {
+  background: var(--lk-role-primary);
+}
+.toggle input:checked::after {
+  transform: translateX(16px);
+}
+@media (prefers-reduced-motion: reduce) {
+  .toggle input,
+  .toggle input::after {
+    transition: none;
+  }
 }
 
 .pair-grid {
@@ -972,36 +1244,46 @@ table.data td a:hover {
   gap: var(--lk-space-2);
 }
 
+/* Tags are chips: white, the hairline, an ink label. */
 .tag-row {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--lk-space-2);
+  gap: 6px;
   align-items: center;
+}
+.tag-row .badge {
+  height: 28px;
+  font-size: var(--lk-type-label-medium-size);
 }
 .tag-x {
   background: none;
   border: none;
   cursor: pointer;
-  color: inherit;
-  font-size: 14px;
+  color: var(--lk-on-surface-variant);
+  font-size: 15px;
   line-height: 1;
   padding: 0;
 }
-.tag-input {
-  min-width: 140px;
+.tag-x:hover {
+  color: var(--lk-on-surface);
+}
+.fgrid .tag-input {
+  min-width: 160px;
+  height: 32px;
+  border-radius: var(--lk-shape-capsule);
 }
 
 .geo-results {
   list-style: none;
   margin: var(--lk-space-2) 0 0;
   padding: 0;
-  border: 1px solid var(--lk-line);
-  border-radius: var(--lk-radius-md);
+  border: 1px solid var(--lk-outline-variant);
+  border-radius: var(--lk-shape-sm);
   overflow: hidden;
   background: var(--lk-surface);
 }
 .geo-results li + li {
-  border-top: 1px solid var(--lk-line);
+  border-top: 1px solid var(--lk-outline-variant);
 }
 .geo-result {
   width: 100%;
@@ -1018,14 +1300,15 @@ table.data td a:hover {
   cursor: pointer;
 }
 .geo-result:hover {
-  background: var(--lk-green-50);
+  background: var(--lk-surface-container-low);
 }
 
 .map-preview {
   width: 100%;
   height: 320px;
-  border: 1px solid var(--lk-line);
-  border-radius: var(--lk-radius-md);
+  border: none;
+  border-radius: var(--lk-shape-sm);
+  background: var(--lk-surface-container);
 }
 
 .media {
@@ -1050,13 +1333,12 @@ table.data td a:hover {
   width: 100%;
   aspect-ratio: 16 / 9;
   object-fit: cover;
-  border-radius: var(--lk-radius-md);
-  border: 1px solid var(--lk-line);
-  background: var(--lk-green-50);
+  border-radius: var(--lk-shape-tile);
+  background: var(--lk-surface-container);
   display: grid;
   place-items: center;
-  color: var(--lk-text-secondary);
-  font-size: var(--lk-text-caption-size);
+  color: var(--lk-on-surface-variant);
+  font-size: var(--lk-type-second-line-size);
 }
 .thumb-actions {
   display: flex;
@@ -1069,30 +1351,23 @@ table.data td a:hover {
    stop list reuses the segment row's numbering and reorder controls, because
    it is the same idea — an ordered list where the order is the content. */
 
-.tour-editor {
-  margin-bottom: var(--lk-space-6);
+.tour-editor,
+.guide-editor {
+  margin-bottom: var(--lk-space-8);
 }
-.tour-editor .savebar {
+/* Inside these short editors the savebar is the card's bottom edge, not a
+   sticky bar — sticking would make it hover over the table below. */
+.tour-editor .savebar,
+.guide-editor .savebar {
   position: static;
-  margin-top: 0;
-  border: none;
-  border-top: 1px solid var(--lk-line);
-  border-radius: 0;
-  box-shadow: none;
+  margin-top: var(--lk-space-3);
 }
 
 .stop-add {
   margin-bottom: var(--lk-space-3);
 }
 .stop-add select {
-  height: 36px;
-  min-width: 280px;
-  padding: 0 var(--lk-space-3);
-  border: 1px solid var(--lk-line);
-  border-radius: var(--lk-radius-md);
-  background: var(--lk-surface);
-  font: inherit;
-  color: inherit;
+  min-width: 300px;
 }
 
 .stop-list {
@@ -1101,15 +1376,14 @@ table.data td a:hover {
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--lk-space-2);
+  gap: 6px;
 }
 .stop {
   display: flex;
   align-items: center;
   gap: var(--lk-space-3);
   padding: var(--lk-space-2) var(--lk-space-3);
-  border: 1px solid var(--lk-line);
-  border-radius: var(--lk-radius-md);
+  border-radius: var(--lk-shape-sm);
   background: var(--lk-surface);
 }
 .stop-body {
@@ -1124,7 +1398,7 @@ table.data td a:hover {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  color: var(--lk-on-error-container);
+  color: var(--lk-role-error);
 }
 
 /* The cover column stays narrow — the thumbnail is for recognition, not
@@ -1134,27 +1408,7 @@ table.data td a:hover {
 }
 .tour-cover-cell .thumb {
   width: 80px;
-}
-
-/* ---- local guides --------------------------------------------------------
-   Screen 9. The editor sits above the table rather than on its own route: the
-   wireframe gives guides one screen, and six fields do not justify a second.
-   It gets the same card and savebar as the destination editor so the two read
-   as the same kind of surface. */
-
-.guide-editor {
-  margin-bottom: var(--lk-space-6);
-}
-/* The savebar is sticky inside the destination editor, where the form is long
-   enough to scroll past it. Here it is the bottom edge of a short card partway
-   down the page, and sticking makes it hover over the table below. */
-.guide-editor .savebar {
-  position: static;
-  margin-top: 0;
-  border: none;
-  border-top: 1px solid var(--lk-line);
-  border-radius: 0;
-  box-shadow: none;
+  border-radius: var(--lk-shape-xs);
 }
 
 /* Specialty chips wrap inside their cell instead of stretching the column. */
@@ -1165,8 +1419,7 @@ table.data .tag-row {
 /* ---- audio guide segments ------------------------------------------------
    Wireframe screen 5. Cards in an ordered list rather than rows in the shared
    data table: a stop carries two multi-line fields and a player, none of which
-   fit a table cell, and the sequence is the content here — the number in the
-   margin is what an editor checks against the walking route. */
+   fit a table cell, and the sequence is the content here. */
 
 .segments {
   display: flex;
@@ -1174,8 +1427,8 @@ table.data .tag-row {
   gap: var(--lk-space-4);
 }
 .segments-title {
-  font-size: var(--lk-text-h3-size);
-  font-weight: var(--lk-text-h3-weight);
+  font-size: var(--lk-type-group-heading-size);
+  font-weight: var(--lk-type-group-heading-weight);
 }
 
 .segment-list {
@@ -1188,10 +1441,9 @@ table.data .tag-row {
 }
 
 .segment {
-  border: 1px solid var(--lk-line);
-  border-radius: var(--lk-radius-lg);
-  background: var(--lk-surface);
-  padding: var(--lk-space-4);
+  border-radius: var(--lk-shape-md);
+  background: var(--lk-surface-container-low);
+  padding: var(--lk-space-5);
   display: flex;
   flex-direction: column;
   gap: var(--lk-space-4);
@@ -1203,6 +1455,8 @@ table.data .tag-row {
   gap: var(--lk-space-3);
 }
 
+/* The stop's number, in ink on the next grey step — a number is not a
+   selection, so it does not get the green. */
 .segment-no {
   flex: none;
   display: grid;
@@ -1210,50 +1464,49 @@ table.data .tag-row {
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  background: var(--lk-primary-container);
-  color: var(--lk-on-primary-container);
-  font-size: var(--lk-text-caption-size);
-  font-weight: 700;
+  background: var(--lk-surface-container-high);
+  color: var(--lk-on-surface);
+  font-size: var(--lk-type-label-medium-size);
+  font-weight: 750;
 }
 
-/* Grows to fill the row: the title is the thing being read, and boxing it to
-   a field width would leave it stranded beside the controls. */
 .segment-title {
   flex: 1;
   min-width: 0;
-  height: 36px;
+  height: 40px;
   padding: 0 var(--lk-space-3);
-  border: 1px solid var(--lk-line);
-  border-radius: var(--lk-radius-md);
+  border: 1px solid var(--lk-outline-variant);
+  border-radius: var(--lk-shape-sm);
   background: var(--lk-surface);
   font: inherit;
-  font-weight: 600;
+  font-weight: 650;
   color: inherit;
-}
-.segment-title:focus {
-  outline: none;
-  border-color: var(--lk-primary);
 }
 
 .segment-order {
   display: flex;
   gap: 2px;
 }
-/* The icon buttons in the head are square, not pill-shaped: at 30px tall a
-   pill around a single chevron reads as a lozenge with no meaning. */
+/* Square icon buttons: at 32px tall a pill around a single chevron reads as a
+   lozenge with no meaning. */
 .segment-order .btn-quiet.sm,
-.segment-head > .btn-quiet.sm {
-  min-width: 30px;
+.segment-head > .btn-quiet.sm,
+.stop .btn-quiet.sm {
+  min-width: 32px;
   padding: 0;
-  justify-content: center;
-  border-radius: var(--lk-radius-md);
+  border-radius: var(--lk-shape-xs);
+  color: var(--lk-on-surface-variant);
 }
-.segment-head .btn-quiet.sm:disabled {
+.segment-order .btn-quiet.sm:hover:not(:disabled),
+.segment-head > .btn-quiet.sm:hover:not(:disabled),
+.stop .btn-quiet.sm:hover:not(:disabled) {
+  background: var(--lk-surface-container-high);
+  color: var(--lk-on-surface);
+}
+.segment-head .btn-quiet.sm:disabled,
+.stop .btn-quiet.sm:disabled {
   color: var(--lk-text-disabled);
   cursor: not-allowed;
-}
-.segment-head .btn-quiet.sm:disabled:hover {
-  background: transparent;
 }
 
 .segment-audio {
@@ -1261,40 +1514,49 @@ table.data .tag-row {
   align-items: center;
   gap: var(--lk-space-2);
 }
-.segment-audio .btn-secondary.sm {
-  gap: var(--lk-space-1);
-}
 
 .segment-player {
   width: 100%;
   margin-top: var(--lk-space-2);
-  /* The native control is the right call here — it is keyboard accessible,
-     it scrubs, and nothing about this screen justifies rebuilding it. */
   height: 36px;
 }
 
-/* Persistent save state lives here rather than in a banner above the form —
-   it is a condition, not an event, and it belongs beside the buttons that
-   resolve it. */
+/* ---- save bar ------------------------------------------------------------
+   Persistent save state lives beside the buttons that resolve it — it is a
+   condition, not an event. */
+
 .save-state {
-  font-size: var(--lk-text-caption-size);
-  color: var(--lk-text-secondary);
+  font-size: var(--lk-type-second-line-size);
+  color: var(--lk-on-surface-variant);
 }
 .save-state.dirty {
-  color: var(--lk-gold-700);
-  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--lk-on-surface);
+  font-weight: 650;
+}
+.save-state.dirty::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--lk-on-surface);
 }
 
+/* White with the hairline: it rides over the form as you scroll, and with no
+   shadows the edge is what lifts it off the cards beneath. */
 .savebar {
   position: sticky;
-  bottom: 0;
+  bottom: var(--lk-space-4);
+  z-index: 5;
   display: flex;
   align-items: center;
   gap: var(--lk-space-3);
   margin-top: var(--lk-space-6);
-  padding: var(--lk-space-3) var(--lk-space-4);
+  padding: var(--lk-space-3) var(--lk-space-3) var(--lk-space-3)
+    var(--lk-space-5);
   background: var(--lk-surface);
-  border: 1px solid var(--lk-line);
-  border-radius: var(--lk-radius-lg);
-  box-shadow: var(--lk-shadow-raised);
+  border: 1px solid var(--lk-outline-variant);
+  border-radius: var(--lk-shape-capsule);
 }

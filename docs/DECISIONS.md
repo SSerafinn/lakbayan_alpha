@@ -384,6 +384,62 @@ twice, since they read `CupertinoTheme`. Their edge swipe fights Android's
 back gesture. Their sheets and alerts also rise from a fixed edge instead of
 from their source. So the feel is built from our own tokens.
 
+## D-17 · The CMS: design system 2.3 for its look, an admin's layout for its structure (2026-10-07) · ACCEPTED
+
+**Status.** Accepted 2026-10-07. Three directions were mocked on the
+destination editor with the real tokens, Satoshi and the sample photos, and
+this one chosen: a Polaris-style workspace (A), over a dense Linear-style
+layout (B, fast for power users but explains little to new staff) and a
+GOV.UK-style one-section-at-a-time flow (C, the clearest for a first visit
+and the slowest for daily edits).
+
+**Why it was needed.** The CMS had drifted to the design system's 1.0.0. It
+used the 1.0 token groups only, because `cms/scripts/gen-tokens.mjs` never
+emitted the 2.x ones (surface ladder, colour roles, the Satoshi ramp, shapes),
+so it kept the shadows, pale green plates and all-caps eyebrows the app
+dropped in D-13 and D-14. It also asked for Satoshi without loading it, so
+every screen rendered in the operating system's font. On top of that: page
+titles centred by a CSS collision on six of eight screens, three link styles,
+action cells that came loose from their rows, and dates printed as
+`07/10/2026`, which a Filipino reader takes for 10 July.
+
+**Decision.**
+
+- **Look: design system 2.3, unchanged.** White ground; cards are
+  `surfaceContainerLow` with no border and no shadow; the hairline bounds
+  fields and the secondary button; one solid green action per view; blue is
+  spatial and never a button; gold is FEATURED and nothing else; Satoshi at
+  800/750/650/550, sentence case, no eyebrows. `gen-tokens.mjs` now emits the
+  2.x groups and the stylesheet reads those.
+- **Structure: an admin's, after Shopify Polaris.** Polaris is built for
+  people who are not developers editing a catalogue every day, which is the
+  province's staff exactly — and its product editor maps nearly one to one
+  onto a destination. So: a page header with the title and status on the
+  left and the page's actions on the right; a top bar naming where you are
+  and which backend you are on; an editor with the content in a main column
+  and status, organisation and placement in a right-hand rail; index tables
+  with thumbnails and saved views.
+- **Rolled out in three PRs.** The foundation (shell, type, header, cards,
+  tables, badges, the shared bugs); then the destination editor's two-column
+  layout; then tours, guides, bundles and users.
+
+**Where the CMS departs from the phone-sized rules, and why.**
+
+- **Table rows keep a hairline between them.** DESIGN_SYSTEM says the
+  hairline is never a divider between rows. A phone's rows are one column;
+  an index table is six or seven, and the eye needs a line to read across.
+- **Badges are sentence case with a status dot**, not 11/800 capitals. They
+  appear a dozen to a screen at desk distance, where capitals slow a scan, and
+  the dot plus the word keeps a status off colour alone.
+- **Toasts are ink**, not white. A toast floats over the page; with no
+  shadows in the system, a white one has nothing to separate it from a white
+  page.
+- **The page title uses the hero step (28)**, not titleLarge (24): on a wide
+  screen at desk distance, 24 reads as a section heading.
+- **Warnings use the error colour** (`role.error`), as the app's field
+  warning glyph does, where the CMS used gold. Pending, stale and "cannot be
+  published" are problems, and gold is FEATURED's.
+
 ## D-11 · Offline tiles — source decided, renderer pending a spike (2026-08-07)
 
 **Partially accepted.** Full analysis in `docs/research/map-tiles.md`.

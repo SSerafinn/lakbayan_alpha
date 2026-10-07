@@ -104,6 +104,57 @@ for (const [name, token] of entries(tokens.typography)) {
   }
 }
 
+// ---- design system 2.x ------------------------------------------------------
+// The groups above are 1.0.0, kept in tokens.json for compatibility. The app
+// moved to these in 2.0–2.3 (white ground, a surface ladder instead of
+// shadows, one job per colour, a heavier Satoshi ramp), and the CMS did not —
+// it never received them, which is how it kept the shadows and pale tints the
+// app had dropped. Emitted under their own names so the two sets cannot be
+// confused at a call site.
+
+const kebab = (s) => s.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`);
+
+lines.push("");
+lines.push("  /* 2.x surface ladder — white ground, each step a barely visible grey */");
+for (const [name, token] of entries(tokens.surface)) {
+  // `surface` itself is the ground, already emitted from the colour ramps.
+  if (name === "surface") continue;
+  const css =
+    name === "dim" || name.startsWith("container")
+      ? `surface-${kebab(name)}`
+      : kebab(name);
+  push(css, deref(token.$value));
+}
+
+lines.push("");
+lines.push("  /* 2.x colour roles — four colours, one job each */");
+for (const [name, token] of entries(tokens.role)) {
+  if (token.$value !== undefined) {
+    push(`role-${kebab(name)}`, deref(token.$value));
+    continue;
+  }
+  for (const [child, inner] of entries(token)) {
+    push(`role-${kebab(name)}-${kebab(child)}`, deref(inner.$value));
+  }
+}
+
+lines.push("");
+lines.push("  /* 2.x shape */");
+for (const [name, token] of entries(tokens.shape)) {
+  push(`shape-${name}`, toPx(token.$value));
+}
+
+lines.push("");
+lines.push("  /* 2.x type ramp — 800 display, 750 headings, 650 labels, 550 body */");
+for (const [name, token] of entries(tokens.type)) {
+  const v = token.$value;
+  const css = `type-${kebab(name)}`;
+  push(`${css}-size`, toPx(v.fontSize));
+  push(`${css}-weight`, v.fontWeight);
+  push(`${css}-height`, v.lineHeight);
+  push(`${css}-tracking`, `${v.letterSpacing ?? 0}px`);
+}
+
 lines.push("}");
 
 mkdirSync(dirname(OUT), { recursive: true });
