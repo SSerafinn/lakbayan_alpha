@@ -65,13 +65,15 @@ text on a light background must be `/700` or darker for AA. See
 
 ## What is built
 
-CMS-0 only: login with role gating, the app shell, and a dashboard with
-destination counts. Every other route is a placeholder naming the phase it
-belongs to.
+Everything through CMS-3 except the AR editor:
 
-**CMS-1 is the priority** — destinations list, editor and publish workflow. The
-mobile app's Phase 2 cannot meet its Definition of Done until it exists, because
-all content writes are admin-only. See `PLAN.md`, Track B.
+- login with role gating
+- the dashboard — counts, what needs attention, recent activity, quick actions
+- destinations: the list, and the editor with location, photos and audio-guide stops
+- tours, local guides, offline bundles, and users with admin roles
+
+Settings (CMS-4) is still a placeholder naming its phase, and the CMS is not
+yet deployed to Firebase Hosting. See `PLAN.md`, Track B, for what is left.
 
 ## The security boundary is not here
 

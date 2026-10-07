@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { ChevronDown, ChevronUp, Star, Trash2, TriangleAlert } from "lucide-react";
 import {
   deleteCover,
@@ -86,6 +87,24 @@ export function ToursPage() {
     setDraft({ ...rest, description: rest.description ?? "" });
     setEditing(t.id);
   }
+
+  // Arriving from the dashboard: `?new` opens a blank editor, `?edit=<id>`
+  // opens that tour. Consumed once and cleared, so a reload or a Back does not
+  // reopen an editor somebody already closed.
+  const [params, setParams] = useSearchParams();
+  useEffect(() => {
+    if (rows === null) return;
+    const edit = params.get("edit");
+    if (!params.has("new") && !edit) return;
+    if (params.has("new")) {
+      openNew();
+    } else {
+      const t = rows.find((r) => r.id === edit);
+      if (t) openEdit(t);
+      else toast.error("Tour not found", "It may have been deleted since.");
+    }
+    setParams({}, { replace: true });
+  }, [rows, params, setParams, toast]);
 
   async function save() {
     const errors = validate(draft);
