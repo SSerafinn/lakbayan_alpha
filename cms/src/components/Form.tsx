@@ -13,19 +13,28 @@ import type { ReactNode } from "react";
 export function Section({
   title,
   hint,
+  action,
+  single,
   children,
 }: {
   title: string;
   hint?: string;
+  /** A control for the whole section, on the heading's trailing edge. */
+  action?: ReactNode;
+  /** One column instead of two — for the editor's narrow right-hand rail. */
+  single?: boolean;
   children: ReactNode;
 }) {
   return (
     <section className="fsection">
-      <header>
-        <h2>{title}</h2>
-        {hint && <p className="hint">{hint}</p>}
+      <header className={action ? "split" : undefined}>
+        <div>
+          <h2>{title}</h2>
+          {hint && <p className="hint">{hint}</p>}
+        </div>
+        {action}
       </header>
-      <div className="fgrid">{children}</div>
+      <div className={single ? "fgrid one" : "fgrid"}>{children}</div>
     </section>
   );
 }
@@ -63,10 +72,13 @@ export function Field({
 
 export function Toggle({
   label,
+  hint,
   on,
   onChange,
 }: {
   label: string;
+  /** What switching it on does, in the app's terms — one short line. */
+  hint?: string;
   on: boolean;
   onChange: (v: boolean) => void;
 }) {
@@ -74,10 +86,14 @@ export function Toggle({
     <label className="toggle">
       <input
         type="checkbox"
+        role="switch"
         checked={on}
         onChange={(e) => onChange(e.target.checked)}
       />
-      <span>{label}</span>
+      <span className="toggle-text">
+        {label}
+        {hint && <span className="hint">{hint}</span>}
+      </span>
     </label>
   );
 }
