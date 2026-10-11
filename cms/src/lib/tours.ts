@@ -9,7 +9,8 @@ import {
   setDoc,
 } from "firebase/firestore";
 import { deleteObject, ref, uploadBytes } from "firebase/storage";
-import { db, storage } from "./firebase";
+import { auth, db, storage } from "./firebase";
+import { writeIfUnchanged } from "./versioned";
 import { slugify } from "../types/destination";
 import type { Tour, TourDraft } from "../types/tour";
 
@@ -48,19 +49,28 @@ export function tourId(title: string): string {
 export async function saveTour(
   data: TourDraft,
   existingId?: string,
+  { expected }: { expected?: number } = {},
 ): Promise<string> {
   const id = existingId ?? tourId(data.title);
-  await setDoc(
-    doc(db, COLLECTION, id),
-    {
-      ...data,
-      title: data.title.trim(),
-      description: data.description?.trim() ?? "",
-      updatedAt: serverTimestamp(),
-      ...(existingId ? {} : { createdAt: serverTimestamp() }),
-    },
-    { merge: true },
-  );
+  const target = doc(db, COLLECTION, id);
+  const payload = {
+    ...data,
+    title: data.title.trim(),
+    description: data.description?.trim() ?? "",
+    updatedAt: serverTimestamp(),
+    // Recorded so a conflict, and the dashboard's feed, can say who.
+    updatedBy: auth.currentUser?.uid ?? null,
+    ...(existingId ? {} : { createdAt: serverTimestamp() }),
+  };
+  // An edit is checked against the version that was opened; a new tour has
+  // nothing to conflict with (the page checks the derived id is free).
+  if (existingId && expected !== undefined) {
+    await writeIfUnchanged(target, expected, (tx) =>
+      tx.set(target, payload, { merge: true }),
+    );
+  } else {
+    await setDoc(target, payload, { merge: true });
+  }
   return id;
 }
 

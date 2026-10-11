@@ -5,11 +5,13 @@ import {
   doc,
   getDoc,
   getDocs,
+  onSnapshot,
   orderBy,
   query,
   serverTimestamp,
   updateDoc,
   where,
+  type Unsubscribe,
 } from "firebase/firestore";
 import {
   ref,
@@ -19,6 +21,7 @@ import {
 } from "firebase/storage";
 import { auth, db, storage } from "./firebase";
 import { deleteAllSegments } from "./segments";
+import { writeIfUnchanged } from "./versioned";
 import {
   DESTINATION_SCHEMA_VERSION,
   type Destination,
@@ -76,16 +79,44 @@ export async function createDestination(data: Draft): Promise<string> {
   return created.id;
 }
 
+/**
+ * Write changes to a destination.
+ *
+ * With `expected`, only if nobody has saved it since that version — see
+ * `writeIfUnchanged`, which throws `ConflictError` otherwise. Without it, the
+ * write goes through regardless: for status flips from the list, and for the
+ * editor's "Overwrite with mine", which is a decision the admin has made.
+ */
 export async function updateDestination(
   id: string,
   data: Partial<Draft>,
+  { expected }: { expected?: number } = {},
 ): Promise<void> {
-  await updateDoc(doc(db, COLLECTION, id), {
+  const ref = doc(db, COLLECTION, id);
+  const payload = {
     ...data,
     schemaVersion: DESTINATION_SCHEMA_VERSION,
     updatedAt: serverTimestamp(),
     updatedBy: auth.currentUser?.uid ?? null,
-  });
+  };
+  if (expected === undefined) await updateDoc(ref, payload);
+  else await writeIfUnchanged(ref, expected, (tx) => tx.update(ref, payload));
+}
+
+/**
+ * Follow one destination while its editor is open, so a save by another admin
+ * is noticed when it happens rather than when this one tries to save over it.
+ * `null` means it has been deleted.
+ */
+export function watchDestination(
+  id: string,
+  onChange: (d: Destination | null) => void,
+): Unsubscribe {
+  return onSnapshot(doc(db, COLLECTION, id), (snap) =>
+    onChange(
+      snap.exists() ? ({ id: snap.id, ...snap.data() } as Destination) : null,
+    ),
+  );
 }
 
 /**

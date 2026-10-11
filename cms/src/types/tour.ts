@@ -22,6 +22,8 @@ export type Tour = {
   featured: boolean;
   createdAt?: Timestamp;
   updatedAt?: Timestamp;
+  /** uid of the last editor. Absent on tours written before 2026-10. */
+  updatedBy?: string | null;
 };
 
 export type TourDraft = Omit<Tour, "id">;

@@ -9,7 +9,8 @@ import {
   serverTimestamp,
   updateDoc,
 } from "firebase/firestore";
-import { db } from "./firebase";
+import { auth, db } from "./firebase";
+import { writeIfUnchanged } from "./versioned";
 import type { Guide, GuideDraft } from "../types/guide";
 
 const COLLECTION = "guides";
@@ -31,18 +32,25 @@ export async function createGuide(data: GuideDraft): Promise<string> {
     ...data,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
+    updatedBy: auth.currentUser?.uid ?? null,
   });
   return created.id;
 }
 
+/** With `expected`, only if nobody has saved this guide since — see destinations.ts. */
 export async function updateGuide(
   id: string,
   data: Partial<GuideDraft>,
+  { expected }: { expected?: number } = {},
 ): Promise<void> {
-  await updateDoc(doc(db, COLLECTION, id), {
+  const ref = doc(db, COLLECTION, id);
+  const payload = {
     ...data,
     updatedAt: serverTimestamp(),
-  });
+    updatedBy: auth.currentUser?.uid ?? null,
+  };
+  if (expected === undefined) await updateDoc(ref, payload);
+  else await writeIfUnchanged(ref, expected, (tx) => tx.update(ref, payload));
 }
 
 /**

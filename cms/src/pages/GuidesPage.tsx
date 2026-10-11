@@ -13,6 +13,9 @@ import { PageHeader } from "../components/PageHeader";
 import { Dialog } from "../components/Dialog";
 import { Field, Section, Toggle } from "../components/Form";
 import { useToast } from "../components/toast-context";
+import { ConflictDialog } from "../components/ConflictDialog";
+import { ConflictError } from "../lib/versioned";
+import { versionOf, type Conflict } from "../types/conflict";
 import { CAGAYAN_TOWNS } from "../types/towns";
 import {
   emptyGuide,
@@ -50,14 +53,23 @@ export function GuidesPage() {
   const [draft, setDraft] = useState<GuideDraft>(emptyGuide());
   const [confirmDelete, setConfirmDelete] = useState<Guide | null>(null);
 
-  async function reload() {
+  /** Returns the guides it loaded, or null if it could not. */
+  async function reload(): Promise<Guide[] | null> {
     try {
-      setRows(await listGuides());
+      const guides = await listGuides();
+      setRows(guides);
       setError(null);
+      return guides;
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
+      return null;
     }
   }
+
+  // The version the open editor started from, and a save that found another.
+  // See types/conflict.ts.
+  const [editingVersion, setEditingVersion] = useState(0);
+  const [conflict, setConflict] = useState<Conflict | null>(null);
 
   useEffect(() => {
     void reload();
@@ -96,9 +108,30 @@ export function GuidesPage() {
   }
 
   function openEdit(g: Guide) {
-    const { id: _drop, createdAt: _c, updatedAt: _u, ...rest } = g;
+    const {
+      id: _drop,
+      createdAt: _c,
+      updatedAt: _u,
+      updatedBy: _b,
+      ...rest
+    } = g;
     setDraft(rest);
     setEditing(g.id);
+    setEditingVersion(versionOf(g.updatedAt));
+  }
+
+  /** Reopen the editor on the stored entry, dropping the edits on screen. */
+  async function loadTheirs() {
+    const id = editing;
+    const guides = await reload();
+    const fresh = guides?.find((g) => g.id === id);
+    if (!fresh) {
+      setConflict({ kind: "deleted" });
+      return;
+    }
+    openEdit(fresh);
+    setConflict(null);
+    toast.toast({ variant: "info", title: "Showing the latest version" });
   }
 
   // Arriving from the dashboard: `?new` opens a blank editor, `?edit=<id>`
@@ -118,7 +151,7 @@ export function GuidesPage() {
     setParams({}, { replace: true });
   }, [rows, params, setParams, toast]);
 
-  async function save() {
+  async function save({ force = false }: { force?: boolean } = {}) {
     const errors = validate(draft);
     if (Object.keys(errors).length > 0) {
       toast.error("Fix the highlighted fields first", Object.values(errors)[0]);
@@ -133,7 +166,13 @@ export function GuidesPage() {
         contact: draft.contact.trim(),
       };
       if (editing === "new") await createGuide(clean);
-      else await updateGuide(editing!, clean);
+      else {
+        await updateGuide(
+          editing!,
+          clean,
+          force ? {} : { expected: editingVersion },
+        );
+      }
       setEditing(null);
       await reload();
       toast.success(
@@ -141,6 +180,10 @@ export function GuidesPage() {
         "Visible to anyone signed in to the app.",
       );
     } catch (err) {
+      if (err instanceof ConflictError) {
+        setConflict(err.conflict);
+        return;
+      }
       toast.error(
         "That didn't save",
         err instanceof Error ? err.message : String(err),
@@ -224,6 +267,22 @@ export function GuidesPage() {
         in to the app. Add someone only once they have agreed to be listed, and
         remove them promptly if they withdraw.
       </Alert>
+
+      <ConflictDialog
+        conflict={conflict}
+        noun="guide"
+        busy={busy}
+        onLoadTheirs={() => void loadTheirs()}
+        onOverwrite={() => {
+          setConflict(null);
+          void save({ force: true });
+        }}
+        onDiscard={() => {
+          setConflict(null);
+          setEditing(null);
+        }}
+        onDismiss={() => setConflict(null)}
+      />
 
       {editing !== null && (
         <GuideEditor

@@ -111,7 +111,7 @@ describe("recentActivity", () => {
     ]);
   });
 
-  it("carries the editor and status for destinations only", () => {
+  it("carries a status for destinations only", () => {
     const [d, t] = recentActivity({
       destinations: [
         place("d", { updatedAt: at(3_000), updatedBy: "uid-1", status: "draft" }),
@@ -120,8 +120,22 @@ describe("recentActivity", () => {
       guides: [],
     });
     expect(d).toMatchObject({ by: "uid-1", status: "draft" });
-    expect(t.by).toBeUndefined();
     expect(t.status).toBeUndefined();
+  });
+
+  it("carries the editor wherever one was recorded", () => {
+    // Tours and guides gained updatedBy in 2026-10; older ones have none.
+    const [t, g, old] = recentActivity({
+      destinations: [],
+      tours: [
+        tour("t", [], { updatedAt: at(3_000), updatedBy: "uid-2" }),
+        tour("old", [], { updatedAt: at(1_000) }),
+      ],
+      guides: [guide("g", { updatedAt: at(2_000), updatedBy: "uid-3" })],
+    });
+    expect(t.by).toBe("uid-2");
+    expect(g.by).toBe("uid-3");
+    expect(old.by).toBeUndefined();
   });
 
   it("leaves out rows it cannot date, and stops at the limit", () => {

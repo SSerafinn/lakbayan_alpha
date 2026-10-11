@@ -24,6 +24,9 @@ import { Dialog } from "../components/Dialog";
 import { Field, Section, Toggle } from "../components/Form";
 import { ImageThumb } from "../components/ImageThumb";
 import { useToast } from "../components/toast-context";
+import { ConflictDialog } from "../components/ConflictDialog";
+import { ConflictError } from "../lib/versioned";
+import { versionOf, type Conflict } from "../types/conflict";
 import type { Destination } from "../types/destination";
 import { emptyTour, validate, type Tour, type TourDraft } from "../types/tour";
 
@@ -54,7 +57,8 @@ export function ToursPage() {
   const [draft, setDraft] = useState<TourDraft>(emptyTour());
   const [confirmDelete, setConfirmDelete] = useState<Tour | null>(null);
 
-  async function reload() {
+  /** Returns the tours it loaded, or null if it could not. */
+  async function reload(): Promise<Tour[] | null> {
     try {
       const [tours, dests] = await Promise.all([
         listTours(),
@@ -63,10 +67,17 @@ export function ToursPage() {
       setRows(tours);
       setDestinations(dests);
       setError(null);
+      return tours;
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
+      return null;
     }
   }
+
+  // The version the open editor started from, and a save that found another.
+  // See types/conflict.ts.
+  const [editingVersion, setEditingVersion] = useState(0);
+  const [conflict, setConflict] = useState<Conflict | null>(null);
 
   useEffect(() => {
     void reload();
@@ -92,9 +103,30 @@ export function ToursPage() {
   }
 
   function openEdit(t: Tour) {
-    const { id: _drop, createdAt: _c, updatedAt: _u, ...rest } = t;
+    const {
+      id: _drop,
+      createdAt: _c,
+      updatedAt: _u,
+      updatedBy: _b,
+      ...rest
+    } = t;
     setDraft({ ...rest, description: rest.description ?? "" });
     setEditing(t.id);
+    setEditingVersion(versionOf(t.updatedAt));
+  }
+
+  /** Reopen the editor on the stored tour, dropping the edits on screen. */
+  async function loadTheirs() {
+    const id = editing;
+    const tours = await reload();
+    const fresh = tours?.find((t) => t.id === id);
+    if (!fresh) {
+      setConflict({ kind: "deleted" });
+      return;
+    }
+    openEdit(fresh);
+    setConflict(null);
+    toast.toast({ variant: "info", title: "Showing the latest version" });
   }
 
   // Arriving from the dashboard: `?new` opens a blank editor, `?edit=<id>`
@@ -115,7 +147,7 @@ export function ToursPage() {
     setParams({}, { replace: true });
   }, [rows, params, setParams, toast]);
 
-  async function save() {
+  async function save({ force = false }: { force?: boolean } = {}) {
     const errors = validate(draft);
     if (Object.keys(errors).length > 0) {
       toast.error("Not ready to save", Object.values(errors)[0]);
@@ -138,7 +170,11 @@ export function ToursPage() {
 
     setBusy(true);
     try {
-      await saveTour(draft, editing === "new" ? undefined : editing!);
+      await saveTour(
+        draft,
+        editing === "new" ? undefined : editing!,
+        editing === "new" || force ? {} : { expected: editingVersion },
+      );
       setEditing(null);
       await reload();
       toast.success(
@@ -146,6 +182,10 @@ export function ToursPage() {
         "Tours are visible in the app as soon as they exist.",
       );
     } catch (err) {
+      if (err instanceof ConflictError) {
+        setConflict(err.conflict);
+        return;
+      }
       toast.error(
         "That didn't save",
         err instanceof Error ? err.message : String(err),
@@ -209,6 +249,22 @@ export function ToursPage() {
           claim?
         </Alert>
       )}
+
+      <ConflictDialog
+        conflict={conflict}
+        noun="tour"
+        busy={busy}
+        onLoadTheirs={() => void loadTheirs()}
+        onOverwrite={() => {
+          setConflict(null);
+          void save({ force: true });
+        }}
+        onDiscard={() => {
+          setConflict(null);
+          setEditing(null);
+        }}
+        onDismiss={() => setConflict(null)}
+      />
 
       {editing !== null && (
         <TourEditor

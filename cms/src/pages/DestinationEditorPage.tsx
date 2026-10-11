@@ -14,7 +14,13 @@ import {
   isSlugTaken,
   updateDestination,
   uploadImage,
+  watchDestination,
 } from "../lib/destinations";
+import { ConflictError } from "../lib/versioned";
+import { ConflictDialog } from "../components/ConflictDialog";
+import { useAdminNames } from "../components/useAdminNames";
+import { useAuth } from "../auth/auth-context";
+import { versionOf, whoChanged, type Conflict } from "../types/conflict";
 import { listSegments, saveSegments } from "../lib/segments";
 import { Alert } from "../components/Alert";
 import { useCrumb } from "../components/crumb-context";
@@ -110,6 +116,23 @@ export function DestinationEditorPage() {
   // is missing in the meantime, without five red "Required"s on arrival.
   const [attempted, setAttempted] = useState(!isNew);
   const toast = useToast();
+  const { user } = useAuth();
+
+  /**
+   * The version this editor's edits are based on: the document's `updatedAt`
+   * when it was loaded, or after this editor's own last save. A save is
+   * refused if the stored version has moved on — see types/conflict.ts.
+   */
+  const versionRef = useRef(0);
+  /** True while this editor is writing, so its own save is not mistaken for someone else's. */
+  const savingRef = useRef(false);
+  /** A save that ran into someone else's: the dialog's question. */
+  const [conflict, setConflict] = useState<Conflict | null>(null);
+  /** The status that save was for, so "Overwrite with mine" repeats it exactly. */
+  const conflictStatusRef = useRef<"draft" | "published" | undefined>(undefined);
+  /** Someone else's save, noticed live while this editor is open. */
+  const [remote, setRemote] = useState<Conflict | null>(null);
+  const loadTheirsRef = useRef<(() => Promise<void>) | null>(null);
 
   // Mirrors of state the Ctrl+S handler needs. Refs rather than dependencies so
   // the listener registers once instead of on every keystroke, and still sees
@@ -132,6 +155,7 @@ export function DestinationEditorPage() {
       const { id: _drop, ...rest } = found;
       setDraft(rest);
       setSaved(rest);
+      versionRef.current = versionOf(found.updatedAt);
 
       // Loaded unconditionally rather than when the Audio Guide tab is first
       // opened. The tab shows a count, and `readiness` needs the segments to
@@ -143,12 +167,43 @@ export function DestinationEditorPage() {
     })();
   }, [id]);
 
+  // Another admin's save, noticed as it happens. Without this the first sign
+  // was the conflict dialog at save time, after the edits were already made.
+  useEffect(() => {
+    if (!id || id === "new") return;
+    return watchDestination(id, (current) => {
+      if (savingRef.current) return;
+      if (!current) {
+        setRemote({ kind: "deleted" });
+        return;
+      }
+      const at = versionOf(current.updatedAt);
+      // 0 until the first load lands; equal when it is this editor's version.
+      if (!versionRef.current || at === versionRef.current) return;
+      setRemote({
+        kind: "changed",
+        updatedAt: at,
+        updatedBy: current.updatedBy ?? null,
+      });
+    });
+  }, [id]);
+
   const dirty = useMemo(
     () =>
       JSON.stringify(draft) !== JSON.stringify(saved) ||
       JSON.stringify(segments) !== JSON.stringify(savedSegments),
     [draft, saved, segments, savedSegments],
   );
+
+  // With no edits of its own, the editor simply takes the newer version — there
+  // is nothing to lose, and a notice asking permission would be noise. With
+  // edits, the notice below explains instead.
+  useEffect(() => {
+    if (remote?.kind === "changed" && !dirty) void loadTheirsRef.current?.();
+  }, [remote, dirty]);
+
+  const remoteBy = remote?.kind === "changed" ? remote.updatedBy : null;
+  const names = useAdminNames(Boolean(remoteBy && remoteBy !== user?.uid));
 
   // Closing the tab or reloading.
   useEffect(() => {
@@ -236,6 +291,7 @@ export function DestinationEditorPage() {
   /** Returns the document id on success, null if it did not save. */
   async function save(
     nextStatus?: "draft" | "published",
+    { force = false }: { force?: boolean } = {},
   ): Promise<string | null> {
     if (!draft) return null;
     setAttempted(true);
@@ -252,6 +308,7 @@ export function DestinationEditorPage() {
     }
 
     setBusy(true);
+    savingRef.current = true;
     try {
       // Exclude this document from the uniqueness check once it exists —
       // otherwise its own slug reads as taken.
@@ -272,7 +329,13 @@ export function DestinationEditorPage() {
         createdIdRef.current = savedId;
       } else {
         savedId = docId!;
-        await updateDestination(savedId, next);
+        // Checked against the version these edits started from, unless the
+        // admin has chosen to overwrite.
+        await updateDestination(
+          savedId,
+          next,
+          force ? {} : { expected: versionRef.current },
+        );
       }
 
       // After the destination, so a brand-new one has a parent document to
@@ -280,9 +343,25 @@ export function DestinationEditorPage() {
       // clean, so a failure here still reads as unsaved rather than saved.
       await saveSegments(savedId, segments, savedSegments);
 
-      setDraft(next);
-      setSaved(next);
+      // Read back the version this save produced. `updatedAt` is a server
+      // timestamp, unknown until the write lands, and the next save is
+      // checked against it — keeping the old one would make this editor
+      // conflict with itself.
+      const fresh = await getDestination(savedId);
+      versionRef.current = versionOf(fresh?.updatedAt);
+      const stamped = fresh
+        ? {
+            ...next,
+            createdAt: fresh.createdAt,
+            updatedAt: fresh.updatedAt,
+            updatedBy: fresh.updatedBy,
+          }
+        : next;
+
+      setDraft(stamped);
+      setSaved(stamped);
       setSavedSegments(segments);
+      setRemote(null);
 
       if (isNew) {
         bypassBlockerRef.current = true;
@@ -305,15 +384,47 @@ export function DestinationEditorPage() {
       );
       return savedId;
     } catch (err) {
+      if (err instanceof ConflictError) {
+        conflictStatusRef.current = nextStatus;
+        setConflict(err.conflict);
+        return null;
+      }
       toast.error(
         "That didn't save",
         err instanceof Error ? err.message : String(err),
       );
       return null;
     } finally {
+      savingRef.current = false;
       setBusy(false);
     }
   }
+
+  /** Replace everything on screen with the stored version, theirs. */
+  async function loadTheirs() {
+    if (!docId || isNew) return;
+    const found = await getDestination(docId);
+    if (!found) {
+      setRemote({ kind: "deleted" });
+      setConflict(null);
+      return;
+    }
+    const { id: _drop, ...rest } = found;
+    const stops = await listSegments(docId);
+    versionRef.current = versionOf(found.updatedAt);
+    setDraft(rest);
+    setSaved(rest);
+    setSegments(stops);
+    setSavedSegments(stops);
+    setConflict(null);
+    setRemote(null);
+    toast.toast({
+      variant: "info",
+      title: "Showing the latest version",
+      description: "Another save landed while this page was open.",
+    });
+  }
+  loadTheirsRef.current = loadTheirs;
 
   dirtyRef.current = dirty;
   busyRef.current = busy;
@@ -406,6 +517,50 @@ export function DestinationEditorPage() {
         Your edits to this destination have not been saved. Leaving now will
         lose them.
       </Dialog>
+
+      <ConflictDialog
+        conflict={conflict}
+        noun="destination"
+        busy={busy}
+        onLoadTheirs={() => void loadTheirs()}
+        onOverwrite={() => {
+          setConflict(null);
+          void save(conflictStatusRef.current, { force: true });
+        }}
+        onDiscard={() => {
+          setConflict(null);
+          bypassBlockerRef.current = true;
+          navigate("/destinations");
+        }}
+        onDismiss={() => setConflict(null)}
+      />
+
+      {remote?.kind === "changed" && dirty && (
+        <Alert
+          variant="warning"
+          title={`${whoChanged(remote.updatedBy, user?.uid, names)} saved changes to this destination ${relativeTime(remote.updatedAt, Date.now())}`}
+          actions={
+            <button
+              className="btn-secondary sm"
+              onClick={() => void loadTheirs()}
+            >
+              Load their version
+            </button>
+          }
+        >
+          Your unsaved edits started from the earlier version. Saving will ask
+          before replacing theirs; loading theirs discards yours.
+        </Alert>
+      )}
+      {remote?.kind === "deleted" && (
+        <Alert
+          variant="destructive"
+          title="Another admin deleted this destination"
+        >
+          Anything on screen is all that is left of it, and there is nothing to
+          save it to. Copy what you need before you leave.
+        </Alert>
+      )}
 
       <nav className="tabs" aria-label="Editor sections">
         <button
