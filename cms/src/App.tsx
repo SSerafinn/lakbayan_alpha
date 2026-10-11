@@ -17,7 +17,7 @@ import { DashboardPage } from "./pages/DashboardPage";
 import { DestinationsListPage } from "./pages/DestinationsListPage";
 import { DestinationEditorPage } from "./pages/DestinationEditorPage";
 import { GuidesPage } from "./pages/GuidesPage";
-import { PlaceholderPage } from "./pages/PlaceholderPage";
+import { SettingsPage } from "./pages/SettingsPage";
 import { ToursPage } from "./pages/ToursPage";
 import { UsersPage } from "./pages/UsersPage";
 import { useEmulators } from "./lib/firebase";
@@ -184,10 +184,7 @@ const router = createBrowserRouter([
       { path: "guides", element: <GuidesPage /> },
       { path: "bundles", element: <BundlesPage /> },
       { path: "users", element: <UsersPage /> },
-      {
-        path: "settings",
-        element: <PlaceholderPage title="Settings" phase="CMS-4" />,
-      },
+      { path: "settings", element: <SettingsPage /> },
       { path: "*", element: <Navigate to="/" replace /> },
     ],
   },

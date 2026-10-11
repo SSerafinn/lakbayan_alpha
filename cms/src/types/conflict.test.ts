@@ -25,6 +25,17 @@ describe("checkVersion", () => {
     expect(checkVersion(1000, { exists: false })).toEqual({ kind: "deleted" });
   });
 
+  it("lets a first save create a document that may not exist yet", () => {
+    expect(checkVersion(0, { exists: false }, { allowMissing: true })).toBeNull();
+  });
+
+  it("still reports a deletion of one that was loaded", () => {
+    // Loaded at version 1000, gone now: someone deleted it.
+    expect(
+      checkVersion(1000, { exists: false }, { allowMissing: true }),
+    ).toEqual({ kind: "deleted" });
+  });
+
   it("matches a document that has never had a timestamp", () => {
     // Written by hand or an old script: loaded as 0, still 0, nothing changed.
     expect(checkVersion(0, { exists: true })).toBeNull();

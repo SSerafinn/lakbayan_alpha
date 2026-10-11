@@ -75,15 +75,18 @@ text on a light background must be `/700` or darker for AA. See
 
 ## What is built
 
-Everything through CMS-3 except the AR editor:
+Everything except the AR editor and the Hosting deploy:
 
 - login with role gating
 - the dashboard — counts, what needs attention, recent activity, quick actions
 - destinations: the list, and the editor with location, photos and audio-guide stops
 - tours, local guides, offline bundles, and users with admin roles
+- settings: the town list, tags, the tourism office and emergency lines, a
+  notice for Explore, and the privacy policy and terms
 
-Settings (CMS-4) is still a placeholder naming its phase, and the CMS is not
-yet deployed to Firebase Hosting. See `PLAN.md`, Track B, for what is left.
+Every editor checks for another admin's save before writing its own (see
+`src/lib/versioned.ts`). The CMS is not yet deployed to Firebase Hosting; see
+`PLAN.md`, Track B, for what is left.
 
 ## The security boundary is not here
 

@@ -27,7 +27,14 @@ export function versionOf(t?: { toMillis(): number } | null): number {
   return t?.toMillis() ?? 0;
 }
 
-/** Null when the save may go ahead; otherwise what happened instead. */
+/**
+ * Null when the save may go ahead; otherwise what happened instead.
+ *
+ * `allowMissing` is for documents that may legitimately not exist yet — the
+ * settings documents, before anyone has saved them. An editor that loaded
+ * nothing (version 0) may then create one; one that loaded a document and
+ * finds it gone still has a deletion to report.
+ */
 export function checkVersion(
   expected: number,
   current: {
@@ -35,8 +42,11 @@ export function checkVersion(
     updatedAt?: number;
     updatedBy?: string | null;
   },
+  { allowMissing = false }: { allowMissing?: boolean } = {},
 ): Conflict | null {
-  if (!current.exists) return { kind: "deleted" };
+  if (!current.exists) {
+    return allowMissing && expected === 0 ? null : { kind: "deleted" };
+  }
   const at = current.updatedAt ?? 0;
   if (at === expected) return null;
   return { kind: "changed", updatedAt: at, updatedBy: current.updatedBy ?? null };

@@ -291,6 +291,41 @@ describe("tours", () => {
   });
 });
 
+describe("settings", () => {
+  it("is readable by anyone, signed in or not", async () => {
+    // The privacy policy has to be reachable before sign-in.
+    const db = env.unauthenticatedContext().firestore();
+    await assertSucceeds(getDoc(doc(db, "settings/policies")));
+  });
+
+  it("refuses a write from a signed-in non-admin", async () => {
+    const db = env.authenticatedContext("traveller").firestore();
+    await assertFails(
+      setDoc(doc(db, "settings/app"), {
+        hotlines: [{ label: "Fake", number: "0900 000 0000" }],
+      })
+    );
+  });
+
+  it("allows an admin to write each of the three documents", async () => {
+    const db = env.authenticatedContext("boss", { admin: true }).firestore();
+    await assertSucceeds(
+      setDoc(doc(db, "settings/taxonomy"), { towns: ["Peñablanca"] })
+    );
+    await assertSucceeds(setDoc(doc(db, "settings/app"), { hotlines: [] }));
+    await assertSucceeds(
+      setDoc(doc(db, "settings/policies"), { privacy: "", terms: "" })
+    );
+  });
+
+  it("refuses an admin write to any other id", async () => {
+    // A typo in a path must fail rather than quietly create a settings
+    // document that nothing reads.
+    const db = env.authenticatedContext("boss", { admin: true }).firestore();
+    await assertFails(setDoc(doc(db, "settings/polices"), { privacy: "" }));
+  });
+});
+
 describe("itineraries", () => {
   // A subcollection does NOT inherit its parent's rules. Without an explicit
   // match these would be denied outright — safe, but not what we want — and

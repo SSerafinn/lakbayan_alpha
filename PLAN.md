@@ -303,6 +303,11 @@ and `flutter test` before committing; commit with `/commit`.
 - [ ] Integration pass; empty/error/loading states everywhere.
 - [ ] Harden `firestore.rules`; extend the rules test suite; wire Analytics + Crashlytics.
 - [ ] Release signing config + release SHA-1 registered for Google Sign-In.
+- [ ] Show what the CMS's Settings now hold (`settings/app`, `settings/policies`,
+      `AppSettings`/`PolicySettings` in `lib/core/models/app_settings.dart`):
+      Profile → Privacy policy and Terms (needed for the Play Store), Help and
+      contact with the emergency lines (cached for offline), and the Explore
+      notice while `Announcement.isLiveAt`.
 - [ ] QA, bug-fix, demo build; tag a release candidate.
 - **DoD:** MVP release candidate runs on Android; core KPIs reporting; demo ready.
 
@@ -393,7 +398,15 @@ CMS consumes that contract; it does not redefine it.
       *Cut with Phase 4 if AR is dropped.*
 
 ## CMS-4 · Weeks 13–15 — Settings and ship
-- [ ] Settings: taxonomy, app settings, policies *(screen 11)*.
+- [x] Settings: taxonomy, app settings, policies *(screen 11)*.
+      *Three documents in a new `settings` collection, each saved and
+      version-checked on its own: `taxonomy` (the town list the editor offers,
+      replacing the hard-coded one; tags get rename, merge and remove across
+      destinations; categories stay fixed, since the app draws each), `app`
+      (tourism office, emergency lines, a notice for Explore) and `policies`
+      (privacy and terms, each with its own "last updated"). Public read, admin
+      write to those three ids only. The app does not show `app` or `policies`
+      yet — see Phase 5.*
 - [x] Global states — loading, empty, error, saving/conflict *(screen 1i)*.
       *Loading, empty and error states shipped with each screen; the missing
       one was conflict. Saves are now checked against the version the editor
