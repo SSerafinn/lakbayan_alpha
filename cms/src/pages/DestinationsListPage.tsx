@@ -3,7 +3,8 @@ import { Link, useNavigate } from "react-router-dom";
 import { listDestinations, setStatus } from "../lib/destinations";
 import { Alert } from "../components/Alert";
 import { PageHeader } from "../components/PageHeader";
-import { formatDate } from "../types/format";
+import { ImageThumb } from "../components/ImageThumb";
+import { relativeTime } from "../types/dashboard";
 import { Plus } from "lucide-react";
 import {
   CATEGORIES,
@@ -12,6 +13,32 @@ import {
   type Destination,
   type Status,
 } from "../types/destination";
+
+/**
+ * Saved views across the top of the table, after Polaris's index pages.
+ *
+ * They replace the status dropdown: "what is still a draft?" and "what has
+ * no photo?" are the two questions this screen gets asked most, and a view
+ * answers each with one click and a count. "Needs a photo" is the most common
+ * reason a draft cannot be published.
+ */
+type View = "all" | "published" | "draft" | "no-photo";
+
+const VIEWS: { id: View; label: string; test: (d: Destination) => boolean }[] =
+  [
+    { id: "all", label: "All", test: () => true },
+    {
+      id: "published",
+      label: "Published",
+      test: (d) => d.status === "published",
+    },
+    { id: "draft", label: "Drafts", test: (d) => d.status === "draft" },
+    {
+      id: "no-photo",
+      label: "Needs a photo",
+      test: (d) => d.images.length === 0,
+    },
+  ];
 
 /**
  * Admin wireframe screen 3 — Destinations list.
@@ -29,7 +56,7 @@ export function DestinationsListPage() {
   const [search, setSearch] = useState("");
   const [town, setTown] = useState("all");
   const [category, setCategory] = useState<Category | "all">("all");
-  const [status, setStatusFilter] = useState<Status | "all">("all");
+  const [view, setView] = useState<View>("all");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState(false);
 
@@ -63,21 +90,17 @@ export function DestinationsListPage() {
           r.town.toLowerCase().includes(q)) &&
         (town === "all" || r.town === town) &&
         (category === "all" || r.category === category) &&
-        (status === "all" || r.status === status),
+        VIEWS.find((v) => v.id === view)!.test(r),
     );
-  }, [rows, search, town, category, status]);
+  }, [rows, search, town, category, view]);
 
-  const hasFilters =
-    search.trim() !== "" ||
-    town !== "all" ||
-    category !== "all" ||
-    status !== "all";
+  // The view is not a filter to clear: it is which list you are looking at.
+  const hasFilters = search.trim() !== "" || town !== "all" || category !== "all";
 
   function clearFilters() {
     setSearch("");
     setTown("all");
     setCategory("all");
-    setStatusFilter("all");
   }
 
   function toggle(id: string) {
@@ -101,8 +124,9 @@ export function DestinationsListPage() {
   }
 
   const counts = rows
-    ? `${rows.length} records · ${rows.filter((r) => r.status === "published").length} published, ${rows.filter((r) => r.status === "draft").length} draft`
+    ? `${rows.length} place${rows.length === 1 ? "" : "s"} in ${towns.length} town${towns.length === 1 ? "" : "s"} · ${rows.filter((r) => r.status === "published").length} published, ${rows.filter((r) => r.status === "draft").length} draft`
     : "Loading…";
+  const now = Date.now();
 
   return (
     <section className="page">
@@ -126,6 +150,22 @@ export function DestinationsListPage() {
           claim?
         </Alert>
       )}
+
+      <nav className="tabs views" aria-label="Views">
+        {VIEWS.map((v) => (
+          <button
+            key={v.id}
+            className={view === v.id ? "tab on" : "tab"}
+            aria-pressed={view === v.id}
+            onClick={() => setView(v.id)}
+          >
+            {v.label}
+            {rows && (
+              <span className="tab-count">{rows.filter(v.test).length}</span>
+            )}
+          </button>
+        ))}
+      </nav>
 
       <div className="toolbar">
         <input
@@ -152,14 +192,6 @@ export function DestinationsListPage() {
               {CATEGORY_LABELS[c]}
             </option>
           ))}
-        </select>
-        <select
-          value={status}
-          onChange={(e) => setStatusFilter(e.target.value as Status | "all")}
-        >
-          <option value="all">Status: All</option>
-          <option value="published">Published</option>
-          <option value="draft">Draft</option>
         </select>
         {hasFilters && (
           <button className="btn-quiet" onClick={clearFilters}>
@@ -206,10 +238,20 @@ export function DestinationsListPage() {
             </>
           ) : (
             <>
-              <p>Nothing matches those filters.</p>
-              <button className="btn-quiet" onClick={clearFilters}>
-                Clear filters
-              </button>
+              <p>
+                {hasFilters
+                  ? "Nothing matches those filters."
+                  : view === "no-photo"
+                    ? "Every place has a photo."
+                    : view === "draft"
+                      ? "No drafts — everything is published."
+                      : "Nothing here yet."}
+              </p>
+              {hasFilters && (
+                <button className="btn-quiet" onClick={clearFilters}>
+                  Clear filters
+                </button>
+              )}
             </>
           )}
         </div>
@@ -218,13 +260,11 @@ export function DestinationsListPage() {
           <thead>
             <tr>
               <th className="tick" />
+              <th className="thumb-cell" aria-label="Photo" />
               <th>Name</th>
-              <th>Town</th>
               <th>Category</th>
               <th>Status</th>
-              <th>AR</th>
-              <th>Last updated</th>
-              <th />
+              <th>Last edited</th>
             </tr>
           </thead>
           <tbody>
@@ -238,20 +278,32 @@ export function DestinationsListPage() {
                     aria-label={`Select ${d.name}`}
                   />
                 </td>
-                <td>
-                  <Link to={`/destinations/${d.id}`}>{d.name}</Link>
-                  {d.images.length === 0 && (
-                    <span className="badge warn" title="Cannot be published">
-                      No photo
-                    </span>
+                <td className="thumb-cell">
+                  {d.images[0] ? (
+                    <ImageThumb path={d.images[0]} className="row-thumb" />
+                  ) : (
+                    <div className="thumb row-thumb" />
                   )}
                 </td>
-                <td>{d.town}</td>
+                {/* The name opens the place, so there is no separate Edit
+                    column; the town is the name's second line rather than a
+                    column of its own. */}
                 <td>
-                  <span className="badge">
-                    {CATEGORY_LABELS[d.category] ?? d.category}
-                  </span>
+                  <div className="cell-title">
+                    <span>
+                      <Link to={`/destinations/${d.id}`}>
+                        {d.name || "Untitled destination"}
+                      </Link>
+                      {d.images.length === 0 && (
+                        <span className="badge warn" title="Cannot be published">
+                          No photo
+                        </span>
+                      )}
+                    </span>
+                    <span className="hint">{d.town || "No town yet"}</span>
+                  </div>
                 </td>
+                <td>{CATEGORY_LABELS[d.category] ?? d.category}</td>
                 <td>
                   <span
                     className={
@@ -261,14 +313,8 @@ export function DestinationsListPage() {
                     {d.status === "published" ? "Published" : "Draft"}
                   </span>
                 </td>
-                <td>{d.hasAR ? "✓" : "—"}</td>
-                <td className="hint">
-                  {formatDate(d.updatedAt)}
-                </td>
-                <td>
-                  <Link className="btn-quiet sm" to={`/destinations/${d.id}`}>
-                    Edit
-                  </Link>
+                <td className="hint nowrap">
+                  {d.updatedAt ? relativeTime(d.updatedAt.toMillis(), now) : "—"}
                 </td>
               </tr>
             ))}
@@ -287,7 +333,7 @@ function TableSkeleton() {
       <tbody>
         {Array.from({ length: 6 }, (_, i) => (
           <tr key={i}>
-            <td colSpan={8}>
+            <td colSpan={6}>
               <div className="skeleton" />
             </td>
           </tr>

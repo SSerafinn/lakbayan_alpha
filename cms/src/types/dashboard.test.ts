@@ -288,7 +288,7 @@ describe("relativeTime", () => {
   });
 
   it("switches to a date after a week, with the year only when it differs", () => {
-    expect(relativeTime(Date.UTC(2026, 8, 1, 12), now)).toBe("Sep 1");
-    expect(relativeTime(Date.UTC(2025, 8, 1, 12), now)).toBe("Sep 1, 2025");
+    expect(relativeTime(Date.UTC(2026, 8, 1, 12), now)).toBe("1 Sep");
+    expect(relativeTime(Date.UTC(2025, 8, 1, 12), now)).toBe("1 Sep 2025");
   });
 });

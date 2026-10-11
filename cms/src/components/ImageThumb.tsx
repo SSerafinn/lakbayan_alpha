@@ -9,7 +9,15 @@ import { imageUrl } from "../lib/destinations";
  * placeholder rather than a broken image: against the emulator this usually
  * just means the file was never uploaded.
  */
-export function ImageThumb({ path }: { path: string }) {
+export function ImageThumb({
+  path,
+  className,
+}: {
+  path: string;
+  /** Added to `thumb` — `row-thumb` for the small one in a table row. */
+  className?: string;
+}) {
+  const cls = className ? `thumb ${className}` : "thumb";
   const [url, setUrl] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
 
@@ -23,7 +31,7 @@ export function ImageThumb({ path }: { path: string }) {
     };
   }, [path]);
 
-  if (failed) return <div className="thumb missing">unavailable</div>;
-  if (!url) return <div className="thumb skeleton" />;
-  return <img className="thumb" src={url} alt="" loading="lazy" />;
+  if (failed) return <div className={`${cls} missing`}>unavailable</div>;
+  if (!url) return <div className={`${cls} skeleton`} />;
+  return <img className={cls} src={url} alt="" loading="lazy" />;
 }

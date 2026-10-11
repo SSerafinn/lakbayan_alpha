@@ -14,6 +14,10 @@ describe("formatDate", () => {
     );
   });
 
+  it("uses three-letter months whatever the ICU version says", () => {
+    expect(formatDate(new Date(2026, 8, 1, 12))).toBe("1 Sep 2026");
+  });
+
   it("shows a dash for a missing date", () => {
     expect(formatDate(undefined)).toBe("—");
     expect(formatDate(null)).toBe("—");

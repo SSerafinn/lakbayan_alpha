@@ -991,6 +991,33 @@ table.data td .btn-quiet,
 table.data td .btn-secondary {
   font-weight: 650;
 }
+/* A row's photo: recognition, not inspection. */
+table.data .thumb-cell {
+  width: 80px;
+  padding-right: 0;
+}
+.thumb.row-thumb {
+  width: 64px;
+  height: 40px;
+  aspect-ratio: auto;
+  border-radius: var(--lk-shape-xs);
+}
+/* A row's name and, beneath it, the one fact that places it (town, route). */
+.cell-title {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+/* Row actions sit at the far edge, out of the way of reading across. */
+table.data td.actions-cell {
+  text-align: right;
+}
+/* Saved views read as tabs over the table, a step tighter than an editor's. */
+.tabs.views {
+  margin-bottom: var(--lk-space-4);
+}
+
 /* Action cells carry `.row` for spacing. As a flex box a <td> stops being a
    table cell — its borders came loose from the rest of the row on Tours — so
    here it stays a cell and spaces its children instead. */
@@ -1003,6 +1030,9 @@ table.data td.row > * + * {
 }
 .tick {
   width: 40px;
+}
+.nowrap {
+  white-space: nowrap;
 }
 input[type="checkbox"] {
   width: 16px;
@@ -1525,14 +1555,11 @@ input[type="checkbox"] {
   color: var(--lk-role-error);
 }
 
-/* The cover column stays narrow — the thumbnail is for recognition, not
-   inspection. */
-.tour-cover-cell {
-  width: 96px;
-}
-.tour-cover-cell .thumb {
-  width: 80px;
-  border-radius: var(--lk-shape-xs);
+/* A tour's cover in its editor: big enough to judge the crop, no bigger. */
+.thumb.cover-preview {
+  width: 100%;
+  max-width: 320px;
+  margin-top: var(--lk-space-2);
 }
 
 /* Specialty chips wrap inside their cell instead of stretching the column. */
