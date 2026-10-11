@@ -44,6 +44,16 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // Province-wide settings (CMS screen 11): exactly three documents. Public
+    // read — the privacy policy must be readable before anyone signs in, and
+    // the app may cache hotlines for offline use. Admins write, and only to
+    // the known ids, so a typo in a document path fails loudly instead of
+    // creating a fourth settings document nothing reads.
+    match /settings/{docId} {
+      allow read: if true;
+      allow write: if isAdmin() && docId in ['taxonomy', 'app', 'policies'];
+    }
+
     // Each user owns their document. `role` is never client-writable; admin
     // rights live in custom claims, so no role field should be written at all.
     //

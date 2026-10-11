@@ -97,6 +97,34 @@ users/{uid}/itineraries/{id}                  // tours somebody built themselves
   // deliberate trade — a private subcollection nobody else can read does not
   // earn the cost of a per-field rule — but it does mean this list is kept by
   // hand. `startDate`/`endDate` reached Firestore before they reached here.
+
+settings/{taxonomy | app | policies}           // schemaVersion 1 — province-wide, CMS screen 11
+  // Three fixed documents, not one: the app reads `app` at startup and has no
+  // reason to pull pages of policy text with it, and each is saved (and
+  // version-checked) on its own. Rules allow exactly these three ids.
+  // Readable by anyone — the privacy policy must be reachable before sign-in,
+  // and hotlines are worth caching for offline use. Written by admins only.
+  // Every document also carries schemaVersion, updatedAt, updatedBy.
+
+  taxonomy:
+    towns       string[]  required   // the municipality list the CMS offers for
+                                     // `town`; display names exactly as written
+                                     // on destinations, since `town` groups
+                                     // offline bundles. Categories are NOT here:
+                                     // the app draws a glyph and colour per
+                                     // kind, so a new one is an app release.
+  app:
+    contact     map?                 // { office?, phone?, email?, hours?, address? }, free text
+    hotlines    list                 // [{ label, number }], in display order
+    announcement map?                // { text, until? } — a notice at the top of
+                                     // Explore; null or absent when there is none.
+                                     // `until` is a timestamp; past it, readers
+                                     // treat the notice as gone.
+  policies:
+    privacy     string               // plain text, shown as written; blank lines
+    terms       string               //   separate paragraphs
+    privacyUpdatedAt timestamp?      // when each text last changed — the
+    termsUpdatedAt   timestamp?      //   "last updated" date a reader is shown
 ```
 
 **`updatedAt` doubles as the version for the CMS's save check.** An editor

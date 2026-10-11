@@ -593,6 +593,54 @@ for (const g of GUIDES) {
 console.log(`  ${GUIDES.length} local guides (sign in to see them)`);
 
 // ---------------------------------------------------------------------------
+// Settings (CMS screen 11)
+//
+// `app` and `policies` only. `taxonomy` is left unwritten on purpose: the CMS
+// falls back to its built-in town list until an admin saves one, and that
+// first-save path is worth being able to see on a fresh emulator.
+//
+// The hotlines use the unassigned 0900 prefix, as the guides do, and say they
+// are samples: a seeded number must never be a real emergency line that a
+// test tap could ring.
+await db
+  .collection("settings")
+  .doc("app")
+  .set({
+    contact: {
+      office: "Provincial Tourism Office (sample)",
+      phone: "0900 555 0300",
+      email: "tourism@example.com",
+      hours: "Mon–Fri, 8:00am – 5:00pm",
+    },
+    hotlines: [
+      { label: "Emergency (sample)", number: "0900 555 0911" },
+      { label: "MDRRMO Peñablanca (sample)", number: "0900 555 0400" },
+    ],
+    announcement: {
+      text: "Sample notice: Callao Cave closes early on Sundays.",
+      until: null,
+    },
+    schemaVersion: 1,
+    updatedAt: FieldValue.serverTimestamp(),
+    updatedBy: null,
+  });
+await db
+  .collection("settings")
+  .doc("policies")
+  .set({
+    privacy:
+      "Sample privacy policy — replace before release.\n\n" +
+      "Lakbayan stores your saved places and downloaded towns with your account.",
+    terms: "Sample terms of use — replace before release.",
+    privacyUpdatedAt: FieldValue.serverTimestamp(),
+    termsUpdatedAt: FieldValue.serverTimestamp(),
+    schemaVersion: 1,
+    updatedAt: FieldValue.serverTimestamp(),
+    updatedBy: null,
+  });
+console.log("  Settings: sample contact, hotlines, notice and policies");
+
+// ---------------------------------------------------------------------------
 // Offline bundles
 //
 // One per town, the manifest a phone reads before it downloads. In a real

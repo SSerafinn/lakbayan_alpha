@@ -1,5 +1,7 @@
 /**
- * Municipalities and cities of the Province of Cagayan.
+ * Municipalities and cities of the Province of Cagayan — the **built-in**
+ * list, used until an admin saves one in Settings → Taxonomy
+ * (`settings/taxonomy`), and offered there as the list to restore.
  *
  * These are **suggestions, not a restriction** — the town field stays free text
  * and this only backs its `<datalist>`. A missing or misspelt entry here must
@@ -11,8 +13,9 @@
  * wrong one. A derived list only helps *after* somebody has already typed it
  * correctly once, which is exactly too late.
  *
- * TODO(CMS-4): Settings → Taxonomy takes ownership of this, so the province can
- * correct it without a deploy. Verify against the official PSGC listing then.
+ * Settings → Taxonomy now owns the live list, so the province corrects it
+ * without a deploy. Still worth checking this one against the official PSGC
+ * listing, since it is what a fresh project starts from.
  */
 export const CAGAYAN_TOWNS = [
   "Abulug",

@@ -6,7 +6,7 @@ import {
   type ChangeEvent,
 } from "react";
 import { useBlocker, useNavigate, useParams } from "react-router-dom";
-import { CAGAYAN_TOWNS } from "../types/towns";
+import { useTowns } from "../components/useTowns";
 import {
   createDestination,
   deleteImage,
@@ -849,13 +849,15 @@ function OrganisationCard({
   errors: Record<string, string>;
   set: SetField;
 }) {
+  // The province's list from Settings, or the built-in one until saved.
+  const towns = useTowns();
   return (
     <Section title="Organisation" single>
       {/* The list the town field's `list="towns"` refers to. Without this the
           attribute silently does nothing — which is how "Peñablanca" and
           "Penablanca" end up as two towns, and later two offline bundles. */}
       <datalist id="towns">
-        {CAGAYAN_TOWNS.map((t) => (
+        {towns.map((t) => (
           <option key={t} value={t} />
         ))}
       </datalist>

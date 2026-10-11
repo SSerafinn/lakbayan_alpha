@@ -1265,6 +1265,69 @@ input[type="checkbox"] {
   color: var(--lk-role-primary-text);
 }
 
+/* ---- settings ------------------------------------------------------------
+   Screen 11. Three documents behind three tabs, each saved on its own. */
+
+.settings-body {
+  margin-top: var(--lk-space-6);
+}
+.settings-saved {
+  margin-top: var(--lk-space-4);
+}
+/* How many places use a town, inside its chip. */
+.chip-count {
+  min-width: 18px;
+  padding: 0 5px;
+  border-radius: var(--lk-shape-capsule);
+  background: var(--lk-surface-container);
+  color: var(--lk-on-surface-variant);
+  font-size: var(--lk-type-label-small-size);
+  text-align: center;
+}
+.hotlines {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--lk-space-2);
+  counter-reset: line;
+}
+.hotline {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  gap: var(--lk-space-2);
+  align-items: center;
+}
+.hotline input {
+  height: 40px;
+  padding: 0 var(--lk-space-3);
+  border: 1px solid var(--lk-outline-variant);
+  border-radius: var(--lk-shape-sm);
+  background: var(--lk-surface);
+  font: inherit;
+  color: inherit;
+}
+.hotline input:focus {
+  outline: none;
+  border-color: var(--lk-role-primary);
+  box-shadow: 0 0 0 1px var(--lk-role-primary);
+}
+.hotline .btn-quiet.sm {
+  min-width: 32px;
+  padding: 0;
+  border-radius: var(--lk-shape-xs);
+  color: var(--lk-on-surface-variant);
+}
+.hotline .btn-quiet.sm:disabled {
+  color: var(--lk-text-disabled);
+}
+/* Policies are long-form reading text; give them room and a reading measure. */
+.fgrid textarea.policy-text {
+  min-height: 320px;
+  line-height: 1.6;
+}
+
 /* ---- field sections ------------------------------------------------------
    Each group is a card: the grey step, its heading inside. */
 
@@ -1314,6 +1377,10 @@ input[type="checkbox"] {
 }
 .f.wide {
   grid-column: 1 / -1;
+}
+/* A badge in a field column keeps its own width rather than stretching. */
+.f > .badge {
+  align-self: flex-start;
 }
 .fgrid.one {
   grid-template-columns: minmax(0, 1fr);

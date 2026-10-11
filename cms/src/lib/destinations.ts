@@ -11,6 +11,7 @@ import {
   serverTimestamp,
   updateDoc,
   where,
+  writeBatch,
   type Unsubscribe,
 } from "firebase/firestore";
 import {
@@ -22,6 +23,7 @@ import {
 import { auth, db, storage } from "./firebase";
 import { deleteAllSegments } from "./segments";
 import { writeIfUnchanged } from "./versioned";
+import { renameTag } from "../types/settings";
 import {
   DESTINATION_SCHEMA_VERSION,
   type Destination,
@@ -101,6 +103,37 @@ export async function updateDestination(
   };
   if (expected === undefined) await updateDoc(ref, payload);
   else await writeIfUnchanged(ref, expected, (tx) => tx.update(ref, payload));
+}
+
+/**
+ * Rename a tag on every destination that has it — or remove it, with an
+ * empty `to`. Returns how many destinations changed.
+ *
+ * Each one counts as an edit (updatedAt and updatedBy move), which is right:
+ * anyone with one of them open in the editor is told, rather than saving the
+ * old tag back over the rename.
+ */
+export async function retagDestinations(
+  from: string,
+  to: string,
+): Promise<number> {
+  const snap = await getDocs(
+    query(collection(db, COLLECTION), where("tags", "array-contains", from)),
+  );
+  // A batch holds at most 500 writes; a province's tag will not reach that,
+  // but chunking costs nothing.
+  for (let i = 0; i < snap.docs.length; i += 450) {
+    const batch = writeBatch(db);
+    for (const d of snap.docs.slice(i, i + 450)) {
+      batch.update(d.ref, {
+        tags: renameTag((d.data().tags as string[]) ?? [], from, to),
+        updatedAt: serverTimestamp(),
+        updatedBy: auth.currentUser?.uid ?? null,
+      });
+    }
+    await batch.commit();
+  }
+  return snap.size;
 }
 
 /**

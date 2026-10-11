@@ -32,15 +32,20 @@ export async function writeIfUnchanged(
   ref: DocumentReference,
   expected: number,
   write: (tx: Transaction) => void,
+  { allowMissing = false }: { allowMissing?: boolean } = {},
 ): Promise<void> {
   await runTransaction(db, async (tx) => {
     const snap = await tx.get(ref);
     const data = snap.data();
-    const conflict = checkVersion(expected, {
-      exists: snap.exists(),
-      updatedAt: data?.updatedAt?.toMillis?.(),
-      updatedBy: data?.updatedBy ?? null,
-    });
+    const conflict = checkVersion(
+      expected,
+      {
+        exists: snap.exists(),
+        updatedAt: data?.updatedAt?.toMillis?.(),
+        updatedBy: data?.updatedBy ?? null,
+      },
+      { allowMissing },
+    );
     if (conflict) throw new ConflictError(conflict);
     write(tx);
   });
