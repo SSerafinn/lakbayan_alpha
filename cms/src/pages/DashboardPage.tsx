@@ -17,7 +17,8 @@ import { listDestinations } from "../lib/destinations";
 import { useEmulators } from "../lib/firebase";
 import { listGuides } from "../lib/guides";
 import { listTours } from "../lib/tours";
-import { countUsers, listAdmins } from "../lib/users";
+import { countUsers } from "../lib/users";
+import { useAdminNames } from "../components/useAdminNames";
 import type { OfflineBundle } from "../types/bundle";
 import {
   bundlesNeedingWork,
@@ -68,8 +69,6 @@ export function DashboardPage() {
   const { user } = useAuth();
   const [data, setData] = useState<Data | null>(null);
   const [error, setError] = useState<string | null>(null);
-  /** uid → a readable name, for "by …" on the activity feed. */
-  const [names, setNames] = useState<Map<string, string>>(new Map());
 
   useEffect(() => {
     let cancelled = false;
@@ -124,27 +123,11 @@ export function DashboardPage() {
     [data],
   );
 
-  // Names for other admins' edits. Only fetched when there is someone other
-  // than the signed-in user to name, and a failure is silent — the feed reads
-  // fine without "by …", and listAdmins is a Cloud Function that may be cold.
-  useEffect(() => {
-    const others = activity.some((a) => a.by && a.by !== user?.uid);
-    if (!others) return;
-    let cancelled = false;
-    listAdmins()
-      .then((admins) => {
-        if (cancelled) return;
-        setNames(
-          new Map(
-            admins.map((a) => [a.uid, a.displayName || a.email || "an admin"]),
-          ),
-        );
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, [activity, user?.uid]);
+  // Names for other admins' edits — fetched only when there is someone other
+  // than the signed-in user to name. See useAdminNames.
+  const names = useAdminNames(
+    activity.some((a) => a.by && a.by !== user?.uid),
+  );
 
   const published =
     data?.destinations.filter((d) => d.status === "published").length;

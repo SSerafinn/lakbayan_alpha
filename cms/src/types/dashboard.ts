@@ -29,7 +29,10 @@ export type Activity = {
   /** Milliseconds since the epoch of the last write. */
   at: number;
   verb: "Added" | "Edited";
-  /** uid of the last editor. Destinations record one; tours and guides do not. */
+  /**
+   * uid of the last editor. Destinations always record one; tours and guides
+   * have since 2026-10, so older ones show no name.
+   */
   by?: string;
   /** Destinations only — tours and guides have no draft state. */
   status?: Status;
@@ -81,6 +84,7 @@ export function recentActivity(
         href: `/tours?edit=${encodeURIComponent(t.id)}`,
         at: ms(t.updatedAt),
         verb: verb(t.createdAt, t.updatedAt),
+        by: t.updatedBy ?? undefined,
       }),
     ),
     ...guides.map(
@@ -91,6 +95,7 @@ export function recentActivity(
         href: `/guides?edit=${encodeURIComponent(g.id)}`,
         at: ms(g.updatedAt),
         verb: verb(g.createdAt, g.updatedAt),
+        by: g.updatedBy ?? undefined,
       }),
     ),
   ];

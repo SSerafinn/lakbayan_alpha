@@ -394,7 +394,16 @@ CMS consumes that contract; it does not redefine it.
 
 ## CMS-4 · Weeks 13–15 — Settings and ship
 - [ ] Settings: taxonomy, app settings, policies *(screen 11)*.
-- [ ] Global states — loading, empty, error, saving/conflict *(screen 1i)*.
+- [x] Global states — loading, empty, error, saving/conflict *(screen 1i)*.
+      *Loading, empty and error states shipped with each screen; the missing
+      one was conflict. Saves are now checked against the version the editor
+      loaded (`updatedAt`, in a transaction), so two admins can no longer
+      silently overwrite each other: the second gets a dialog to load the
+      other's version, overwrite, or keep editing. The destination editor
+      also watches its document, quietly taking another admin's save when it
+      has no edits of its own and saying so when it does. Tours and guides
+      now record `updatedBy`, so both the dialog and the dashboard can say
+      who.*
 - [ ] Deploy to Firebase Hosting; restrict access to admins.
 - **DoD:** the province can maintain content without a developer.
 

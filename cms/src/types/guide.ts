@@ -24,6 +24,8 @@ export type Guide = {
   featured: boolean;
   createdAt?: Timestamp;
   updatedAt?: Timestamp;
+  /** uid of the last editor. Absent on guides written before 2026-10. */
+  updatedBy?: string | null;
 };
 
 export type GuideDraft = Omit<Guide, "id">;

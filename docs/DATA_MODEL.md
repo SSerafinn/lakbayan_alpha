@@ -58,6 +58,7 @@ tours/{id}                        // id is slugify(title) — see below
   coverImg      string?              // Storage path
   featured      bool      default false
   createdAt, updatedAt                // serverTimestamp
+  updatedBy     string?              // uid of the last editor (CMS, since 2026-10)
   // No status field. `allow read: if true` below means a tour is public the
   // moment the document exists, so there is no draft state to stage one in —
   // the CMS refuses to save a tour that is not fit to be read instead.
@@ -69,6 +70,7 @@ guides/{id}                                                    // real people �
   verified      bool      default false   // accredited by the province
   featured      bool      default false
   createdAt, updatedAt                // serverTimestamp
+  updatedBy     string?              // uid of the last editor (CMS, since 2026-10)
   // No status field, deliberately. Unlike destinations there is no draft
   // state: the rule below exposes a guide to every signed-in user the moment
   // the document exists, so "saved but not live" is not a state this
@@ -96,6 +98,14 @@ users/{uid}/itineraries/{id}                  // tours somebody built themselves
   // earn the cost of a per-field rule — but it does mean this list is kept by
   // hand. `startDate`/`endDate` reached Firestore before they reached here.
 ```
+
+**`updatedAt` doubles as the version for the CMS's save check.** An editor
+remembers the value it loaded and saves through a transaction that refuses if
+the stored value has moved on, so two admins cannot silently overwrite each
+other (`cms/src/lib/versioned.ts`). Anything that writes these collections must
+keep setting `updatedAt` on every write — a write that skips it is invisible to
+the check. `updatedBy` is optional and only names who made a conflicting
+change; tours and guides written before 2026-10, or by the importer, have none.
 
 `users/{uid}` is implemented as `UserProfile`
 (`lib/features/auth/domain/user_profile.dart`, freezed + json_serializable) and
