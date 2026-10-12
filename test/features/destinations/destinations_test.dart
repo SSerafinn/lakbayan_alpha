@@ -92,6 +92,44 @@ void main() {
       expect(find.text("Callao Cave"), findsNothing);
     });
 
+    testWidgets("a subcategory narrows a chosen category", (tester) async {
+      final repo = FakeDestinationRepository([
+        testDestination(
+          id: "falls",
+          name: "Mapaso Falls",
+          subcategory: "Waterfall",
+        ),
+        testDestination(id: "callao", name: "Callao Cave", subcategory: "Cave"),
+        testDestination(id: "palaui", name: "Palaui Island"),
+        testDestination(
+          id: "piat",
+          name: "Piat Basilica",
+          category: DestinationCategory.church,
+        ),
+      ]);
+
+      await pump(tester, const BrowseScreen(), repo: repo);
+      // No category chosen: no second row.
+      expect(find.widgetWithText(ChoiceChip, "Waterfall"), findsNothing);
+
+      await tester.tap(find.widgetWithText(ChoiceChip, "Nature"));
+      await tester.pumpAndSettle();
+      // Only the subcategories nature's places use, never an empty one.
+      expect(find.widgetWithText(ChoiceChip, "All nature"), findsOneWidget);
+      expect(find.widgetWithText(ChoiceChip, "Cave"), findsOneWidget);
+
+      await tester.tap(find.widgetWithText(ChoiceChip, "Waterfall"));
+      await tester.pumpAndSettle();
+      expect(find.text("Mapaso Falls"), findsOneWidget);
+      expect(find.text("Callao Cave"), findsNothing);
+      expect(find.text("Palaui Island"), findsNothing);
+
+      // Another category drops the subcategory rather than filtering by it.
+      await tester.tap(find.widgetWithText(ChoiceChip, "Churches"));
+      await tester.pumpAndSettle();
+      expect(find.text("Piat Basilica"), findsOneWidget);
+    });
+
     // Browse has no search field of its own since D-16: a town picked on
     // Explore or in search arrives as the filter, shown as a clearable chip.
     testWidgets("a town picked elsewhere filters in place", (tester) async {
@@ -209,6 +247,32 @@ void main() {
         tester.getTopLeft(find.text("History")).dy,
         lessThan(tester.getTopLeft(find.text("The Chapel")).dy),
       );
+    });
+
+    testWidgets("names a subcategory ahead of the town", (tester) async {
+      final repo = FakeDestinationRepository([
+        testDestination(
+          id: "falls",
+          name: "Mapaso Falls",
+          subcategory: "Waterfall",
+        ),
+        testDestination(id: "palaui", name: "Palaui Island"),
+      ]);
+
+      await pump(
+        tester,
+        const DestinationDetailScreen(id: "falls"),
+        repo: repo,
+      );
+      expect(find.text("Waterfall in Peñablanca"), findsOneWidget);
+
+      await pump(
+        tester,
+        const DestinationDetailScreen(id: "palaui"),
+        repo: repo,
+      );
+      // Without one, the category's own noun, as before.
+      expect(find.text("Nature in Peñablanca"), findsOneWidget);
     });
 
     testWidgets("handles a destination that is gone or unpublished", (

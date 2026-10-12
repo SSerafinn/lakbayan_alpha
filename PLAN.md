@@ -407,6 +407,13 @@ CMS consumes that contract; it does not redefine it.
       (privacy and terms, each with its own "last updated"). Public read, admin
       write to those three ids only. The app does not show `app` or `policies`
       yet — see Phase 5.*
+      *Then made harder to get wrong: towns, tags and subcategories are picked
+      from what exists, with "did you mean" for slips and accents, a
+      non-official town never one keypress away, Undo on removal, a misspelt
+      town fixable on every place that uses it, and a warning in the editor.
+      Subcategories (destinations v3) sit under the six fixed categories and
+      take their look, so the province adds them without an app release; the
+      app shows them on a place and as a second chip row on Browse.*
 - [x] Global states — loading, empty, error, saving/conflict *(screen 1i)*.
       *Loading, empty and error states shipped with each screen; the missing
       one was conflict. Saves are now checked against the version the editor

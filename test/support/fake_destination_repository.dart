@@ -8,6 +8,7 @@ Destination testDestination({
   String? name,
   String town = "Peñablanca",
   DestinationCategory category = DestinationCategory.nature,
+  String? subcategory,
   bool popular = false,
   bool featured = false,
   bool hasAR = false,
@@ -19,6 +20,7 @@ Destination testDestination({
   slug: id,
   town: town,
   category: category,
+  subcategory: subcategory,
   description: "A place in Cagayan.",
   // No images: StorageImage would reach for Firebase Storage, which is not
   // bound in a widget test. The placeholder path is what renders.

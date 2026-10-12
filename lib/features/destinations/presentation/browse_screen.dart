@@ -42,6 +42,8 @@ class BrowseScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final selected = ref.watch(browseCategoryProvider);
+    final subcategory = ref.watch(browseSubcategoryProvider);
+    final subcategories = ref.watch(browseSubcategoriesProvider);
     final query = ref.watch(browseQueryProvider);
     final topInset = MediaQuery.viewPaddingOf(context).top;
     final columns = switch (_WidthClass.of(context)) {
@@ -54,6 +56,7 @@ class BrowseScreen extends ConsumerWidget {
     void clearAll() {
       ref.read(browseQueryProvider.notifier).update("");
       ref.read(browseCategoryProvider.notifier).select(null);
+      ref.read(browseSubcategoryProvider.notifier).select(null);
     }
 
     return Column(
@@ -107,6 +110,28 @@ class BrowseScreen extends ConsumerWidget {
                 ),
           ],
         ),
+        // A chosen category's finer kinds, when its places use any. The same
+        // chips one step down: selection is still single and still green.
+        if (selected != null && subcategories.isNotEmpty) ...[
+          const SizedBox(height: AppSpace.x2),
+          FilterChipRow(
+            items: [
+              FilterChipItem(
+                label: "All ${selected.label.toLowerCase()}",
+                selected: subcategory == null,
+                onTap: () =>
+                    ref.read(browseSubcategoryProvider.notifier).select(null),
+              ),
+              for (final name in subcategories)
+                FilterChipItem(
+                  label: name,
+                  selected: subcategory == name,
+                  onTap: () =>
+                      ref.read(browseSubcategoryProvider.notifier).select(name),
+                ),
+            ],
+          ),
+        ],
         const SizedBox(height: AppSpace.x2),
         Expanded(
           child: rows.when(
@@ -117,7 +142,10 @@ class BrowseScreen extends ConsumerWidget {
             ),
             data: (rows) => rows.isEmpty
                 ? _NoResults(
-                    hasFilters: selected != null || query.isNotEmpty,
+                    hasFilters:
+                        selected != null ||
+                        subcategory != null ||
+                        query.isNotEmpty,
                     onClear: clearAll,
                   )
                 : _PhotoGrid(rows: rows, columns: columns),

@@ -137,6 +137,53 @@ export async function retagDestinations(
 }
 
 /**
+ * Correct a town's spelling on every destination that uses it — the fix for
+ * a misspelling, at the source. Returns how many changed.
+ *
+ * Each counts as an edit, so an open editor is told. A town's offline bundle
+ * is keyed by its slug, and "Penablanca" and "Peñablanca" share one, so the
+ * bundle survives; it does need rebuilding to carry the new spelling, which
+ * the dashboard will flag since the places changed.
+ */
+export async function renameTown(from: string, to: string): Promise<number> {
+  return rewriteWhere([where("town", "==", from)], () => ({ town: to }));
+}
+
+/**
+ * Take a subcategory off every destination in `category` that has it,
+ * leaving them with just their category. Returns how many changed.
+ */
+export async function clearSubcategory(
+  category: string,
+  subcategory: string,
+): Promise<number> {
+  return rewriteWhere(
+    [where("category", "==", category), where("subcategory", "==", subcategory)],
+    () => ({ subcategory: null }),
+  );
+}
+
+/** Apply a patch to every destination matching the filters, as edits. */
+async function rewriteWhere(
+  filters: ReturnType<typeof where>[],
+  patch: (data: Record<string, unknown>) => Record<string, unknown>,
+): Promise<number> {
+  const snap = await getDocs(query(collection(db, COLLECTION), ...filters));
+  for (let i = 0; i < snap.docs.length; i += 450) {
+    const batch = writeBatch(db);
+    for (const d of snap.docs.slice(i, i + 450)) {
+      batch.update(d.ref, {
+        ...patch(d.data()),
+        updatedAt: serverTimestamp(),
+        updatedBy: auth.currentUser?.uid ?? null,
+      });
+    }
+    await batch.commit();
+  }
+  return snap.size;
+}
+
+/**
  * Follow one destination while its editor is open, so a save by another admin
  * is noticed when it happens rather than when this one tries to save over it.
  * `null` means it has been deleted.

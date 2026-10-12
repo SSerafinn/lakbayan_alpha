@@ -5,6 +5,8 @@ export type ToastInput = {
   variant: AlertVariant;
   title: string;
   description?: string;
+  /** One follow-up, such as Undo. Pressing it also dismisses the toast. */
+  action?: { label: string; onClick: () => void };
 };
 
 export type ToastApi = {

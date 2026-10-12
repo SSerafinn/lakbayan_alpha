@@ -6,7 +6,10 @@ import {
   type ChangeEvent,
 } from "react";
 import { useBlocker, useNavigate, useParams } from "react-router-dom";
-import { useTowns } from "../components/useTowns";
+import { useTaxonomy } from "../components/useTaxonomy";
+import { useTagVocabulary } from "../components/useTagVocabulary";
+import { SuggestInput } from "../components/SuggestInput";
+import { suggest } from "../types/fuzzy";
 import {
   createDestination,
   deleteImage,
@@ -849,8 +852,17 @@ function OrganisationCard({
   errors: Record<string, string>;
   set: SetField;
 }) {
-  // The province's list from Settings, or the built-in one until saved.
-  const towns = useTowns();
+  // The province's lists from Settings, or the built-in towns until saved.
+  const { towns, subcategories } = useTaxonomy();
+  const town = draft.town.trim();
+  // A town not on the list is usually a misspelling of one that is.
+  const townMatch =
+    town && !towns.includes(town) ? suggest(town, towns)[0] : undefined;
+  const subOptions = subcategories[draft.category] ?? [];
+  const staleSub =
+    draft.subcategory && !subOptions.includes(draft.subcategory)
+      ? draft.subcategory
+      : null;
   return (
     <Section title="Organisation" single>
       {/* The list the town field's `list="towns"` refers to. Without this the
@@ -874,18 +886,69 @@ function OrganisationCard({
           list="towns"
           placeholder="Peñablanca"
         />
+        {town && !towns.includes(town) && (
+          <p className="field-warn">
+            Not on the town list.{" "}
+            {townMatch ? (
+              <button
+                className="link-button"
+                onClick={() => set("town", townMatch.value)}
+              >
+                Use {townMatch.value}
+              </button>
+            ) : (
+              "If it is right, add it in Settings."
+            )}
+          </p>
+        )}
       </Field>
 
       <Field label="Category" required>
         <select
           value={draft.category}
-          onChange={(e) => set("category", e.target.value as Category)}
+          onChange={(e) => {
+            const c = e.target.value as Category;
+            set("category", c);
+            // A subcategory belongs to its category; one that does not
+            // exist under the new category would be meaningless there.
+            if (
+              draft.subcategory &&
+              !(subcategories[c] ?? []).includes(draft.subcategory)
+            ) {
+              set("subcategory", null);
+            }
+          }}
         >
           {CATEGORIES.map((c) => (
             <option key={c} value={c}>
               {CATEGORY_LABELS[c]}
             </option>
           ))}
+        </select>
+      </Field>
+
+      <Field
+        label="Subcategory"
+        hint={
+          subOptions.length || staleSub
+            ? "Optional — a finer kind within the category."
+            : `None set up under ${CATEGORY_LABELS[draft.category]} yet — add them in Settings.`
+        }
+      >
+        <select
+          value={draft.subcategory ?? ""}
+          disabled={!subOptions.length && !staleSub}
+          onChange={(e) => set("subcategory", e.target.value || null)}
+        >
+          <option value="">None</option>
+          {subOptions.map((s) => (
+            <option key={s} value={s}>
+              {s}
+            </option>
+          ))}
+          {staleSub && (
+            <option value={staleSub}>{staleSub} (no longer in Settings)</option>
+          )}
         </select>
       </Field>
 
@@ -901,16 +964,15 @@ function TagsField({
   tags: string[];
   onChange: (tags: string[]) => void;
 }) {
-  const [input, setInput] = useState("");
-
-  function commit() {
-    const t = input.trim().toLowerCase().replace(/,$/, "");
-    if (t && !tags.includes(t)) onChange([...tags, t]);
-    setInput("");
-  }
+  // Tags already used anywhere, so "cave" offers the "caves" that exists
+  // rather than quietly starting a second tag.
+  const vocabulary = useTagVocabulary();
 
   return (
-    <Field label="Tags" hint="Press Enter or a comma after each.">
+    <Field
+      label="Tags"
+      hint="Press Enter or a comma after each. Existing tags are offered first."
+    >
       <div className="tag-row">
         {tags.map((t) => (
           <span key={t} className="badge">
@@ -924,19 +986,15 @@ function TagsField({
             </button>
           </span>
         ))}
-        <input
-          className="tag-input"
+        <SuggestInput
+          label="Add a tag"
           placeholder="Add a tag"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          // Commit on Enter, comma, or blur. Enter-only loses a tag whenever
-          // someone types it and clicks away, which is most of the time.
-          onKeyDown={(e) => {
-            if (e.key !== "Enter" && e.key !== ",") return;
-            e.preventDefault();
-            commit();
-          }}
-          onBlur={commit}
+          candidates={vocabulary}
+          existing={tags}
+          normalizeNew={(s) => s.trim().toLowerCase().replace(/,$/, "")}
+          commitKeys={["Enter", ","]}
+          commitOnBlur
+          onPick={(t) => onChange([...tags, t.toLowerCase()])}
         />
       </div>
     </Field>

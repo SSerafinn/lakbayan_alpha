@@ -7,7 +7,7 @@ import { segmentProblems, type SegmentDraft } from "./segment";
  * Three representations of one contract. When the schema changes, all three
  * move together — that is why the CMS lives in this repo (D-10).
  */
-export const DESTINATION_SCHEMA_VERSION = 2;
+export const DESTINATION_SCHEMA_VERSION = 3;
 
 export const CATEGORIES = [
   "church",
@@ -43,6 +43,11 @@ export type Destination = {
   slug: string;
   town: string;
   category: Category;
+  /**
+   * A finer kind within the category, from Settings → Taxonomy. Null for
+   * none — never undefined, which Firestore refuses to write.
+   */
+  subcategory?: string | null;
   /** Card and detail intro. Capped at 140 characters — see MAX_DESCRIPTION. */
   description: string;
   history?: string;
@@ -105,6 +110,7 @@ export function emptyDestination(): Omit<Destination, "id"> {
     slug: "",
     town: "",
     category: "nature",
+    subcategory: null,
     description: "",
     coords: { ...CAGAYAN_CENTRE },
     images: [],

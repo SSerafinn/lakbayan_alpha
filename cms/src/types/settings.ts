@@ -1,5 +1,5 @@
 import type { Timestamp } from "firebase/firestore";
-import { slugify, type Destination } from "./destination";
+import { slugify, type Category, type Destination } from "./destination";
 
 /**
  * `settings/{taxonomy | app | policies}` — mirrors `docs/DATA_MODEL.md` and
@@ -17,7 +17,11 @@ export type Stamped = {
   schemaVersion?: number;
 };
 
-export type TaxonomySettings = { towns: string[] };
+export type TaxonomySettings = {
+  towns: string[];
+  /** Finer kinds under each fixed category; a category with none is absent. */
+  subcategories: Partial<Record<Category, string[]>>;
+};
 
 export type OfficeContact = {
   office?: string;
@@ -99,6 +103,33 @@ export function townsNotListed(
   return [...counts.entries()]
     .map(([town, count]) => ({ town, count }))
     .sort((a, b) => a.town.localeCompare(b.town));
+}
+
+// ---- subcategories ------------------------------------------------------------
+
+/** How many places use each subcategory, per category. */
+export function subcategoryUsage(
+  destinations: Pick<Destination, "category" | "subcategory">[],
+): Map<string, number> {
+  const counts = new Map<string, number>();
+  for (const d of destinations) {
+    if (!d.subcategory) continue;
+    const key = `${d.category}/${d.subcategory}`;
+    counts.set(key, (counts.get(key) ?? 0) + 1);
+  }
+  return counts;
+}
+
+/** Drop empty lists and tidy each, so the stored map only holds what is used. */
+export function cleanSubcategories(
+  map: TaxonomySettings["subcategories"],
+): TaxonomySettings["subcategories"] {
+  const out: TaxonomySettings["subcategories"] = {};
+  for (const [category, list] of Object.entries(map) as [Category, string[]][]) {
+    const tidy = normalizeTowns(list ?? []); // same rules: trimmed, no near-dupes, sorted
+    if (tidy.length) out[category] = tidy;
+  }
+  return out;
 }
 
 // ---- tags ---------------------------------------------------------------------

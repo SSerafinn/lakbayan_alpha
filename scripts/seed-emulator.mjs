@@ -46,7 +46,7 @@ import { slugify } from "./lib/slug.mjs";
 import { toneWav } from "./lib/tone.mjs";
 
 const PROJECT_ID = "demo-lakbayan";
-const SCHEMA_VERSION = 2;
+const SCHEMA_VERSION = 3;
 
 /** Emulator-only credentials. Safe to hardcode; see the guard below. */
 const ADMIN_EMAIL = process.argv[2] ?? "test@gmail.com";
