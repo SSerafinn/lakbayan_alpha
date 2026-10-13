@@ -226,6 +226,7 @@ Email/password sign-in works without any of this.
 | Plan an offline map pack for a town | `cd scripts && node extract-tiles.mjs "Peñablanca"` (add `--run` to build it) |
 | Rasterise that pack for the app | `docker compose --profile tiles run --rm tiles node rasterise.mjs …` — see [docs/DOCKER.md](docs/DOCKER.md#map-tile-packs) |
 | Add or remove an admin | CMS → **Users & roles** (first admin on a fresh project: `scripts/grant-admin.mjs`) |
+| Deploy the CMS | `firebase deploy --only hosting:cms --project project-lakbayan` — see [cms/README.md](cms/README.md#deploy) first |
 | Cloud Functions tests on the host | `cd functions && npm install && npm test` |
 | Find the emulator host for a phone | `node scripts/emulator-host.mjs` |
 | Refill an empty emulator | `cd scripts && node seed-emulator.mjs` |

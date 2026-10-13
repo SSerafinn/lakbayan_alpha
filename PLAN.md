@@ -334,7 +334,15 @@ CMS consumes that contract; it does not redefine it.
       "not an administrator" state — they signed in fine, they are just not staff.
 - [x] Point at the Firebase emulators in dev, same demo project as the app.
 - [x] App shell with the seven-section sidebar; dashboard with live counts *(screen 2)*.
-- [ ] Firebase Hosting target + deploy.
+- [x] Firebase Hosting target + deploy.
+      *Target `cms` in `firebase.json`, mapped in `.firebaserc` to the dev
+      project's default site, with no default project so every deploy names
+      one. The deploy builds first and refuses a build that talks to the
+      emulators. Deep links rewrite to the app, hashed assets are cached for a
+      year and the page itself never. Security headers: no framing, no
+      sniffing, no indexing, and a full CSP sent report-only until the live
+      site has been walked through with it. Steps, rollback and the local
+      preview are in `cms/README.md` → Deploy. The deploy itself is CMS-4.*
 
 ## CMS-1 · Weeks 4–6 — Destinations  → **unblocks mobile Phase 2**
 - [x] Dashboard *(screen 2)* — activity feed and quick actions. The live counts
@@ -425,6 +433,10 @@ CMS consumes that contract; it does not redefine it.
       now record `updatedBy`, so both the dialog and the dashboard can say
       who.*
 - [ ] Deploy to Firebase Hosting; restrict access to admins.
+      *Ready to run — `cms/README.md` → Deploy, rules first. Access needs
+      nothing new: the site is public files, and the rules already require the
+      `admin` claim for every write and every read of unpublished data. Then promote the CSP
+      from report-only.*
 - **DoD:** the province can maintain content without a developer.
 
 ---
