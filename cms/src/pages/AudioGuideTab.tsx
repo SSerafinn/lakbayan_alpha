@@ -3,18 +3,21 @@ import { ChevronDown, ChevronUp, Mic, Trash2, Volume2 } from "lucide-react";
 import { Field } from "../components/Form";
 import { useToast } from "../components/toast-context";
 import {
-  AUDIO_EXTENSIONS,
   audioDownloadUrl,
   deleteAudio,
   newSegmentId,
   uploadAudio,
 } from "../lib/segments";
+import { formatBytes } from "../types/bundle";
+import { AUDIO_TYPES, audioExtension, MAX_AUDIO_BYTES } from "../types/media";
 import {
   emptySegment,
   narrationSource,
   segmentProblems,
   type SegmentDraft,
 } from "../types/segment";
+
+const AUDIO_FORMATS = Object.keys(AUDIO_TYPES).join(", ");
 
 /**
  * Admin wireframe screen 5 — the audio guide for one destination.
@@ -160,12 +163,20 @@ function SegmentRow({
     const file = files?.[0];
     if (!file) return;
 
-    const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
-    if (!AUDIO_EXTENSIONS.includes(ext as (typeof AUDIO_EXTENSIONS)[number])) {
+    if (!audioExtension(file.name)) {
       toast.toast({
         variant: "warning",
         title: "That file was not uploaded",
-        description: `Narration must be one of ${AUDIO_EXTENSIONS.join(", ")}.`,
+        description: `Narration must be one of ${AUDIO_FORMATS}.`,
+      });
+      return;
+    }
+    // storage.rules refuses it anyway; this says why, and what to do.
+    if (file.size > MAX_AUDIO_BYTES) {
+      toast.toast({
+        variant: "warning",
+        title: "That recording is too large",
+        description: `It is ${formatBytes(file.size)}; the limit is ${formatBytes(MAX_AUDIO_BYTES)}. Export it as MP3 or M4A — a few minutes is then a few MB.`,
       });
       return;
     }
@@ -256,7 +267,7 @@ function SegmentRow({
 
         <Field
           label="Recording"
-          hint={`${AUDIO_EXTENSIONS.join(", ")} — plays as-is in the app.`}
+          hint={`${AUDIO_FORMATS} — plays as-is in the app.`}
         >
           <div className="segment-audio">
             <button
