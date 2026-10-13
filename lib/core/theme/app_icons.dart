@@ -69,4 +69,14 @@ abstract final class AppIcons {
   static const IconData rename = CupertinoIcons.pencil;
 
   static const IconData directions = CupertinoIcons.arrow_turn_up_right;
+
+  /// Reaching the province: Help's lines and office, and Profile's row to
+  /// them. Always beside the number or address itself.
+  static const IconData phone = CupertinoIcons.phone;
+  static const IconData mail = CupertinoIcons.mail;
+  static const IconData place = CupertinoIcons.location;
+
+  /// Profile's rows to the privacy policy and the terms of use.
+  static const IconData privacy = CupertinoIcons.lock_shield;
+  static const IconData document = CupertinoIcons.doc_text;
 }
