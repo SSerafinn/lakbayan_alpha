@@ -4,11 +4,14 @@ Change collection shapes only alongside `firestore.rules`, `firestore.indexes.js
 and a `schemaVersion` bump. Use the `add-collection` skill.
 
 ```
-destinations/{id}                                              // schemaVersion 2
+destinations/{id}                                              // schemaVersion 3
   name          string    required
   slug          string    required   // auto from name; used in deep links
   town          string    required   // municipality, e.g. "Peñablanca"
   category      string    required   // enum below
+  subcategory   string?              // finer kind within `category`, e.g. "Waterfall"
+                                     // under nature; one of settings/taxonomy's
+                                     // list for that category, or null
   description   string    required   // card + detail intro, max 140 chars
   history       string?              // long-form; detail screen only
   coords        map       required   // { lat: number, lng: number }
@@ -113,6 +116,10 @@ settings/{taxonomy | app | policies}           // schemaVersion 1 — province-w
                                      // offline bundles. Categories are NOT here:
                                      // the app draws a glyph and colour per
                                      // kind, so a new one is an app release.
+    subcategories map?               // { [category]: string[] } — finer kinds the
+                                     // province adds under each fixed category.
+                                     // They borrow their category's glyph and
+                                     // colour, so adding one needs no release.
   app:
     contact     map?                 // { office?, phone?, email?, hours?, address? }, free text
     hotlines    list                 // [{ label, number }], in display order
@@ -185,9 +192,17 @@ records who obtained it and when (`docs/data-intake/04-local-guides.csv`), and
 Firestore carries that fact. If the province ever needs to prove consent from the
 system rather than from a spreadsheet, that is a schema change.
 
-**schemaVersion 2** (destinations). Bump it here and in
+**schemaVersion 3** (destinations). Bump it here and in
 `destinationSchemaVersion` together with any shape change, so a client reading a
 cached document written by an older build can tell.
+
+### Changes in v3 (2026-10-12)
+
+Added `subcategory`, optional. The six categories stay fixed — the app draws a
+glyph and a colour for each — and the province now adds finer kinds under them
+in Settings, which inherit their category's look. An older build ignores the
+field; nothing else about the document changed. `scripts/import-content.mjs`
+merges into destinations, so a re-import keeps a subcategory set in the CMS.
 
 ### Changes in v2 (2026-08-04)
 

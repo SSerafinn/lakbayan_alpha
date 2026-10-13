@@ -303,7 +303,12 @@ export function DestinationsListPage() {
                     <span className="hint">{d.town || "No town yet"}</span>
                   </div>
                 </td>
-                <td>{CATEGORY_LABELS[d.category] ?? d.category}</td>
+                <td>
+                  {CATEGORY_LABELS[d.category] ?? d.category}
+                  {d.subcategory && (
+                    <span className="hint"> · {d.subcategory}</span>
+                  )}
+                </td>
                 <td>
                   <span
                     className={

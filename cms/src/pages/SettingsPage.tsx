@@ -8,8 +8,16 @@ import { Dialog } from "../components/Dialog";
 import { Field, Section } from "../components/Form";
 import { PageHeader } from "../components/PageHeader";
 import { useToast } from "../components/toast-context";
-import { refreshTowns } from "../components/useTowns";
-import { listDestinations, retagDestinations } from "../lib/destinations";
+import { SuggestInput } from "../components/SuggestInput";
+import { refreshTaxonomy } from "../components/useTaxonomy";
+import { refreshTagVocabulary } from "../components/useTagVocabulary";
+import {
+  clearSubcategory,
+  listDestinations,
+  renameTown,
+  retagDestinations,
+} from "../lib/destinations";
+import { capitalise, suggest } from "../types/fuzzy";
 import {
   getSettings,
   nowStamp,
@@ -22,6 +30,7 @@ import { relativeTime } from "../types/dashboard";
 import {
   CATEGORIES,
   CATEGORY_LABELS,
+  type Category,
   type Destination,
 } from "../types/destination";
 import { formatDate } from "../types/format";
@@ -29,11 +38,13 @@ import {
   MAX_ANNOUNCEMENT,
   announcementState,
   cleanHotlines,
+  cleanSubcategories,
   dateInputFromUntil,
   emptyApp,
   emptyPolicies,
   hotlineProblem,
   normalizeTowns,
+  subcategoryUsage,
   tagUsage,
   townsNotListed,
   untilFromDateInput,
@@ -160,8 +171,8 @@ export function SettingsPage() {
 
   const taxonomy = useSettingsDoc<TaxonomySettings>(
     "taxonomy",
-    () => ({ towns: [...CAGAYAN_TOWNS] }),
-    (raw) => ({ towns: raw.towns ?? [] }),
+    () => ({ towns: [...CAGAYAN_TOWNS], subcategories: {} }),
+    (raw) => ({ towns: raw.towns ?? [], subcategories: raw.subcategories ?? {} }),
   );
   const app = useSettingsDoc<AppSettings>("app", emptyApp, (raw) => ({
     contact: raw.contact ?? {},
@@ -211,8 +222,16 @@ export function SettingsPage() {
           toast.error("Keep at least one town", "The town field needs a list to offer.");
           return;
         }
-        ok = await taxonomy.save({ data: { towns } }, { force });
-        if (ok) refreshTowns();
+        ok = await taxonomy.save(
+          {
+            data: {
+              towns,
+              subcategories: cleanSubcategories(taxonomy.draft.subcategories),
+            },
+          },
+          { force },
+        );
+        if (ok) refreshTaxonomy();
       }
       if (tab === "app" && app.draft) {
         const problem = hotlineProblem(app.draft.hotlines);
@@ -341,11 +360,11 @@ export function SettingsPage() {
           </div>
         ) : tab === "taxonomy" ? (
           <TaxonomyTab
-            towns={taxonomy.draft!.towns}
+            value={taxonomy.draft!}
             exists={taxonomy.exists}
             destinations={destinations}
-            onTowns={(towns) => taxonomy.setDraft({ towns })}
-            onRetagged={() => void reloadDestinations()}
+            update={(fn) => taxonomy.setDraft((d) => (d ? fn(d) : d))}
+            onDestinationsChanged={() => void reloadDestinations()}
           />
         ) : tab === "app" ? (
           <AppTab value={app.draft!} onChange={app.setDraft} />
@@ -392,24 +411,75 @@ function trimContact(c: AppSettings["contact"]): AppSettings["contact"] {
 
 // ---- towns and tags -----------------------------------------------------------
 
+type TaxonomyUpdate = (
+  fn: (v: TaxonomySettings) => TaxonomySettings,
+) => void;
+
 function TaxonomyTab({
+  value,
+  exists,
+  destinations,
+  update,
+  onDestinationsChanged,
+}: {
+  value: TaxonomySettings;
+  exists: boolean;
+  destinations: Destination[] | null;
+  /** Functional, so an Undo restores what it removed even after other edits. */
+  update: TaxonomyUpdate;
+  onDestinationsChanged: () => void;
+}) {
+  return (
+    <>
+      <TownsSection
+        towns={value.towns}
+        exists={exists}
+        destinations={destinations}
+        update={update}
+        onDestinationsChanged={onDestinationsChanged}
+      />
+      <SubcategoriesSection
+        value={value.subcategories}
+        destinations={destinations}
+        update={update}
+        onDestinationsChanged={onDestinationsChanged}
+      />
+      <TagsSection
+        destinations={destinations}
+        onRetagged={onDestinationsChanged}
+      />
+    </>
+  );
+}
+
+/**
+ * The town list, built by picking rather than typing.
+ *
+ * The add field searches Cagayan's official towns and offers the official
+ * spelling for anything close — "Penablanca", "Penablanka" and "penablanca"
+ * all offer Peñablanca, and Enter takes it. A name that is not an official
+ * town is the last option, never the default, and says so. Removing a town
+ * that places use asks first; any removal can be undone from the toast.
+ */
+function TownsSection({
   towns,
   exists,
   destinations,
-  onTowns,
-  onRetagged,
+  update,
+  onDestinationsChanged,
 }: {
   towns: string[];
   exists: boolean;
   destinations: Destination[] | null;
-  onTowns: (towns: string[]) => void;
-  onRetagged: () => void;
+  update: TaxonomyUpdate;
+  onDestinationsChanged: () => void;
 }) {
-  const [input, setInput] = useState("");
+  const toast = useToast();
   const inUse = useMemo(() => {
     const m = new Map<string, number>();
     for (const d of destinations ?? []) {
-      m.set(d.town.trim(), (m.get(d.town.trim()) ?? 0) + 1);
+      const t = d.town.trim();
+      if (t) m.set(t, (m.get(t) ?? 0) + 1);
     }
     return m;
   }, [destinations]);
@@ -418,109 +488,369 @@ function TaxonomyTab({
     [destinations, towns],
   );
 
-  function add(name: string) {
-    const t = name.trim();
-    if (!t) return;
-    onTowns(normalizeTowns([...towns, t]));
-    setInput("");
+  const [confirmRemove, setConfirmRemove] = useState<string | null>(null);
+  const [fix, setFix] = useState<{ from: string; count: number } | null>(null);
+  const [fixTo, setFixTo] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const places = (n: number) => `${n} place${n === 1 ? "" : "s"}`;
+  const official = new Set<string>(CAGAYAN_TOWNS);
+  const describeTown = (t: string) =>
+    [
+      official.has(t) ? "official" : "not on the official list",
+      inUse.get(t) ? places(inUse.get(t)!) : "",
+    ]
+      .filter(Boolean)
+      .join(" · ");
+
+  const add = (t: string) =>
+    update((v) => ({ ...v, towns: normalizeTowns([...v.towns, t]) }));
+
+  function remove(t: string) {
+    update((v) => ({ ...v, towns: v.towns.filter((x) => x !== t) }));
+    toast.toast({
+      variant: "info",
+      title: `${t} taken off the list`,
+      description: "Save to keep the change.",
+      action: { label: "Undo", onClick: () => add(t) },
+    });
+  }
+
+  function openFix(from: string, count: number) {
+    setFix({ from, count });
+    // Start from the likeliest correction, so the common case is one click.
+    setFixTo(suggest(from, [...new Set([...towns, ...CAGAYAN_TOWNS])])[0]?.value ?? null);
+  }
+
+  async function runFix() {
+    if (!fix || !fixTo) return;
+    setBusy(true);
+    try {
+      const n = await renameTown(fix.from, fixTo);
+      if (!towns.includes(fixTo)) add(fixTo);
+      toast.success(
+        `${places(n)} now say ${fixTo}`,
+        "Rebuild that town's offline bundle so phones get the spelling — the dashboard will list it.",
+      );
+      setFix(null);
+      onDestinationsChanged();
+    } catch (err) {
+      toast.error(
+        "That didn't work",
+        err instanceof Error ? err.message : String(err),
+      );
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
-    <>
-      <Section
-        title="Towns and municipalities"
-        hint="The list offered for a destination's town. A town groups its offline bundle, so spelling matters: “Peñablanca” and “Penablanca” would be two towns, and two downloads."
-        action={
-          <button
-            className="btn-quiet sm"
-            onClick={() => onTowns(normalizeTowns([...CAGAYAN_TOWNS]))}
-          >
-            Restore the built-in list
-          </button>
+    <Section
+      title="Towns and municipalities"
+      hint="The list offered for a destination's town. A town groups its offline bundle, so the spelling matters: pick from Cagayan's official towns rather than typing one."
+      action={
+        <button
+          className="btn-quiet sm"
+          onClick={() =>
+            update((v) => ({ ...v, towns: normalizeTowns([...CAGAYAN_TOWNS]) }))
+          }
+        >
+          Restore the official list
+        </button>
+      }
+    >
+      <div className="f wide">
+        {!exists && (
+          <p className="hint">
+            Not saved yet — this is the built-in list the CMS has been using.
+            Save to make it the province's.
+          </p>
+        )}
+        {missing.length > 0 && (
+          <Alert variant="warning" title="Places with a town that is not on the list">
+            <ul>
+              {missing.map((m) => (
+                <li key={m.town}>
+                  <strong>{m.town}</strong> — {places(m.count)}.{" "}
+                  <button
+                    className="link-button"
+                    onClick={() => openFix(m.town, m.count)}
+                  >
+                    Fix the spelling on {m.count === 1 ? "it" : "them"}
+                  </button>
+                  {" or "}
+                  <button className="link-button" onClick={() => add(m.town)}>
+                    add it to the list
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </Alert>
+        )}
+        <div className="tag-row">
+          {towns.map((t) => (
+            <span key={t} className="badge">
+              {t}
+              {inUse.get(t) ? (
+                <span className="chip-count">{inUse.get(t)}</span>
+              ) : null}
+              <button
+                className="tag-x"
+                aria-label={`Remove ${t}`}
+                onClick={() =>
+                  inUse.get(t) ? setConfirmRemove(t) : remove(t)
+                }
+              >
+                ×
+              </button>
+            </span>
+          ))}
+          <SuggestInput
+            label="Add a town"
+            placeholder="Add a town"
+            candidates={CAGAYAN_TOWNS}
+            existing={towns}
+            describe={describeTown}
+            newWarning="not a Cagayan town"
+            newByDefault={false}
+            normalizeNew={capitalise}
+            onPick={(t) => add(t)}
+          />
+        </div>
+        <p className="hint">
+          {towns.length} towns. The number on a town is how many places use it.
+        </p>
+      </div>
+
+      <Dialog
+        open={confirmRemove !== null}
+        onDismiss={() => setConfirmRemove(null)}
+        variant="warning"
+        title={`Take ${confirmRemove ?? ""} off the list?`}
+        actions={
+          <>
+            <button className="btn-quiet" onClick={() => setConfirmRemove(null)}>
+              Keep it
+            </button>
+            <button
+              className="btn-secondary"
+              onClick={() => {
+                if (confirmRemove) remove(confirmRemove);
+                setConfirmRemove(null);
+              }}
+            >
+              Take it off
+            </button>
+          </>
         }
       >
-        <div className="f wide">
-          {!exists && (
-            <p className="hint">
-              Not saved yet — this is the built-in list the CMS has been using.
-              Save to make it the province's.
-            </p>
-          )}
-          {missing.length > 0 && (
-            <Alert
-              variant="warning"
-              title="Used by destinations, but not in this list"
+        {confirmRemove && places(inUse.get(confirmRemove) ?? 0)} use it. They
+        keep it as their town — the list just stops offering it. If it is a
+        misspelling, fix those places instead, from the warning above once it
+        is off the list.
+      </Dialog>
+
+      <Dialog
+        open={fix !== null}
+        onDismiss={() => setFix(null)}
+        variant="info"
+        title={`Fix “${fix?.from ?? ""}”`}
+        actions={
+          <>
+            <button className="btn-quiet" onClick={() => setFix(null)}>
+              Cancel
+            </button>
+            <button
+              className="btn-primary"
+              disabled={busy || !fixTo || fixTo === fix?.from}
+              onClick={() => void runFix()}
             >
-              <ul>
-                {missing.map((m) => (
-                  <li key={m.town}>
-                    <strong>{m.town}</strong> — {m.count} place
-                    {m.count === 1 ? "" : "s"}.{" "}
-                    <button
-                      className="link-button"
-                      onClick={() => add(m.town)}
-                    >
-                      Add it
-                    </button>{" "}
-                    if it is right; if it is a misspelling, correct those
-                    places instead.
-                  </li>
-                ))}
-              </ul>
-            </Alert>
-          )}
-          <div className="tag-row">
-            {towns.map((t) => (
-              <span key={t} className="badge">
-                {t}
-                {inUse.get(t) ? (
-                  <span className="chip-count">{inUse.get(t)}</span>
-                ) : null}
-                <button
-                  className="tag-x"
-                  aria-label={`Remove ${t}`}
-                  onClick={() => onTowns(towns.filter((x) => x !== t))}
-                >
-                  ×
-                </button>
-              </span>
-            ))}
-            <input
-              className="tag-input"
-              placeholder="Add a town"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key !== "Enter") return;
-                e.preventDefault();
-                add(input);
-              }}
-            />
-          </div>
-          <p className="hint">
-            {towns.length} towns. The number on a town is how many places use
-            it; removing one leaves those places as they are.
-          </p>
-        </div>
-      </Section>
-
-      <TagsSection destinations={destinations} onRetagged={onRetagged} />
-
-      <Section
-        title="Categories"
-        hint="Fixed. The app draws a glyph and a colour for each kind of place, so a new category arrives with an app release, not from here."
+              Change on {fix ? places(fix.count) : ""}
+            </button>
+          </>
+        }
       >
-        <div className="f wide">
-          <div className="tag-row">
-            {CATEGORIES.map((c) => (
-              <span key={c} className="badge">
-                {CATEGORY_LABELS[c]}
-              </span>
-            ))}
-          </div>
+        <div className="fix-town">
+          <p>
+            Change the town on {fix ? places(fix.count) : ""} from{" "}
+            <strong>{fix?.from}</strong> to{" "}
+            {fixTo ? <strong>{fixTo}</strong> : "…"}
+          </p>
+          <SuggestInput
+            label="Change to"
+            placeholder="Choose a different town"
+            candidates={[...new Set([...CAGAYAN_TOWNS, ...towns])]}
+            describe={describeTown}
+            newWarning="not a Cagayan town"
+            newByDefault={false}
+            normalizeNew={capitalise}
+            onPick={(t) => setFixTo(t)}
+          />
         </div>
-      </Section>
-    </>
+      </Dialog>
+    </Section>
+  );
+}
+
+/**
+ * Finer kinds under the six fixed categories.
+ *
+ * The six stay fixed because the app draws a glyph and a colour for each. A
+ * subcategory takes its category's, so the province can add one with no app
+ * release. Adding is the same pick-first field as towns, against every
+ * subcategory already named; taking one off that places use clears it from
+ * them, after asking.
+ */
+function SubcategoriesSection({
+  value,
+  destinations,
+  update,
+  onDestinationsChanged,
+}: {
+  value: TaxonomySettings["subcategories"];
+  destinations: Destination[] | null;
+  update: TaxonomyUpdate;
+  onDestinationsChanged: () => void;
+}) {
+  const toast = useToast();
+  const usage = useMemo(
+    () => subcategoryUsage(destinations ?? []),
+    [destinations],
+  );
+  const everyName = useMemo(
+    () => [...new Set(Object.values(value).flat())] as string[],
+    [value],
+  );
+  const [confirm, setConfirm] = useState<
+    { category: Category; name: string; count: number } | null
+  >(null);
+  const [busy, setBusy] = useState(false);
+
+  const setList = (category: Category, fn: (list: string[]) => string[]) =>
+    update((v) => ({
+      ...v,
+      subcategories: {
+        ...v.subcategories,
+        [category]: fn(v.subcategories[category] ?? []),
+      },
+    }));
+
+  function remove(category: Category, name: string) {
+    setList(category, (list) => list.filter((x) => x !== name));
+    toast.toast({
+      variant: "info",
+      title: `${name} taken off ${CATEGORY_LABELS[category]}`,
+      description: "Save to keep the change.",
+      action: {
+        label: "Undo",
+        onClick: () =>
+          setList(category, (list) => normalizeTowns([...list, name])),
+      },
+    });
+  }
+
+  async function removeInUse() {
+    if (!confirm) return;
+    setBusy(true);
+    try {
+      const n = await clearSubcategory(confirm.category, confirm.name);
+      setList(confirm.category, (list) => list.filter((x) => x !== confirm.name));
+      toast.success(
+        `${confirm.name} taken off ${n} place${n === 1 ? "" : "s"}`,
+        "Save to take it off the list too.",
+      );
+      setConfirm(null);
+      onDestinationsChanged();
+    } catch (err) {
+      toast.error(
+        "That didn't work",
+        err instanceof Error ? err.message : String(err),
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Section
+      title="Categories and subcategories"
+      hint="The six categories are fixed — the app draws a glyph and a colour for each. Add finer kinds under them; each takes its category's look, so it needs no app release."
+    >
+      <div className="f wide">
+        <p className="hint">
+          Name each the way one place is: “Waterfall”, not “Waterfalls” — the
+          app reads it as “Waterfall in Peñablanca”.
+        </p>
+        <div className="subcats">
+          {CATEGORIES.map((c) => (
+            <div className="subcat-row" key={c}>
+              <span className="subcat-name">{CATEGORY_LABELS[c]}</span>
+              <div className="tag-row">
+                {(value[c] ?? []).map((s) => {
+                  const n = usage.get(`${c}/${s}`) ?? 0;
+                  return (
+                    <span key={s} className="badge">
+                      {s}
+                      {n ? <span className="chip-count">{n}</span> : null}
+                      <button
+                        className="tag-x"
+                        aria-label={`Remove ${s} from ${CATEGORY_LABELS[c]}`}
+                        onClick={() =>
+                          n
+                            ? setConfirm({ category: c, name: s, count: n })
+                            : remove(c, s)
+                        }
+                      >
+                        ×
+                      </button>
+                    </span>
+                  );
+                })}
+                <SuggestInput
+                  label={`Add a subcategory under ${CATEGORY_LABELS[c]}`}
+                  placeholder="Add"
+                  candidates={everyName}
+                  existing={value[c] ?? []}
+                  normalizeNew={capitalise}
+                  onPick={(s) =>
+                    setList(c, (list) => normalizeTowns([...list, s]))
+                  }
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <Dialog
+        open={confirm !== null}
+        onDismiss={() => setConfirm(null)}
+        variant="warning"
+        title={`Take ${confirm?.name ?? ""} off ${
+          confirm ? CATEGORY_LABELS[confirm.category] : ""
+        }?`}
+        actions={
+          <>
+            <button className="btn-quiet" onClick={() => setConfirm(null)}>
+              Keep it
+            </button>
+            <button
+              className="btn-secondary"
+              disabled={busy}
+              onClick={() => void removeInUse()}
+            >
+              Take it off {confirm?.count} place
+              {confirm?.count === 1 ? "" : "s"}
+            </button>
+          </>
+        }
+      >
+        {confirm?.count} place{confirm?.count === 1 ? " uses" : "s use"} it.
+        It comes off them now, leaving them with just{" "}
+        {confirm ? CATEGORY_LABELS[confirm.category] : ""}; anyone editing one
+        of them is told.
+      </Dialog>
+    </Section>
   );
 }
 
@@ -566,6 +896,7 @@ function TagsSection({
         `${n} destination${n === 1 ? "" : "s"} updated.`,
       );
       setAction(null);
+      refreshTagVocabulary();
       onRetagged();
     } catch (err) {
       toast.error(

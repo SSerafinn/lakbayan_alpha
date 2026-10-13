@@ -124,6 +124,17 @@ function ToastItem({
         <p className="toast-title">{toast.title}</p>
         {toast.description && <p className="toast-desc">{toast.description}</p>}
       </div>
+      {toast.action && (
+        <button
+          className="toast-action"
+          onClick={() => {
+            toast.action!.onClick();
+            setLeaving(true);
+          }}
+        >
+          {toast.action.label}
+        </button>
+      )}
       <button
         className="toast-x"
         onClick={() => setLeaving(true)}

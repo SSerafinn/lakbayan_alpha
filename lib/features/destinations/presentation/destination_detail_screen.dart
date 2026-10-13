@@ -344,7 +344,12 @@ class _Title extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final kind = _kindOf(destination.category);
+    // The finer kind when the province named one: "Waterfall in Peñablanca"
+    // says more than "Nature in Peñablanca".
+    final sub = destination.subcategory?.trim();
+    final kind = (sub?.isNotEmpty ?? false)
+        ? sub
+        : _kindOf(destination.category);
     final line = kind == null
         ? destination.town
         : "$kind in ${destination.town}";

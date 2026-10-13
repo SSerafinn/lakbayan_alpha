@@ -8,7 +8,7 @@ part "destination.g.dart";
 /// Current shape of `destinations` and `segments`. Bump alongside
 /// `docs/DATA_MODEL.md` whenever the schema changes, so a client reading a
 /// document cached by an older build can detect the mismatch.
-const destinationSchemaVersion = 2;
+const destinationSchemaVersion = 3;
 
 /// What kind of place this is. Drives the filter chips on Explore.
 ///
@@ -55,6 +55,11 @@ abstract class Destination with _$Destination {
     required String town,
     @JsonKey(unknownEnumValue: DestinationCategory.unknown)
     required DestinationCategory category,
+
+    /// A finer kind within [category], e.g. "Waterfall" under nature, named
+    /// in the CMS's Settings. It takes its category's glyph and colour, so a
+    /// new one needs no release. Null for none.
+    String? subcategory,
     required String description,
     required GeoPoint2 coords,
 

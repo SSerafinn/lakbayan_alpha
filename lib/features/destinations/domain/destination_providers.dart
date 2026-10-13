@@ -97,7 +97,21 @@ class BrowseCategory extends _$BrowseCategory {
   @override
   DestinationCategory? build() => null;
 
-  void select(DestinationCategory? category) => state = category;
+  void select(DestinationCategory? category) {
+    state = category;
+    // A subcategory belongs to one category; under another it means nothing.
+    ref.read(browseSubcategoryProvider.notifier).select(null);
+  }
+}
+
+/// Selected subcategory chip on Browse, under the chosen category. `null` is
+/// the whole category. Cleared whenever the category changes.
+@riverpod
+class BrowseSubcategory extends _$BrowseSubcategory {
+  @override
+  String? build() => null;
+
+  void select(String? value) => state = value;
 }
 
 /// Search box on Browse.
@@ -208,19 +222,43 @@ Stream<List<Destination>> _browseCategoryStream(Ref ref) {
 @riverpod
 AsyncValue<List<Destination>> browseResults(Ref ref) {
   final category = ref.watch(browseCategoryProvider);
+  final subcategory = ref.watch(browseSubcategoryProvider);
   final query = ref.watch(browseQueryProvider).trim().toLowerCase();
   final source = category == null
       ? ref.watch(allDestinationsProvider)
       : ref.watch(_browseCategoryStreamProvider);
-  if (query.isEmpty) return source;
+  if (query.isEmpty && subcategory == null) return source;
   return source.whenData(
     (all) => [
       for (final destination in all)
-        if (destination.name.toLowerCase().contains(query) ||
-            destination.town.toLowerCase().contains(query))
+        if ((subcategory == null || destination.subcategory == subcategory) &&
+            (query.isEmpty ||
+                destination.name.toLowerCase().contains(query) ||
+                destination.town.toLowerCase().contains(query) ||
+                (destination.subcategory?.toLowerCase().contains(query) ??
+                    false)))
           destination,
     ],
   );
+}
+
+/// The subcategories among the chosen category's places, for Browse's second
+/// chip row. Empty with no category chosen, or none in use, and the row then
+/// does not show.
+///
+/// Taken from the places rather than from the CMS's list, so a chip never
+/// leads to an empty grid — a subcategory the province has named but not yet
+/// used has nothing to show.
+@riverpod
+List<String> browseSubcategories(Ref ref) {
+  final category = ref.watch(browseCategoryProvider);
+  if (category == null) return const [];
+  final places = ref.watch(_browseCategoryStreamProvider).value ?? const [];
+  final names = <String>{
+    for (final d in places)
+      if (d.subcategory?.trim().isNotEmpty ?? false) d.subcategory!,
+  };
+  return names.toList()..sort();
 }
 
 /// Browse's results cut into grid rows of [columns]. Derived here, not on every build.
