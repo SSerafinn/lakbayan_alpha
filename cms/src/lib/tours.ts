@@ -10,8 +10,10 @@ import {
 } from "firebase/firestore";
 import { deleteObject, ref, uploadBytes } from "firebase/storage";
 import { auth, db, storage } from "./firebase";
+import { shrinkImage } from "./image";
 import { writeIfUnchanged } from "./versioned";
 import { slugify } from "../types/destination";
+import { extensionFor } from "../types/media";
 import type { Tour, TourDraft } from "../types/tour";
 
 const COLLECTION = "tours";
@@ -85,19 +87,17 @@ export async function deleteTour(id: string): Promise<void> {
  * this location exists there too — writing anywhere else is rejected rather
  * than quietly accepted.
  *
- * Named `cover` rather than by timestamp: a tour has exactly one, so replacing
- * it should overwrite rather than accumulate. The extension varies, which is
- * why the old object is deleted when the format changes.
+ * A fresh name each time, as destination photos have, and the cover it
+ * replaces is left alone: the tour still points at that one until it is
+ * saved, so deleting or overwriting it here broke the cover of any tour whose
+ * edit was then cancelled. The editor deletes the old one after the save.
+ * A fresh name also keeps true what the app's offline copies rely on — the
+ * bytes under a path never change.
  */
-export async function uploadCover(
-  id: string,
-  file: File,
-  previous?: string,
-): Promise<string> {
-  const ext = file.name.split(".").pop()?.toLowerCase() ?? "jpg";
-  const path = `tours/${id}/cover.${ext}`;
-  await uploadBytes(ref(storage, path), file, { contentType: file.type });
-  if (previous && previous !== path) await deleteCover(previous);
+export async function uploadCover(id: string, file: File): Promise<string> {
+  const photo = await shrinkImage(file);
+  const path = `tours/${id}/cover-${Date.now()}.${extensionFor(photo.type)}`;
+  await uploadBytes(ref(storage, path), photo, { contentType: photo.type });
   return path;
 }
 

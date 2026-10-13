@@ -168,6 +168,12 @@ export function ToursPage() {
       }
     }
 
+    // The cover this edit started from, to delete once nothing points at it.
+    const before =
+      editing === "new"
+        ? undefined
+        : rows?.find((t) => t.id === editing)?.coverImg;
+
     setBusy(true);
     try {
       await saveTour(
@@ -175,6 +181,7 @@ export function ToursPage() {
         editing === "new" ? undefined : editing!,
         editing === "new" || force ? {} : { expected: editingVersion },
       );
+      if (before && before !== draft.coverImg) void deleteCover(before);
       setEditing(null);
       await reload();
       toast.success(
@@ -477,7 +484,7 @@ function TourEditor({
     }
     setUploading(true);
     try {
-      set("coverImg", await uploadCover(tourIdForUpload, file, draft.coverImg));
+      set("coverImg", await uploadCover(tourIdForUpload, file));
       toast.success("Cover uploaded", "Save to keep it.");
     } catch (err) {
       toast.error(
@@ -533,11 +540,9 @@ function TourEditor({
               {draft.coverImg && (
                 <button
                   className="btn-quiet sm"
-                  onClick={() => {
-                    const path = draft.coverImg!;
-                    set("coverImg", undefined);
-                    void deleteCover(path);
-                  }}
+                  // The file goes when the tour is saved without it, so
+                  // Cancel still leaves the old cover in place.
+                  onClick={() => set("coverImg", undefined)}
                 >
                   Remove
                 </button>
