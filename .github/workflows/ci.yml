@@ -20,6 +20,19 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      # The debug APK installs NDK 28.2 and CMake on the fly, several GB the
+      # runner image does not ship, and that build used to finish with the
+      # disk all but full. On 2026-10-13 two unrelated PRs failed it with "No
+      # space left on device" in :app:mergeDebugNativeLibs. These are SDKs
+      # this job never uses — .NET, Haskell, Boost, CodeQL — and removing
+      # them frees well over 10 GB in seconds. Prints what is left, so the
+      # next squeeze shows up in the log before it fails.
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/.ghcup \
+            /usr/local/share/boost /opt/hostedtoolcache/CodeQL
+          df -h /
+
       # Gradle 8.14 / AGP do not support JDK 26 — pin to 17.
       # The rules job below needs 21 for the Firestore emulator, which is why
       # these are separate jobs rather than separate steps.
