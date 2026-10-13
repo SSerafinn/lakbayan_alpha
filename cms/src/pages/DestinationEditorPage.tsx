@@ -19,6 +19,7 @@ import {
   uploadImage,
   watchDestination,
 } from "../lib/destinations";
+import { ImageRejectedError } from "../lib/image";
 import { ConflictError } from "../lib/versioned";
 import { ConflictDialog } from "../components/ConflictDialog";
 import { useAdminNames } from "../components/useAdminNames";
@@ -365,6 +366,13 @@ export function DestinationEditorPage() {
       setSaved(stamped);
       setSavedSegments(segments);
       setRemote(null);
+
+      // Photos taken off are deleted only now that the saved version no
+      // longer shows them. Deleting on Remove left a broken image behind a
+      // Discard.
+      for (const path of saved?.images ?? []) {
+        if (!next.images.includes(path)) void deleteImage(path);
+      }
 
       if (isNew) {
         bypassBlockerRef.current = true;
@@ -1226,21 +1234,40 @@ function MediaTab({
       if (!target) return; // The save failed and already reported why.
 
       const paths: string[] = [];
+      const refused: string[] = [];
       let skipped = 0;
-      for (const file of Array.from(files)) {
-        if (!file.type.startsWith("image/")) {
-          skipped++;
-          continue;
+      try {
+        for (const file of Array.from(files)) {
+          if (!file.type.startsWith("image/")) {
+            skipped++;
+            continue;
+          }
+          try {
+            paths.push(await uploadImage(target, file));
+          } catch (err) {
+            // One photo the browser cannot open (an iPhone's HEIC, usually)
+            // should not cost the rest of the batch.
+            if (!(err instanceof ImageRejectedError)) throw err;
+            refused.push(err.message);
+          }
         }
-        paths.push(await uploadImage(target, file));
+      } finally {
+        // Keep whatever made it up, even when a later upload failed —
+        // otherwise those files sit in Storage with nothing pointing at them.
+        if (paths.length > 0) {
+          set("images", [...draft.images, ...paths]);
+          toast.success(
+            `${paths.length} photo${paths.length === 1 ? "" : "s"} added`,
+            "Save to keep them.",
+          );
+        }
       }
-
-      if (paths.length > 0) {
-        set("images", [...draft.images, ...paths]);
-        toast.success(
-          `${paths.length} photo${paths.length === 1 ? "" : "s"} added`,
-          "Save to keep them.",
-        );
+      if (refused.length > 0) {
+        toast.toast({
+          variant: "warning",
+          title: `${refused.length} photo${refused.length === 1 ? " was" : "s were"} not added`,
+          description: refused.join(" "),
+        });
       }
       if (skipped > 0) {
         toast.toast({
@@ -1276,7 +1303,7 @@ function MediaTab({
   return (
     <Section
       title="Photos"
-      hint="The first photo is the card image. 16:9 crops best."
+      hint="The first photo is the card image. 16:9 crops best. Photos are resized for phones as they upload."
     >
       <div className="media f wide">
         <input
@@ -1318,7 +1345,6 @@ function MediaTab({
                       "images",
                       draft.images.filter((p) => p !== path),
                     );
-                    void deleteImage(path);
                   }}
                 >
                   Remove
