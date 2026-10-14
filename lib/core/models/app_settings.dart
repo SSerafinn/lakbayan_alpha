@@ -28,8 +28,8 @@ abstract class TaxonomySettings with _$TaxonomySettings {
 /// reach the tourism office, who to call in an emergency, and a notice for
 /// the top of Explore.
 ///
-/// Not read by any screen yet; the CMS writes it ahead of the app screens
-/// that will (PLAN.md, Phase 5).
+/// Read by Explore for its notice on every launch, which is also what keeps
+/// the emergency lines cached for Help offline (`appSettingsProvider`).
 @freezed
 abstract class AppSettings with _$AppSettings {
   const factory AppSettings({

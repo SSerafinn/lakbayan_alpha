@@ -107,6 +107,10 @@ settings/{taxonomy | app | policies}           // schemaVersion 1 — province-w
   // version-checked) on its own. Rules allow exactly these three ids.
   // Readable by anyone — the privacy policy must be reachable before sign-in,
   // and hotlines are worth caching for offline use. Written by admins only.
+  // The app watches `app` from Explore on every launch (the notice), which is
+  // what puts the hotlines in Firestore's cache for Help offline; `policies`
+  // is read when Profile opens one. A document absent from the cache while
+  // offline is "not loaded yet", not "unwritten" (SettingsRepository).
   // Every document also carries schemaVersion, updatedAt, updatedBy.
 
   taxonomy:

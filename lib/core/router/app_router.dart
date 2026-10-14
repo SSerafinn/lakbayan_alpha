@@ -14,6 +14,8 @@ import "../../features/explore/presentation/home_shell.dart";
 import "../../features/landing/presentation/landing_screen.dart";
 import "../../features/itineraries/presentation/itinerary_screen.dart";
 import "../../features/offline/presentation/downloads_screen.dart";
+import "../../features/profile/presentation/help_screen.dart";
+import "../../features/profile/presentation/policy_screen.dart";
 import "../../features/profile/presentation/settings_screen.dart";
 import "../prefs/app_preferences.dart";
 import "../widgets/motion/page_transitions.dart";
@@ -41,6 +43,14 @@ abstract final class Routes {
   /// Appearance and accessibility. Reached from Explore's header and from
   /// Profile.
   static const settings = "/settings";
+
+  /// The emergency lines and the tourism office. Reached from Profile.
+  static const help = "/help";
+
+  /// The province's privacy policy and terms of use. Reached from Profile;
+  /// the Play Store requires the privacy policy to be reachable in the app.
+  static const privacy = "/privacy";
+  static const terms = "/terms";
 
   /// One of the user's own itineraries. Pushed from the Itineraries tab, and
   /// from the add-to-trip confirmation with [added], the stop just put on it,
@@ -184,6 +194,18 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: Routes.settings,
         builder: (context, state) => const SettingsScreen(),
+      ),
+      GoRoute(
+        path: Routes.help,
+        builder: (context, state) => const HelpScreen(),
+      ),
+      GoRoute(
+        path: Routes.privacy,
+        builder: (context, state) => const PolicyScreen(policy: Policy.privacy),
+      ),
+      GoRoute(
+        path: Routes.terms,
+        builder: (context, state) => const PolicyScreen(policy: Policy.terms),
       ),
       GoRoute(
         path: Routes.downloads,

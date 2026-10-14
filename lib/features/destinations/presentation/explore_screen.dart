@@ -14,9 +14,12 @@ import "../domain/destination_providers.dart";
 import "explore_sections.dart";
 import "featured_carousel.dart";
 import "places_list_screen.dart";
+import "province_notice.dart";
 
 /// The Explore tab. Sections ordered by how a visitor decides:
 /// Featured → Kinds → Towns → Popular → Where to eat → Tours → Guides.
+/// Above them all, only while the province has one, its notice
+/// ([ProvinceNotice]).
 class ExploreScreen extends ConsumerWidget {
   const ExploreScreen({super.key});
 
@@ -38,6 +41,7 @@ class ExploreScreen extends ConsumerWidget {
               height: MediaQuery.viewPaddingOf(context).top + AppSpace.x2,
             ),
           ),
+          const SliverToBoxAdapter(child: ProvinceNotice()),
           SliverToBoxAdapter(
             child: Entrance(
               child: featured.when(
