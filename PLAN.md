@@ -303,11 +303,23 @@ and `flutter test` before committing; commit with `/commit`.
 - [ ] Integration pass; empty/error/loading states everywhere.
 - [ ] Harden `firestore.rules`; extend the rules test suite; wire Analytics + Crashlytics.
 - [ ] Release signing config + release SHA-1 registered for Google Sign-In.
-- [ ] Show what the CMS's Settings now hold (`settings/app`, `settings/policies`,
+- [x] Show what the CMS's Settings now hold (`settings/app`, `settings/policies`,
       `AppSettings`/`PolicySettings` in `lib/core/models/app_settings.dart`):
       Profile → Privacy policy and Terms (needed for the Play Store), Help and
       contact with the emergency lines (cached for offline), and the Explore
       notice while `Announcement.isLiveAt`.
+      *Profile gains a second group: Help and emergency lines, Privacy policy,
+      Terms of use. Help lists the province's lines, each a row that calls,
+      then 911, which is there even on a phone that has never been online;
+      then the tourism office as written. The lines are offline because
+      Explore reads `settings/app` on every launch for its notice, so Firestore
+      has cached it before Help is ever opened. A document this phone has
+      never read reads as "connect once", not as "nothing published"
+      (`SettingsNotYetLoaded`). The policies are selectable paragraphs under
+      their "last updated" date. The notice sits above Featured on the
+      surface step with an ink info glyph, and names its last day.
+      The Play Console also wants the privacy policy at a public URL, which
+      this does not provide.*
 - [ ] QA, bug-fix, demo build; tag a release candidate.
 - **DoD:** MVP release candidate runs on Android; core KPIs reporting; demo ready.
 
@@ -413,8 +425,8 @@ CMS consumes that contract; it does not redefine it.
       destinations; categories stay fixed, since the app draws each), `app`
       (tourism office, emergency lines, a notice for Explore) and `policies`
       (privacy and terms, each with its own "last updated"). Public read, admin
-      write to those three ids only. The app does not show `app` or `policies`
-      yet — see Phase 5.*
+      write to those three ids only. The app shows `app` and `policies` —
+      see Phase 5.*
       *Then made harder to get wrong: towns, tags and subcategories are picked
       from what exists, with "did you mean" for slips and accents, a
       non-official town never one keypress away, Undo on removal, a misspelt

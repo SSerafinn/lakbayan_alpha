@@ -25,7 +25,9 @@ import "sample_photo_credits_sheet.dart";
 /// **Anatomy.** The one brand moment, a solid green block: the avatar, the
 /// name as the screen's heading, and one line.
 /// Three plain rows: Saved places, Downloaded towns and Settings, the one
-/// home for future settings ([SettingsScreen]). Sign out last, alone.
+/// home for future settings ([SettingsScreen]). Then what the province
+/// says to everyone: Help and emergency lines, the privacy policy and the
+/// terms, written in the CMS. Sign out last, alone.
 class ProfileTab extends ConsumerWidget {
   const ProfileTab({super.key});
 
@@ -45,6 +47,8 @@ class ProfileTab extends ConsumerWidget {
           const Entrance(child: _BrandBlock()),
           const SizedBox(height: AppSpace.section),
           const Entrance(order: 1, child: _Mine()),
+          const SizedBox(height: AppSpace.section),
+          const Entrance(order: 2, child: _Province()),
           const SizedBox(height: AppSpace.section),
           Pressable(
             child: isGuest
@@ -195,6 +199,34 @@ class _Mine extends StatelessWidget {
       ],
     );
   }
+}
+
+/// What the province says to everyone, signed in or not. Help leads: it is
+/// the one a visitor may need in a hurry. Ink glyphs throughout — red is
+/// CLOSED and errors, even for an emergency line.
+class _Province extends StatelessWidget {
+  const _Province();
+
+  @override
+  Widget build(BuildContext context) => GroupedSection(
+    children: [
+      GroupedRow(
+        leadingGlyph: AppIcons.phone,
+        title: "Help and emergency lines",
+        onTap: () => context.push(Routes.help),
+      ),
+      GroupedRow(
+        leadingGlyph: AppIcons.privacy,
+        title: "Privacy policy",
+        onTap: () => context.push(Routes.privacy),
+      ),
+      GroupedRow(
+        leadingGlyph: AppIcons.document,
+        title: "Terms of use",
+        onTap: () => context.push(Routes.terms),
+      ),
+    ],
+  );
 }
 
 /// Debug and profile only: the sample-data switch, and in debug the living
