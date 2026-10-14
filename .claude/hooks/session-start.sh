@@ -33,11 +33,16 @@ dart --disable-analytics >/dev/null 2>&1 || true
 
 # Dart deps + codegen (*.g.dart / *.freezed.dart are gitignored).
 flutter pub get
-dart run build_runner build --delete-conflicting-outputs
+dart run build_runner build
 
 # Node packages: admin CMS, Cloud Functions, security-rules tests.
+# `npm ci` where there is a lockfile: the container's npm is older than the
+# team's and `npm install` would rewrite the lockfile (dropping `libc` fields),
+# leaving a dirty tree in every session.
 for dir in cms functions test_rules; do
-  if [ -f "$dir/package.json" ]; then
-    (cd "$dir" && npm install --no-audit --no-fund)
+  if [ -f "$dir/package-lock.json" ]; then
+    (cd "$dir" && npm ci --no-audit --no-fund)
+  elif [ -f "$dir/package.json" ]; then
+    (cd "$dir" && npm install --no-audit --no-fund --no-package-lock)
   fi
 done
