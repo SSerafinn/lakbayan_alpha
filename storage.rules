@@ -6,13 +6,53 @@ service firebase.storage {
       return request.auth != null && request.auth.token.admin == true;
     }
 
+    // What an upload may be. Everything here is public and lands in the
+    // offline download a tourist pulls over mobile data, so the limits are
+    // the backstop for what the CMS already does before uploading: photos
+    // are resized to a few hundred KB (cms/src/lib/image.ts) and recordings
+    // are checked against the same cap. Keep the numbers in step with
+    // cms/src/types/media.ts.
+    //
+    // The type matters as much as the size: anything served from a public
+    // bucket under a type the browser renders — text/html, image/svg+xml —
+    // is a page anyone can be sent to.
+    function isPhoto() {
+      return request.resource.size <= 3 * 1024 * 1024
+          && request.resource.contentType.matches('image/(jpeg|png|webp)');
+    }
+
+    function isRecording() {
+      return request.resource.size <= 50 * 1024 * 1024
+          && request.resource.contentType.matches('audio/(mpeg|mp4|aac|wav|ogg)');
+    }
+
     // Public content assets only — enumerated per docs/DATA_MODEL.md rather than
     // a blanket {allPaths=**}, so that any future private path is denied by
     // default instead of being world-readable the moment it is added.
-    match /destinations/{destId}/images/{image} { allow read: if true; allow write: if isAdmin(); }
-    match /destinations/{destId}/audio/{audio}  { allow read: if true; allow write: if isAdmin(); }
-    match /tours/{tourId}/{image}               { allow read: if true; allow write: if isAdmin(); }
-    match /ar/{destId}/markers/{marker}         { allow read: if true; allow write: if isAdmin(); }
+    //
+    // Writes are split: a delete has no `request.resource` to check.
+    match /destinations/{destId}/images/{image} {
+      allow read: if true;
+      allow create, update: if isAdmin() && isPhoto();
+      allow delete: if isAdmin();
+    }
+    match /destinations/{destId}/audio/{audio} {
+      allow read: if true;
+      allow create, update: if isAdmin() && isRecording();
+      allow delete: if isAdmin();
+    }
+    match /tours/{tourId}/{image} {
+      allow read: if true;
+      allow create, update: if isAdmin() && isPhoto();
+      allow delete: if isAdmin();
+    }
+    match /ar/{destId}/markers/{marker} {
+      allow read: if true;
+      allow create, update: if isAdmin() && isPhoto();
+      allow delete: if isAdmin();
+    }
+    // Map packs are tens of MB by nature and are not uploaded from the CMS
+    // (scripts/extract-tiles.mjs), so they keep the plain admin check.
     match /tiles/{townId}/{pack}                { allow read: if true; allow write: if isAdmin(); }
 
     // Everything else: denied by default. Cloud Functions using the Admin SDK

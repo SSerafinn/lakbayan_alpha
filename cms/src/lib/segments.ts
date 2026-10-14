@@ -14,6 +14,7 @@ import {
   uploadBytes,
 } from "firebase/storage";
 import { db, storage } from "./firebase";
+import { AUDIO_TYPES, audioExtension } from "../types/media";
 import type { SegmentDoc, SegmentDraft } from "../types/segment";
 
 const segmentsCol = (destinationId: string) =>
@@ -121,8 +122,6 @@ export async function deleteAllSegments(destinationId: string): Promise<void> {
 }
 
 /** Extensions the mobile player can decode via just_audio on Android. */
-export const AUDIO_EXTENSIONS = ["mp3", "m4a", "aac", "wav", "ogg"] as const;
-
 /**
  * Upload narration and return its Storage path.
  *
@@ -135,9 +134,12 @@ export async function uploadAudio(
   segmentId: string,
   file: File,
 ): Promise<string> {
-  const ext = file.name.split(".").pop()?.toLowerCase() ?? "mp3";
+  const ext = audioExtension(file.name) ?? "mp3";
   const path = `destinations/${destinationId}/audio/${segmentId}.${ext}`;
-  await uploadBytes(ref(storage, path), file, { contentType: file.type });
+  // The type comes from the extension, not the browser: Windows reports an
+  // m4a as anything from "audio/x-m4a" to nothing at all, and storage.rules
+  // only takes an upload that says it is audio.
+  await uploadBytes(ref(storage, path), file, { contentType: AUDIO_TYPES[ext] });
   return path;
 }
 

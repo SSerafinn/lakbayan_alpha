@@ -232,7 +232,8 @@ Two deliberate calls:
 /destinations/{id}/images/{timestamp}.{ext}        // uploaded via the CMS
 /destinations/{id}/images/{source-filename}.{ext}  // written by the importer
 /destinations/{id}/audio/{segmentId}.{ext}
-/tours/{id}/cover.{ext}
+/tours/{id}/cover-{timestamp}.{ext}               // uploaded via the CMS
+/tours/{id}/cover.{ext}                           // written by the importer
 /ar/{destId}/markers/{n}.jpg
 /tiles/{townId}/pack.pmtiles
 ```
@@ -241,8 +242,29 @@ Two deliberate calls:
 so a new asset location needs a rule added there before an upload will work. A
 tour cover written to any other path is rejected, not silently accepted.
 
+**What an upload may be.** Every object here is public and ends up in the
+offline download a tourist pulls over mobile data, so the rules cap it:
+
+| Path | Types | Max |
+|---|---|---|
+| images, tour covers, AR markers | `image/jpeg`, `image/png`, `image/webp` | 3 MB |
+| audio | `audio/mpeg`, `mp4`, `aac`, `wav`, `ogg` | 50 MB |
+| tiles | not checked — built by `scripts/extract-tiles.mjs`, not the CMS | — |
+
+The caps are a backstop. The CMS resizes every photo before it uploads
+(`cms/src/lib/image.ts`): it is scaled to fit 2000 px and re-encoded as WebP
+(JPEG where the browser cannot write WebP), which also strips the camera's
+metadata, location included. A phone photo of 4–10 MB arrives as a few hundred
+KB, which is why a CMS-uploaded image is usually `.webp`. The type check
+matters as much as the size: an object served from a public bucket as
+`text/html` or `image/svg+xml` is a web page anyone can be sent to. The numbers
+live in `cms/src/types/media.ts` as well; change both together.
+
 **Images have two naming conventions on purpose.** The CMS uses a timestamp so
-that deleting one photo never renumbers the survivors. `scripts/import-content.mjs`
+that deleting one photo never renumbers the survivors, and so that a
+replacement never lands on the path the saved document still points at: a
+photo or cover the CMS takes off is deleted only after the save that drops it,
+so Cancel and Discard leave the old one intact. `scripts/import-content.mjs`
 replaces a destination's whole set in one go and has no such problem; what it
 needs instead is a name that is stable across runs, because a fresh timestamp
 each time would strand every object the previous import uploaded. Readers only

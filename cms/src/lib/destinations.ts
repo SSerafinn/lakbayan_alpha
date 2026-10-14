@@ -21,8 +21,10 @@ import {
   deleteObject,
 } from "firebase/storage";
 import { auth, db, storage } from "./firebase";
+import { shrinkImage } from "./image";
 import { deleteAllSegments } from "./segments";
 import { writeIfUnchanged } from "./versioned";
+import { extensionFor } from "../types/media";
 import { renameTag } from "../types/settings";
 import {
   DESTINATION_SCHEMA_VERSION,
@@ -228,14 +230,17 @@ export async function deleteDestination(id: string): Promise<void> {
  * Stores the **path**, not the download URL: `docs/DATA_MODEL.md` specifies
  * `/destinations/{id}/images/{timestamp}.{ext}`, and a path survives token rotation
  * whereas a download URL does not.
+ *
+ * The photo is shrunk first (`shrinkImage`), so the extension is the one it
+ * was saved as, not the one it was picked with.
  */
 export async function uploadImage(
   destinationId: string,
   file: File,
 ): Promise<string> {
-  const ext = file.name.split(".").pop()?.toLowerCase() ?? "jpg";
-  const path = `destinations/${destinationId}/images/${Date.now()}.${ext}`;
-  await uploadBytes(ref(storage, path), file, { contentType: file.type });
+  const photo = await shrinkImage(file);
+  const path = `destinations/${destinationId}/images/${Date.now()}.${extensionFor(photo.type)}`;
+  await uploadBytes(ref(storage, path), photo, { contentType: photo.type });
   return path;
 }
 

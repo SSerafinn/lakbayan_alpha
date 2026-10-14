@@ -1,0 +1,14 @@
+{
+  "targets": {
+    "project-lakbayan": {
+      "hosting": {
+        "cms": ["project-lakbayan"]
+      }
+    },
+    "demo-lakbayan": {
+      "hosting": {
+        "cms": ["demo-lakbayan"]
+      }
+    }
+  }
+}
