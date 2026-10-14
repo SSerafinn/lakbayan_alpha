@@ -21,7 +21,12 @@ cd /app
 
 # exec, so SIGTERM from `docker compose down` reaches firebase-tools directly
 # and --export-on-exit actually fires. Through a shell it would not.
+#
+# --only: firebase.json also declares Hosting, for the CMS. Its files are not
+# mounted here, and nothing needs the container to serve them; preview a CMS
+# build with the Hosting emulator on the host instead (cms/README.md).
 exec firebase emulators:start \
+  --only auth,firestore,functions,storage \
   --project demo-lakbayan \
   --import=/app/.emulator-data \
   --export-on-exit=/app/.emulator-data
