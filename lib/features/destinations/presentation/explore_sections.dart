@@ -6,6 +6,8 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
 import "package:motor/motor.dart";
 
+import "../../../core/errors/error_copy.dart";
+import "../../../core/errors/local_first.dart";
 import "../../../core/models/destination.dart";
 import "../../../core/models/guide.dart";
 import "../../../core/router/app_router.dart";
@@ -49,12 +51,17 @@ class PopularSection extends ConsumerWidget {
           "Popular this week",
           onSeeAll: () => context.push(Routes.popular),
         ),
-        popular.when(
+        popular.whenLocalFirst(
           loading: () => const AspectRatio(
             aspectRatio: 1 / _Bento.heightShare,
             child: ImagePlaceholder(borderRadius: AppRadii.tileAll),
           ),
-          error: (error, _) => QuietNote("Couldn't load destinations.\n$error"),
+          // Popular's own query. The featured cards above say when theirs
+          // fails; the rails below hide on theirs.
+          error: (error, _) => QuietNote(
+            errorCopy("Couldn't load destinations.", error),
+            onRetry: () => ref.invalidate(popularDestinationsProvider),
+          ),
           data: (items) => items.isEmpty
               ? const QuietNote("Nothing here yet.")
               : _Bento(items: items.take(3).toList()),
@@ -142,6 +149,9 @@ class ReadyMadeDays extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Hidden while loading, when empty and on an error alike: a rail of
+    // extras, from the tours, so a failure there leaves nothing missing
+    // that the screen needs.
     final tours = ref.watch(tourRailProvider).value ?? const [];
     if (tours.isEmpty) return const SizedBox.shrink();
     return Padding(
@@ -171,6 +181,8 @@ class LocalGuides extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Hidden while loading, when empty and on an error alike, as Ready-made
+    // days are: extras, from the guides.
     final guides = ref.watch(guidesProvider).value ?? const [];
     if (guides.isEmpty) return const SizedBox.shrink();
     final scaler = MediaQuery.textScalerOf(context);
@@ -428,6 +440,9 @@ class TownRail extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Hidden while loading, when empty and on an error alike. Its places
+    // are every place, a listener apart from Popular's: if only that read
+    // fails, the rail goes without a word, and Popular says nothing of it.
     final towns = ref.watch(townsProvider);
     if (towns.isEmpty) return const SizedBox.shrink();
     return Column(
@@ -480,6 +495,8 @@ class WhereToEat extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Hidden while loading, when empty and on an error alike, as the towns
+    // are, and from the same list of every place.
     final food = ref.watch(foodPlacesProvider);
     if (food.isEmpty) return const SizedBox.shrink();
     return Padding(

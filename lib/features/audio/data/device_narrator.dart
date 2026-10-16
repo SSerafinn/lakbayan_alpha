@@ -4,6 +4,7 @@ import "package:flutter/foundation.dart";
 import "package:flutter_tts/flutter_tts.dart";
 import "package:just_audio/just_audio.dart";
 
+import "../../../core/errors/error_copy.dart";
 import "../domain/narration.dart";
 
 /// The real [Narrator]: `just_audio` for recordings, `flutter_tts` for scripts.
@@ -124,7 +125,11 @@ class DeviceNarrator implements Narrator {
           _emit(
             _state.copyWith(
               phase: NarratorPhase.failed,
-              error: "The device could not read this out: $message",
+              // The engine's message is for the log, not the guide.
+              error: errorCopy(
+                "The device could not read this out.",
+                message ?? "no message",
+              ),
             ),
           );
         }
@@ -168,10 +173,18 @@ class DeviceNarrator implements Narrator {
       }
     } catch (e) {
       _starting = false;
+      // A player's exception names a source or a URL: the log has it, and
+      // the guide says what to do instead.
       _emit(
         NarratorState(
           phase: NarratorPhase.failed,
-          error: "This narration would not play. $e",
+          error: errorCopy(
+            "This narration would not play.",
+            e,
+            offline:
+                "You seem to be offline. Stops in a town you've downloaded "
+                "still play.",
+          ),
         ),
       );
     }

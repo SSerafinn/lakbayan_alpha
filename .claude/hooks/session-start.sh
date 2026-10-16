@@ -46,3 +46,14 @@ for dir in cms functions test_rules; do
     (cd "$dir" && npm install --no-audit --no-fund --no-package-lock)
   fi
 done
+
+# Firebase CLI + emulator JARs, so the security-rules tests run here the same
+# way CI runs them (no Docker needed; JDK 21 is preinstalled):
+#   firebase emulators:exec --only firestore,storage --project demo-lakbayan "cd test_rules && npm test"
+# Keep FIREBASE_TOOLS_VERSION in step with .github/workflows/ci.yml.
+FIREBASE_TOOLS_VERSION=15.19.0
+if [ "$(firebase --version 2>/dev/null)" != "$FIREBASE_TOOLS_VERSION" ]; then
+  npm install -g --no-audit --no-fund "firebase-tools@${FIREBASE_TOOLS_VERSION}"
+fi
+firebase setup:emulators:firestore >/dev/null
+firebase setup:emulators:storage >/dev/null
