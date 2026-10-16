@@ -202,7 +202,12 @@ and `flutter test` before committing; commit with `/commit`.
       lazy slivers. Browse filters without re-subscribing. The audio list
       ignores position ticks. Home's feeds stay alive across tab switches.
       Map tiles draw without a fade, and the camera flies (`CameraFlight`).
-- [ ] **Share on Place detail** is a placeholder snackbar.
+- [x] **Share on Place detail** is a placeholder snackbar.
+      *It now shares text through share_plus: the name, town, a short
+      description and a Google Maps pin (`placeShareText`), so it works
+      offline. A link that opens the app needs a public domain for app
+      links — a separate decision. Share on a trip is still a placeholder,
+      pending a product call.*
 - [ ] **Stops by day** (wireframe 2j). Needs a schema change; see
       `my-docs/backend-requests/itinerary-days.md`.
 - [x] **Tabs keep their scroll position.** `HomeShell` keeps each visited
@@ -254,7 +259,8 @@ and `flutter test` before committing; commit with `/commit`.
   on, and it holds. Said plainly because the tag is slightly ahead of the
   checklist: **Nearby Places** (Phase 2's last box, which needs the location
   permission) and **Share** are still open. The **Explore hero** insets
-  have since been fixed on `feat/home-screen`.
+  have since been fixed on `feat/home-screen`, and **Share** has since
+  landed as a text share.
   None of them is what Beta means here — an offline town is — but a reader
   comparing the tag against the ticks deserves to know which is which.
   Of the two hardware checks, one is done. The `geo:` hand-off (#72) was
