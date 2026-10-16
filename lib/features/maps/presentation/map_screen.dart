@@ -2,6 +2,8 @@ import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
 
+import "../../../core/errors/error_copy.dart";
+import "../../../core/errors/local_first.dart";
 import "../../../core/models/destination.dart";
 import "../../../core/router/app_router.dart";
 import "../../../core/theme/app_dimens.dart";
@@ -48,7 +50,7 @@ class MapScreen extends ConsumerWidget {
     return Stack(
       children: [
         Positioned.fill(
-          child: results.when(
+          child: results.whenLocalFirst(
             loading: () => const Center(child: CircularProgressIndicator()),
             // Under the controls, not behind them.
             error: (error, _) => Padding(
@@ -58,7 +60,12 @@ class MapScreen extends ConsumerWidget {
                 AppSpace.gutter,
                 0,
               ),
-              child: QuietNote("Couldn't load destinations.\n$error"),
+              child: QuietNote(
+                errorCopy("Couldn't load destinations.", error),
+                onRetry: () => ref.invalidate(
+                  browseSource(ref.read(browseCategoryProvider)),
+                ),
+              ),
             ),
             // The map takes the results whether or not there are any; a blank
             // where a map should be would read as a failure to load.
@@ -71,6 +78,8 @@ class MapScreen extends ConsumerWidget {
           right: 0,
           child: const MapTopControls(),
         ),
+        // With the map: on data, through a refresh, and after a failure that
+        // left places on the phone, which the results are then derived from.
         if (results case AsyncData(:final value)) _PlacesSheet(items: value),
       ],
     );

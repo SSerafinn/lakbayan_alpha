@@ -5,6 +5,8 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
 import "package:motor/motor.dart";
 
+import "../../../core/errors/error_copy.dart";
+import "../../../core/errors/local_first.dart";
 import "../../../core/models/destination.dart";
 import "../../../core/router/app_router.dart";
 import "../../../core/theme/app_dimens.dart";
@@ -45,10 +47,14 @@ class SwipeScreen extends ConsumerWidget {
       data: _stageTheme,
       child: SystemBars(
         child: Scaffold(
-          body: featured.when(
+          body: featured.whenLocalFirst(
             loading: () => const _Plain(child: CircularProgressIndicator()),
             error: (error, _) => _Plain(
-              child: QuietNote("Couldn't load places.\n$error", centered: true),
+              child: QuietNote(
+                errorCopy("Couldn't load places.", error),
+                centered: true,
+                onRetry: () => ref.invalidate(featuredDestinationsProvider),
+              ),
             ),
             data: (items) => items.isEmpty
                 ? const _Plain(

@@ -2,6 +2,8 @@ import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
 
+import "../../../core/errors/error_copy.dart";
+import "../../../core/errors/local_first.dart";
 import "../../../core/models/destination.dart";
 import "../../../core/router/app_router.dart";
 import "../../../core/theme/app_dimens.dart";
@@ -340,26 +342,28 @@ class _Matches extends ConsumerWidget {
   final VoidCallback onLeave;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final results = ref.watch(searchResultsProvider);
-    if (results.isEmpty) {
-      final loading = ref.watch(
-        allDestinationsProvider.select((value) => value.isLoading),
-      );
-      return SliverToBoxAdapter(
-        child: QuietNote(
-          loading ? "Looking…" : "Nothing matches. Try another word or kind.",
+  Widget build(BuildContext context, WidgetRef ref) => ref
+      .watch(searchResultsProvider)
+      .whenLocalFirst(
+        loading: () => const SliverToBoxAdapter(child: QuietNote("Looking…")),
+        error: (error, _) => SliverToBoxAdapter(
+          child: QuietNote(
+            errorCopy("Couldn't search places.", error),
+            onRetry: () => ref.invalidate(allDestinationsProvider),
+          ),
         ),
+        data: (results) => results.isEmpty
+            ? const SliverToBoxAdapter(
+                child: QuietNote("Nothing matches. Try another word or kind."),
+              )
+            : SliverGroupedSection(
+                itemCount: results.length,
+                itemBuilder: (context, index) => Entrance(
+                  order: index,
+                  child: _PlaceRow(place: results[index], onLeave: onLeave),
+                ),
+              ),
       );
-    }
-    return SliverGroupedSection(
-      itemCount: results.length,
-      itemBuilder: (context, index) => Entrance(
-        order: index,
-        child: _PlaceRow(place: results[index], onLeave: onLeave),
-      ),
-    );
-  }
 }
 
 /// The last places opened, so going back to one is a tap. A history, so
@@ -371,6 +375,8 @@ class _Recent extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Hidden while loading, when empty and on an error alike: the towns
+    // below carry the error state of the same list.
     final recent = ref.watch(recentlyViewedDestinationsProvider);
     if (recent.isEmpty) return const SizedBox.shrink();
     return Entrance(
@@ -405,7 +411,22 @@ class _Towns extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final towns = ref.watch(townsProvider);
     if (towns.isEmpty) {
-      return const SliverToBoxAdapter(child: SizedBox.shrink());
+      // Hidden while loading and when empty, but not on an error: before a
+      // search, the towns are all this surface has to say, so a failure is
+      // said here rather than left as a blank.
+      final failure = ref.watch(
+        allDestinationsProvider.select(
+          (all) => all.hasValue ? null : all.error,
+        ),
+      );
+      return SliverToBoxAdapter(
+        child: failure == null
+            ? const SizedBox.shrink()
+            : QuietNote(
+                errorCopy("Couldn't load the towns.", failure),
+                onRetry: () => ref.invalidate(allDestinationsProvider),
+              ),
+      );
     }
 
     return SliverMainAxisGroup(

@@ -1,6 +1,7 @@
 import "package:cloud_firestore/cloud_firestore.dart";
 import "package:riverpod_annotation/riverpod_annotation.dart";
 
+import "../../../core/errors/local_first.dart";
 import "../../../core/models/itinerary.dart";
 import "../../../core/models/destination.dart";
 import "../../auth/domain/auth_providers.dart";
@@ -24,7 +25,7 @@ Stream<List<Tour>> tours(Ref ref) =>
 /// Explore's rail of ready-made days: featured tours first, at most ten.
 @riverpod
 AsyncValue<List<Tour>> tourRail(Ref ref) =>
-    ref.watch(toursProvider).whenData((all) {
+    ref.watch(toursProvider).deriveKeepingValue((all) {
       final routed = [
         for (final tour in all)
           if (tour.stops.isNotEmpty) tour,
@@ -56,7 +57,7 @@ typedef TripShelf = ({Itinerary? next, List<Itinerary> others});
 /// Derived here so the tab does not sort in `build()`.
 @riverpod
 AsyncValue<TripShelf> tripShelf(Ref ref) =>
-    ref.watch(myItinerariesProvider).whenData((all) {
+    ref.watch(myItinerariesProvider).deriveKeepingValue((all) {
       if (all.isEmpty) return (next: null, others: const <Itinerary>[]);
       final now = DateTime.now();
       final today = DateTime(now.year, now.month, now.day);
@@ -98,7 +99,7 @@ AsyncValue<TripShelf> tripShelf(Ref ref) =>
 @riverpod
 AsyncValue<Itinerary?> itineraryById(Ref ref, String id) => ref
     .watch(myItinerariesProvider)
-    .whenData(
+    .deriveKeepingValue(
       (all) => all.where((itinerary) => itinerary.id == id).firstOrNull,
     );
 
@@ -113,15 +114,21 @@ Map<String, Destination> placesById(Ref ref) => {
 };
 
 /// Every published place not already on [id]: what Add a stop offers.
+/// Async, so the sheet can tell "still loading" and "couldn't load" from
+/// "every place is already on this trip"; derived keeping the value, so the
+/// places on the phone stay offered when a later read of them fails.
 @riverpod
-List<Destination> addableStops(Ref ref, String id) {
+AsyncValue<List<Destination>> addableStops(Ref ref, String id) {
   final stops =
       ref.watch(itineraryByIdProvider(id)).value?.destinationIds ?? const [];
-  final all = ref.watch(allDestinationsProvider).value ?? const [];
-  return [
-    for (final place in all)
-      if (!stops.contains(place.id)) place,
-  ];
+  return ref
+      .watch(allDestinationsProvider)
+      .deriveKeepingValue(
+        (all) => [
+          for (final place in all)
+            if (!stops.contains(place.id)) place,
+        ],
+      );
 }
 
 /// The places offered as a new itinerary's first stop: the first few
