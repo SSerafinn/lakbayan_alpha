@@ -25,6 +25,10 @@ class FakeNarrator implements Narrator {
   /// Set to throw from [play], to exercise the failure path.
   Object? playError;
 
+  /// While set, [play] holds at loading until this completes — a recording
+  /// buffering on a slow connection.
+  Completer<void>? buffering;
+
   NarratorState _state = const NarratorState();
 
   @override
@@ -42,6 +46,11 @@ class FakeNarrator implements Narrator {
   /// controller advance to the next stop.
   void complete() => _emit(_state.copyWith(phase: NarratorPhase.completed));
 
+  /// Pretend the engine gave up, the way [Narrator] reports it: a phase and a
+  /// message, not a throw.
+  void fail(String message) =>
+      _emit(NarratorState(phase: NarratorPhase.failed, error: message));
+
   /// Pretend a recording reported its length, so a scrubber can be drawn.
   void ready({Duration? duration, bool canSeek = true}) => _emit(
     NarratorState(
@@ -55,6 +64,12 @@ class FakeNarrator implements Narrator {
   Future<void> play(NarrationSource source) async {
     if (playError case final e?) throw e;
     played.add(source);
+    // The steps the real one takes: it stops whatever was going, which reads
+    // as idle, then loads. The media session has to hold steady through both
+    // between stops, so the fake walks through them too.
+    _emit(const NarratorState());
+    _emit(const NarratorState(phase: NarratorPhase.loading));
+    await buffering?.future;
     // Speech reports no duration and cannot seek — the distinction the UI
     // reads, so the fake has to reproduce it or the tests prove nothing.
     _emit(

@@ -45,6 +45,17 @@ class DeviceNarrator implements Narrator {
   bool _resumeBySpeakingAgain = false;
   String? _lastSpokenText;
 
+  /// Set while [play] brings up a recording, until just_audio says it plays.
+  ///
+  /// `setUrl` finishes with the player ready but not yet playing, and the
+  /// state stream says exactly that, which reads as paused. Passed on, every
+  /// recording would flash a play button as it started — and the media
+  /// session would take it for a real pause and drop its foreground service,
+  /// which Android 12 and later will not let a backgrounded app start again.
+  /// A guide running with the screen off could fall silent soon after it
+  /// advanced to a recording.
+  bool _starting = false;
+
   final _subscriptions = <StreamSubscription<Object?>>[];
 
   @override
@@ -62,6 +73,8 @@ class DeviceNarrator implements Narrator {
     _subscriptions.add(
       _player.playerStateStream.listen((s) {
         if (_speaking) return;
+        if (s.playing) _starting = false;
+        if (_starting && s.processingState == ProcessingState.ready) return;
         final phase = switch (s.processingState) {
           ProcessingState.idle => NarratorPhase.idle,
           ProcessingState.loading ||
@@ -92,8 +105,14 @@ class DeviceNarrator implements Narrator {
 
   void _wireSpeech() {
     _tts
+      // Never undoes a pause. A start can land just after one, for a speak
+      // handed over a moment before: a Pause pressed while a stop loaded is
+      // applied the instant it plays. [play] and [resume] report playing
+      // themselves, so staying quiet here loses nothing.
       ..setStartHandler(() {
-        if (_speaking) _emit(_state.copyWith(phase: NarratorPhase.playing));
+        if (_speaking && _state.phase != NarratorPhase.paused) {
+          _emit(_state.copyWith(phase: NarratorPhase.playing));
+        }
       })
       ..setCompletionHandler(() {
         if (_speaking) _emit(_state.copyWith(phase: NarratorPhase.completed));
@@ -129,6 +148,7 @@ class DeviceNarrator implements Narrator {
       switch (source) {
         case RecordedNarration(:final url):
           _speaking = false;
+          _starting = true;
           final duration = await _player.setUrl(url);
           _emit(
             _state.copyWith(
@@ -152,6 +172,7 @@ class DeviceNarrator implements Narrator {
           await _tts.speak(text);
       }
     } catch (e) {
+      _starting = false;
       // A player's exception names a source or a URL: the log has it, and
       // the guide says what to do instead.
       _emit(
@@ -184,6 +205,7 @@ class DeviceNarrator implements Narrator {
         _resumeBySpeakingAgain = true;
       }
     } else {
+      _starting = false;
       await _player.pause();
     }
     _emit(_state.copyWith(phase: NarratorPhase.paused));
@@ -213,6 +235,7 @@ class DeviceNarrator implements Narrator {
     await _tts.stop();
     await _player.stop();
     _resumeBySpeakingAgain = false;
+    _starting = false;
     _emit(const NarratorState());
   }
 

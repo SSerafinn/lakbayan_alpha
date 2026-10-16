@@ -99,9 +99,19 @@ and `flutter test` before committing; commit with `/commit`.
       not resolve falls back to its script rather than going silent. Speech gets
       no scrubber, because the engine reports no length and cannot seek, and
       drawing one would be a fabrication. Auto-advance skips stops with nothing
-      to play. **Background and lock-screen playback are not wired** —
-      `audio_service` needs a foreground service and a background isolate; this
-      interface is what such a handler would delegate to.*
+      to play. **Background and lock-screen playback are wired, and not yet
+      tried on a phone.** `GuideAudioHandler` gives the lock screen, the
+      notification and headset buttons the same controller the in-app player
+      drives, so the two cannot disagree; speech shows no length and offers no
+      seek. No second isolate is needed: `MainActivity` shares the plugin's
+      engine. If the service will not start, the guide plays in the app as it
+      did before. The container cannot run Android, so these still need a
+      device: lock-screen and notification controls, Bluetooth and headset
+      buttons, TTS and auto-advance with the screen off, and a recording
+      picking itself up after a phone call — Android 12+ will not let a
+      backgrounded app restart its foreground service unprompted, and if that
+      bites, `androidStopForegroundOnPause: false` is the known fix, at the
+      cost of a wake lock held while paused.*
 - [x] `features/offline` — manifest, download engine, screen, and packs on the map.
       - [x] `generateOfflineBundle(town)` in `functions/`, plus the CMS screen
             that drives it. Writes `offlineBundles/{townId}`: which places, how
