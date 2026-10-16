@@ -1,14 +1,17 @@
 import "package:cloud_firestore/cloud_firestore.dart";
 import "package:riverpod_annotation/riverpod_annotation.dart";
 
+import "../../../core/diagnostics/error_reporter.dart";
 import "../../../core/models/app_settings.dart";
 import "../data/settings_repository.dart";
 
 part "settings_providers.g.dart";
 
 @Riverpod(keepAlive: true)
-SettingsRepository settingsRepository(Ref ref) =>
-    SettingsRepository(FirebaseFirestore.instance);
+SettingsRepository settingsRepository(Ref ref) => SettingsRepository(
+  FirebaseFirestore.instance,
+  reporter: ref.watch(errorReporterProvider),
+);
 
 /// The tourism office, the emergency lines and the Explore notice.
 ///

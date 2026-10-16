@@ -3,6 +3,7 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:path_provider/path_provider.dart";
 
 import "app.dart";
+import "core/diagnostics/error_reporter.dart";
 import "core/firebase/firebase_bootstrap.dart";
 import "core/firebase/firebase_status_provider.dart";
 import "core/prefs/app_preferences.dart";
@@ -23,6 +24,9 @@ Future<void> main() async {
   // placeholder home screen when Firebase is unconfigured.
   // Also turns on Firestore offline persistence — see _enableOfflinePersistence.
   final status = await bootstrapFirebase();
+  // Crashlytics in a live profile or release build, a no-op otherwise. Also
+  // never throws.
+  final errorReporter = await startErrorReporting(status);
 
   // Device-local flags. Falls back to an in-memory instance rather than
   // failing to boot: the only thing riding on this today is whether the
@@ -61,6 +65,7 @@ Future<void> main() async {
       // unreachable emulator and an empty database look identical on screen.
       overrides: [
         firebaseBootstrapStatusProvider.overrideWithValue(status),
+        errorReporterProvider.overrideWithValue(errorReporter),
         appPreferencesProvider.overrideWithValue(prefs),
         downloadStoreProvider.overrideWithValue(downloads),
         // Documents, not cache: the OS may empty a cache directory whenever it

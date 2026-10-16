@@ -2,6 +2,7 @@ import "package:cloud_firestore/cloud_firestore.dart";
 import "package:riverpod_annotation/riverpod_annotation.dart";
 import "package:url_launcher/url_launcher.dart";
 
+import "../../../core/diagnostics/error_reporter.dart";
 import "../../../core/models/guide.dart";
 import "../../auth/domain/auth_providers.dart";
 import "../data/guide_repository.dart";
@@ -9,8 +10,10 @@ import "../data/guide_repository.dart";
 part "guide_providers.g.dart";
 
 @Riverpod(keepAlive: true)
-GuideRepository guideRepository(Ref ref) =>
-    GuideRepository(FirebaseFirestore.instance);
+GuideRepository guideRepository(Ref ref) => GuideRepository(
+  FirebaseFirestore.instance,
+  reporter: ref.watch(errorReporterProvider),
+);
 
 /// Hands a guide's `tel:` or `mailto:` link to the phone, and says whether
 /// anything took it.
