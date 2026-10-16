@@ -300,7 +300,26 @@ and `flutter test` before committing; commit with `/commit`.
 
 ## Phase 5 · Weeks 13–15 — Ship  → Milestone **M3 (MVP RC)**
 - [ ] Create the **production** Firebase project; keep its config out of the repo (D-08).
-- [ ] Integration pass; empty/error/loading states everywhere.
+- [x] Integration pass; empty/error/loading states everywhere.
+      *Explore's kinds, search and Add a stop showed "nothing here" while
+      their places were loading or had failed: the lists they derive from
+      every place dropped the `AsyncValue`. They keep it now, so each shows a
+      spinner, then an error with Try again, and empty copy only when loaded
+      and empty. What is on the phone outranks a later failure:
+      `whenLocalFirst` and `deriveKeepingValue` (`lib/core/errors/`) decide
+      by what there is, since Riverpod's `when` and `whenData` blank the
+      screen through its ~38 s of retries; tests check it with the default
+      retry on. The audio guide holds a capsule-shaped placeholder while
+      loading and says when it cannot be read. No screen shows an
+      exception's text any more, the narrator's included: `errorCopy` says
+      what failed and what to do, offline or not, and logs the detail once.
+      `QuietNote` and `MessageScreen` take `onRetry`, a text button wired to
+      `ref.invalidate` on the source that failed; a link to nowhere gets
+      `MessageScreen` rather than go_router's page. Optional rails still
+      hide, each saying whether it hides on an error too. The rules are in
+      `docs/DESIGN_SYSTEM.md`; widget tests inject the failures. A
+      walk-through on a phone, online and off, stays part of the QA item
+      below.*
 - [ ] Harden `firestore.rules`; extend the rules test suite; wire Analytics + Crashlytics.
       *Rules suite extended to the rules as they stand (47 → 92 tests, no rule
       changes): admin reads and deletes of drafts and their segments, segment
@@ -311,6 +330,15 @@ and `flutter test` before committing; commit with `/commit`.
       updates, and who may read and delete each path. Left open for the
       hardening pass: an admin can delete a `settings` document, privacy
       policy included (unpinned, TODO in firestore.test.mjs).*
+      *Crashlytics is wired on the Dart side (`lib/core/diagnostics/`): on a
+      live profile or release launch only, `FlutterError.onError` and
+      `PlatformDispatcher.onError` report fatals; debug builds turn collection
+      off and delete unsent reports, and emulator and unavailable launches
+      never touch it. Every repository reports the documents it drops as
+      malformed as non-fatals (`decodeOrSkip`) — `decodeOrSkip` is tested, the
+      repository wiring only reviewed, as there is no Firestore fake to drive
+      it. Still open: symbol upload for obfuscated release builds, and enabling
+      Crashlytics in the console. Rules hardening and Analytics remain.*
 - [ ] Release signing config + release SHA-1 registered for Google Sign-In.
 - [x] Show what the CMS's Settings now hold (`settings/app`, `settings/policies`,
       `AppSettings`/`PolicySettings` in `lib/core/models/app_settings.dart`):

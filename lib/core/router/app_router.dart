@@ -18,6 +18,7 @@ import "../../features/profile/presentation/help_screen.dart";
 import "../../features/profile/presentation/policy_screen.dart";
 import "../../features/profile/presentation/settings_screen.dart";
 import "../prefs/app_preferences.dart";
+import "../widgets/content/quiet_note.dart";
 import "../widgets/motion/page_transitions.dart";
 
 abstract final class Routes {
@@ -109,6 +110,15 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   final router = GoRouter(
     initialLocation: Routes.splash,
     debugLogDiagnostics: kDebugMode,
+    // A link to nowhere (an old share, a mistyped deep link) gets the app's
+    // own quiet page with its way back, which is Home when there is nothing
+    // to go back to, rather than go_router's default error page.
+    errorBuilder: (context, state) {
+      debugPrint("No route for ${state.uri}: ${state.error}");
+      return const MessageScreen(
+        "There's nothing at this link. It may be old, or mistyped.",
+      );
+    },
     redirect: (context, state) {
       final auth = ref.read(authStateProvider);
       final isGuest = ref.read(guestModeProvider);

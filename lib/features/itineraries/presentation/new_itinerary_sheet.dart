@@ -75,6 +75,8 @@ class _NewItinerarySheetState extends ConsumerState<_NewItinerarySheet> {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    // Hidden while loading, when empty and on an error alike: the first stop
+    // is optional, and a trip is made from a name alone.
     final choices = ref.watch(firstStopChoicesProvider);
     final canCreate = _name.text.trim().isNotEmpty && !_saving;
     const inset = EdgeInsets.symmetric(horizontal: AppSpace.gutter);

@@ -3,6 +3,8 @@ import "package:flutter/foundation.dart" show kReleaseMode;
 import "package:latlong2/latlong.dart";
 import "package:riverpod_annotation/riverpod_annotation.dart";
 
+import "../../../core/diagnostics/error_reporter.dart";
+import "../../../core/errors/local_first.dart";
 import "../../../core/models/destination.dart";
 import "../data/destination_repository.dart";
 import "../data/fake_destination_repository.dart";
@@ -17,7 +19,10 @@ part "destination_providers.g.dart";
 DestinationRepository destinationRepository(Ref ref) =>
     !kReleaseMode && ref.watch(sampleDataProvider)
     ? FakeDestinationRepository(sampleDestinations, segments: sampleSegments)
-    : DestinationRepository(FirebaseFirestore.instance);
+    : DestinationRepository(
+        FirebaseFirestore.instance,
+        reporter: ref.watch(errorReporterProvider),
+      );
 
 /// The debug preview switch, toggled from the Profile tab.
 @Riverpod(keepAlive: true)
@@ -164,7 +169,7 @@ AsyncValue<List<Destination>> mapResults(Ref ref) {
   final saved = ref.watch(savedDestinationsProvider);
   return ref
       .watch(browseResultsProvider)
-      .whenData(
+      .deriveKeepingValue(
         (all) => [
           for (final destination in all)
             if (!savedOnly || saved.contains(destination.id)) destination,
@@ -204,8 +209,10 @@ List<Destination> nearby(Ref ref, String id) {
 
 /// The category query from Firestore. "All" is the same query as
 /// [allDestinations], so it reuses that listener instead of opening a second.
+/// Public only so Browse and the Map can invalidate it to try again after a
+/// failure ([browseSource]); read [browseResults] instead.
 @riverpod
-Stream<List<Destination>> _browseCategoryStream(Ref ref) {
+Stream<List<Destination>> browseCategoryStream(Ref ref) {
   final category = ref.watch(browseCategoryProvider);
   return ref.watch(destinationRepositoryProvider).watchAll(category: category);
 }
@@ -226,9 +233,9 @@ AsyncValue<List<Destination>> browseResults(Ref ref) {
   final query = ref.watch(browseQueryProvider).trim().toLowerCase();
   final source = category == null
       ? ref.watch(allDestinationsProvider)
-      : ref.watch(_browseCategoryStreamProvider);
+      : ref.watch(browseCategoryStreamProvider);
   if (query.isEmpty && subcategory == null) return source;
-  return source.whenData(
+  return source.deriveKeepingValue(
     (all) => [
       for (final destination in all)
         if ((subcategory == null || destination.subcategory == subcategory) &&
@@ -242,6 +249,12 @@ AsyncValue<List<Destination>> browseResults(Ref ref) {
   );
 }
 
+/// The listener [browseResults] reads under [category]: every place for
+/// "All", else that category's query. What Browse and the Map invalidate to
+/// try again after a failed load.
+ProviderOrFamily browseSource(DestinationCategory? category) =>
+    category == null ? allDestinationsProvider : browseCategoryStreamProvider;
+
 /// The subcategories among the chosen category's places, for Browse's second
 /// chip row. Empty with no category chosen, or none in use, and the row then
 /// does not show.
@@ -253,7 +266,7 @@ AsyncValue<List<Destination>> browseResults(Ref ref) {
 List<String> browseSubcategories(Ref ref) {
   final category = ref.watch(browseCategoryProvider);
   if (category == null) return const [];
-  final places = ref.watch(_browseCategoryStreamProvider).value ?? const [];
+  final places = ref.watch(browseCategoryStreamProvider).value ?? const [];
   final names = <String>{
     for (final d in places)
       if (d.subcategory?.trim().isNotEmpty ?? false) d.subcategory!,
@@ -264,7 +277,7 @@ List<String> browseSubcategories(Ref ref) {
 /// Browse's results cut into grid rows of [columns]. Derived here, not on every build.
 @riverpod
 AsyncValue<List<List<Destination>>> browseGridRows(Ref ref, int columns) =>
-    ref.watch(browseResultsProvider).whenData((items) {
+    ref.watch(browseResultsProvider).deriveKeepingValue((items) {
       final rows = <List<Destination>>[];
       var current = <Destination>[];
       for (final item in items) {
@@ -369,21 +382,32 @@ class SearchCategory extends _$SearchCategory {
   void clear() => state = null;
 }
 
-/// Home's matches while its strip has a category chosen.
+/// Home's matches while its strip has a category chosen. Async, as
+/// [savedPlaces] is, so Explore can tell "still loading" and "couldn't
+/// load" from "nothing of this kind"; derived keeping the value, so places
+/// already on the phone stay when a later read of them fails.
 @riverpod
-List<Destination> homeResults(Ref ref) => _matching(
-  ref.watch(allDestinationsProvider).value ?? const [],
-  category: ref.watch(homeCategoryProvider),
-  query: "",
-);
+AsyncValue<List<Destination>> homeResults(Ref ref) {
+  final category = ref.watch(homeCategoryProvider);
+  return ref
+      .watch(allDestinationsProvider)
+      .deriveKeepingValue(
+        (all) => _matching(all, category: category, query: ""),
+      );
+}
 
-/// The search surface's matches: its own kind and the typed query.
+/// The search surface's matches: its own kind and the typed query. Async
+/// for the same reason as [homeResults].
 @riverpod
-List<Destination> searchResults(Ref ref) => _matching(
-  ref.watch(allDestinationsProvider).value ?? const [],
-  category: ref.watch(searchCategoryProvider),
-  query: ref.watch(homeQueryProvider),
-);
+AsyncValue<List<Destination>> searchResults(Ref ref) {
+  final category = ref.watch(searchCategoryProvider);
+  final query = ref.watch(homeQueryProvider);
+  return ref
+      .watch(allDestinationsProvider)
+      .deriveKeepingValue(
+        (all) => _matching(all, category: category, query: query),
+      );
+}
 
 /// Every published place, filtered in memory (the same trade as
 /// [browseResults]): by kind when one is chosen, and by name or town.

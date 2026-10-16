@@ -322,6 +322,59 @@ line under the field**: an error is the error border plus a trailing
   radius 16 with an 11 thumbnail derived inside; media tiles 14; heroes and
   the Profile block 24; sheets 28.
 
+## Loading, empty and error states
+
+Set in the Phase 5 integration pass. **Rule** for every section that reads
+data.
+
+- **Three states, never folded into one.** A list derived from another
+  provider stays an `AsyncValue` (`deriveKeepingValue` over its source, as
+  `savedPlaces` does), never `.value ?? []`. Otherwise "still loading" and
+  "couldn't load" both read as "nothing here". Empty copy ("Nothing
+  matches", "Every place is already on this trip") is for loaded and empty
+  only.
+- **What is on the phone outranks an error.** A section reads its provider
+  with `whenLocalFirst`, and a derived list is made with
+  `deriveKeepingValue` (`lib/core/errors/local_first.dart`), never with
+  Riverpod's `when(skipError: true)` or `whenData`. Riverpod retries a
+  provider that fails after loading for about 38 seconds and reads as
+  loading meanwhile: `when` then swaps what is on screen for its spinner,
+  `skipError` or not, and `whenData` drops the value outright. Decided by
+  what there is instead: a value stays through the failure and the
+  retries; with no value, the error shows at once; loading while there is
+  neither, or while a value is replaced for changed inputs (another
+  category, another account). A test of this keeps Riverpod's default
+  retry.
+- **Loading** is the section's own placeholder where its shape is known
+  (the featured card, Popular's bento, the audio guide's capsule), a
+  spinner otherwise; search says "Looking…". Which of the two a section
+  uses is not yet unified.
+- **Error copy** comes from `errorCopy` (`lib/core/errors/error_copy.dart`):
+  what did not load, then what to do. Offline (a dead socket, a timeout,
+  Storage or Auth giving up on the network) gets the offline sentence,
+  anything else the generic one; a screen that knows better what still
+  works offline may say so instead (Downloads, the audio guide). Firestore's
+  lists seldom get it: offline, a listener answers from the cache rather
+  than failing, so a first launch with nothing cached reads as empty, not
+  offline. **Never the exception's text**: it goes to `debugPrint`, once
+  per failure.
+- **Try again** is `QuietNote(onRetry:)` or `MessageScreen(onRetry:)`: the
+  theme's text button, never filled, never gold. It invalidates the
+  provider that failed, which for a derived list is its source; invalidating
+  the derived one would only derive the same failure again. While it runs,
+  the section shows its loading state, so the tap is seen to land; not yet
+  while Riverpod's own retries are still going, when the tap restarts one
+  and the error stays until it settles.
+- **Optional rails hide** while loading, when empty and on an error. Each
+  rail's build says why in one comment, and whether another section says
+  the error instead: the search surface's towns do for Recent, while
+  Explore's town and food rails read every place, a listener of their own,
+  and go without a word if only that read fails. The audio guide is not
+  optional: it holds its place while loading and says when it cannot be
+  read.
+- **A link to nowhere** gets `MessageScreen` (the router's `errorBuilder`),
+  whose back goes Home when there is nothing to go back to.
+
 ## Motion
 
 Two springs, `AppMotion.chrome` and `AppMotion.arrive` (`motor`), carry
