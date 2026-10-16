@@ -2,6 +2,8 @@ import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
 
+import "../../../core/errors/error_copy.dart";
+import "../../../core/errors/local_first.dart";
 import "../../../core/models/destination.dart";
 import "../../../core/models/itinerary.dart";
 import "../../../core/router/app_router.dart";
@@ -91,9 +93,12 @@ class _Mine extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final shelf = ref.watch(tripShelfProvider);
-    return shelf.when(
+    return shelf.whenLocalFirst(
       loading: () => const _Loading(),
-      error: (e, _) => QuietNote("Couldn't load your itineraries.\n$e"),
+      error: (e, _) => QuietNote(
+        errorCopy("Couldn't load your itineraries.", e),
+        onRetry: () => ref.invalidate(myItinerariesProvider),
+      ),
       data: (shelf) {
         final next = shelf.next;
         if (next == null) {
@@ -159,11 +164,14 @@ class _SavedTours extends ConsumerWidget {
       children: [
         const Padding(padding: gutter, child: SectionHeading("Saved tours")),
         const SizedBox(height: AppSpace.x2),
-        saved.when(
+        saved.whenLocalFirst(
           loading: () => const _Loading(),
           error: (e, _) => Padding(
             padding: gutter,
-            child: QuietNote("Couldn't load your saved tours.\n$e"),
+            child: QuietNote(
+              errorCopy("Couldn't load your saved tours.", e),
+              onRetry: () => ref.invalidate(savedToursProvider),
+            ),
           ),
           data: (items) => items.isEmpty
               ? const Padding(

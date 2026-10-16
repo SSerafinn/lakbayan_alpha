@@ -2,11 +2,14 @@ import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
 
+import "../../../core/errors/error_copy.dart";
+import "../../../core/errors/local_first.dart";
 import "../../../core/theme/app_dimens.dart";
 import "../../../core/theme/app_icons.dart";
 import "../../../core/theme/app_typography.dart";
 import "../../../core/widgets/content/app_card.dart";
 import "../../../core/widgets/content/lakbayan_badge.dart";
+import "../../../core/widgets/content/quiet_note.dart";
 import "../../../core/widgets/controls/symbol_button.dart";
 import "../../../core/widgets/motion/motion.dart";
 import "../domain/downloads_controller.dart";
@@ -56,12 +59,18 @@ class DownloadsScreen extends ConsumerWidget {
               ),
             ),
             Expanded(
-              child: bundles.when(
+              child: bundles.whenLocalFirst(
                 loading: () => const Center(child: CircularProgressIndicator()),
-                error: (e, _) => _Message(
-                  "Couldn't load the list of towns.\n\n"
-                  "This screen needs a connection the first time. Towns you "
-                  "have already downloaded still work.\n\n$e",
+                error: (e, _) => QuietNote(
+                  errorCopy(
+                    "Couldn't load the list of towns.",
+                    e,
+                    offline:
+                        "This screen needs a connection the first time. "
+                        "Towns you have already downloaded still work.",
+                  ),
+                  centered: true,
+                  onRetry: () => ref.invalidate(offlineBundlesProvider),
                 ),
                 data: (items) => items.isEmpty
                     ? const _Message(
