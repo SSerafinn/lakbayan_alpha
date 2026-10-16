@@ -107,9 +107,12 @@ class NarratorState {
 /// matters here more than usual: the real implementation is two platform
 /// plugins, and neither works in a test harness.
 ///
-/// **Not wired to `audio_service` yet.** Background and lock-screen playback
-/// need a foreground service, manifest entries and a background isolate; this
-/// interface is the thing such a handler would delegate to when that lands.
+/// The lock screen, notification and headset buttons never call it directly.
+/// `GuideAudioHandler` (`audio_service`) sends them through
+/// `AudioGuideController`, the controller the in-app player uses, so this
+/// stays the only thing that touches an engine and the two players cannot
+/// disagree. No second isolate: `MainActivity` shares the plugin's engine, so
+/// this runs where it always did. Unit-tested, not yet tried on a phone.
 abstract interface class Narrator {
   Stream<NarratorState> get states;
 
