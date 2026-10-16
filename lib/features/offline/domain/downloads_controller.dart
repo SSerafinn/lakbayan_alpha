@@ -1,6 +1,7 @@
 import "package:flutter/foundation.dart";
 import "package:riverpod_annotation/riverpod_annotation.dart";
 
+import "../../../core/errors/error_copy.dart";
 import "../data/town_downloader.dart";
 import "offline_bundle.dart";
 import "offline_providers.dart";
@@ -17,7 +18,8 @@ class TownDownload {
   /// Present while a download is in flight. Null once it settled.
   final CancelToken? cancel;
 
-  /// Set when the last attempt failed. Cleared by starting another.
+  /// Set when the last attempt failed, in words for the person: what to do
+  /// next, never the exception's own text. Cleared by starting another.
   final String? error;
 
   bool get isRunning => cancel != null;
@@ -83,6 +85,9 @@ class DownloadsController extends _$DownloadsController {
     } on DownloadCancelled {
       if (ref.mounted) state = {...state}..remove(bundle.townId);
     } catch (e) {
+      // The detail is for the log: the screen shows this under "nothing was
+      // kept", where a storage path or an exception's name says nothing.
+      debugPrint("Downloading '${bundle.townId}' failed: $e");
       _set(
         bundle.townId,
         TownDownload(
@@ -91,7 +96,9 @@ class DownloadsController extends _$DownloadsController {
             filesTotal: 0,
             bytesDone: 0,
           ),
-          error: "$e",
+          error: isOfflineError(e)
+              ? "The connection dropped. Try again once you have signal."
+              : genericErrorHint,
         ),
       );
     }
