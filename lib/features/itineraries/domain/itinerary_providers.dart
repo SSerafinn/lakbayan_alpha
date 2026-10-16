@@ -1,6 +1,7 @@
 import "package:cloud_firestore/cloud_firestore.dart";
 import "package:riverpod_annotation/riverpod_annotation.dart";
 
+import "../../../core/diagnostics/error_reporter.dart";
 import "../../../core/errors/local_first.dart";
 import "../../../core/models/itinerary.dart";
 import "../../../core/models/destination.dart";
@@ -11,12 +12,16 @@ import "../data/itinerary_repository.dart";
 part "itinerary_providers.g.dart";
 
 @Riverpod(keepAlive: true)
-TourRepository tourRepository(Ref ref) =>
-    TourRepository(FirebaseFirestore.instance);
+TourRepository tourRepository(Ref ref) => TourRepository(
+  FirebaseFirestore.instance,
+  reporter: ref.watch(errorReporterProvider),
+);
 
 @Riverpod(keepAlive: true)
-ItineraryRepository itineraryRepository(Ref ref) =>
-    ItineraryRepository(FirebaseFirestore.instance);
+ItineraryRepository itineraryRepository(Ref ref) => ItineraryRepository(
+  FirebaseFirestore.instance,
+  reporter: ref.watch(errorReporterProvider),
+);
 
 @riverpod
 Stream<List<Tour>> tours(Ref ref) =>
