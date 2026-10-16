@@ -1,6 +1,8 @@
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
+import "../../../core/errors/error_copy.dart";
+import "../../../core/errors/local_first.dart";
 import "../../../core/models/destination.dart";
 import "../../../core/router/app_router.dart";
 import "../../../core/theme/app_dimens.dart";
@@ -44,11 +46,14 @@ class ExploreScreen extends ConsumerWidget {
           const SliverToBoxAdapter(child: ProvinceNotice()),
           SliverToBoxAdapter(
             child: Entrance(
-              child: featured.when(
+              child: featured.whenLocalFirst(
                 loading: () => const _FeaturedPlaceholder(),
                 error: (error, _) => Padding(
                   padding: gutter,
-                  child: QuietNote("Couldn't load destinations.\n$error"),
+                  child: QuietNote(
+                    errorCopy("Couldn't load destinations.", error),
+                    onRetry: () => ref.invalidate(featuredDestinationsProvider),
+                  ),
                 ),
                 data: (items) => items.isEmpty
                     ? const SizedBox.shrink()
@@ -132,9 +137,6 @@ class _Matches extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final results = ref.watch(homeResultsProvider);
-    final loading = ref.watch(
-      allDestinationsProvider.select((value) => value.isLoading),
-    );
     return SliverMainAxisGroup(
       slivers: [
         SliverToBoxAdapter(
@@ -146,12 +148,25 @@ class _Matches extends ConsumerWidget {
             ),
           ),
         ),
-        if (results.isNotEmpty)
-          SliverPlaceRows(items: results, from: HeroSource.list)
-        else if (!loading)
-          const SliverToBoxAdapter(
-            child: QuietNote("Nothing matches. Try another kind."),
+        results.whenLocalFirst(
+          loading: () => const SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.all(AppSpace.x6),
+              child: Center(child: CircularProgressIndicator()),
+            ),
           ),
+          error: (error, _) => SliverToBoxAdapter(
+            child: QuietNote(
+              errorCopy("Couldn't load places.", error),
+              onRetry: () => ref.invalidate(allDestinationsProvider),
+            ),
+          ),
+          data: (items) => items.isEmpty
+              ? const SliverToBoxAdapter(
+                  child: QuietNote("Nothing matches. Try another kind."),
+                )
+              : SliverPlaceRows(items: items, from: HeroSource.list),
+        ),
       ],
     );
   }

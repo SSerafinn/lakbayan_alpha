@@ -22,6 +22,7 @@ replaces them**. Android-first, Flutter + Firebase.
 - Analyze / test: `dart analyze` (includes riverpod_lint) · `flutter test`
 - Firebase emulators: `docker compose up emulators` (UI at localhost:4000)
 - Security rules tests: `cd test_rules && npm install && npm test` (emulators must be up)
+  — or in one step, as CI does: `firebase emulators:exec --only firestore,storage --project demo-lakbayan "cd test_rules && npm test"`
 - Same checks in the pinned container: `docker compose run --rm toolchain <cmd>`
 
 riverpod_lint is a native analyzer plugin (`plugins:` in `analysis_options.yaml`).

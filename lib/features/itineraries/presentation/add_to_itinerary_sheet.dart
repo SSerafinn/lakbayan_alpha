@@ -2,6 +2,8 @@ import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
 
+import "../../../core/errors/error_copy.dart";
+import "../../../core/errors/local_first.dart";
 import "../../../core/models/itinerary.dart";
 import "../../../core/router/app_router.dart";
 import "../../../core/theme/app_dimens.dart";
@@ -183,7 +185,7 @@ class _Trips extends ConsumerWidget {
     final scheme = Theme.of(context).colorScheme;
     return ref
         .watch(myItinerariesProvider)
-        .when(
+        .whenLocalFirst(
           loading: () => const SliverToBoxAdapter(
             child: Padding(
               padding: EdgeInsets.all(AppSpace.x6),
@@ -191,7 +193,10 @@ class _Trips extends ConsumerWidget {
             ),
           ),
           error: (error, _) => SliverToBoxAdapter(
-            child: QuietNote("Couldn't load your itineraries.\n$error"),
+            child: QuietNote(
+              errorCopy("Couldn't load your itineraries.", error),
+              onRetry: () => ref.invalidate(myItinerariesProvider),
+            ),
           ),
           data: (items) => SliverGroupedSection(
             itemCount: items.length + 1,

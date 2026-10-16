@@ -4,6 +4,8 @@ import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
 
+import "../../../core/errors/error_copy.dart";
+import "../../../core/errors/local_first.dart";
 import "../../../core/models/destination.dart";
 import "../../../core/router/app_router.dart";
 import "../../../core/theme/app_dimens.dart";
@@ -71,10 +73,13 @@ class _DestinationDetailScreenState
   @override
   Widget build(BuildContext context) {
     final destination = ref.watch(destinationByIdProvider(widget.id));
-    return destination.when(
+    return destination.whenLocalFirst(
       loading: () =>
           const Scaffold(body: Center(child: CircularProgressIndicator())),
-      error: (e, _) => MessageScreen("Couldn't load this destination.\n$e"),
+      error: (e, _) => MessageScreen(
+        errorCopy("Couldn't load this destination.", e),
+        onRetry: () => ref.invalidate(destinationByIdProvider(widget.id)),
+      ),
       data: (d) => d == null
           ? const MessageScreen("This destination is no longer available.")
           : Scaffold(
@@ -743,19 +748,41 @@ class _PlanFact extends StatelessWidget {
 /// The audio guide as one capsule, right under the lede: listening is what
 /// the app is for once you are there. Absent entirely when the place has no
 /// stops.
+///
+/// Unlike the page's optional parts it does not simply vanish while it is
+/// not ready: until the stops arrive, a quiet capsule holds its place, and
+/// if they cannot be read, it says so and offers another try. Stops already
+/// on the phone are shown even when a later read fails.
 class _AudioGuide extends ConsumerWidget {
   const _AudioGuide({required this.id});
 
   final String id;
 
+  /// The capsule's height at rest: its play button inside a ring of `x1`.
+  static const _capsule = AppSize.minTouchTarget + 2 * AppSpace.x1;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final stops = ref.watch(destinationSegmentsProvider(id)).value ?? const [];
-    if (stops.isEmpty) return const SizedBox.shrink();
+    final Widget? guide = ref
+        .watch(destinationSegmentsProvider(id))
+        .whenLocalFirst(
+          loading: () => const ImagePlaceholder(
+            height: _capsule,
+            borderRadius: capsuleRadius,
+          ),
+          error: (error, _) => QuietNote(
+            errorCopy("Couldn't load the audio guide.", error),
+            onRetry: () => ref.invalidate(destinationSegmentsProvider(id)),
+          ),
+          data: (stops) => stops.isEmpty
+              ? null
+              // The capsule names itself, so no heading over it.
+              : AudioGuideSection(destinationId: id, segments: stops),
+        );
+    if (guide == null) return const SizedBox.shrink();
     return Padding(
       padding: const EdgeInsets.only(top: _block),
-      // The capsule names itself, so no heading over it.
-      child: AudioGuideSection(destinationId: id, segments: stops),
+      child: guide,
     );
   }
 }
@@ -831,6 +858,8 @@ class _AroundHere extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Hidden while loading, when empty and on an error alike: an ending to
+    // the page, not its subject, which is already on screen.
     final places = ref.watch(aroundHereProvider(destination.id));
     if (places.isEmpty) return const SizedBox.shrink();
 

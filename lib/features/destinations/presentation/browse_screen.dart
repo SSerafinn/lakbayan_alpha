@@ -2,6 +2,8 @@ import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
 
+import "../../../core/errors/error_copy.dart";
+import "../../../core/errors/local_first.dart";
 import "../../../core/models/destination.dart";
 import "../../../core/router/app_router.dart";
 import "../../../core/theme/app_dimens.dart";
@@ -134,11 +136,14 @@ class BrowseScreen extends ConsumerWidget {
         ],
         const SizedBox(height: AppSpace.x2),
         Expanded(
-          child: rows.when(
+          child: rows.whenLocalFirst(
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (error, _) => Padding(
               padding: const EdgeInsets.symmetric(horizontal: AppSpace.gutter),
-              child: QuietNote("Couldn't load destinations.\n$error"),
+              child: QuietNote(
+                errorCopy("Couldn't load destinations.", error),
+                onRetry: () => ref.invalidate(browseSource(selected)),
+              ),
             ),
             data: (rows) => rows.isEmpty
                 ? _NoResults(

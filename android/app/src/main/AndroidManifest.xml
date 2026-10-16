@@ -1,8 +1,22 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
     <!-- Firebase, map tiles, and audio streaming all need this in every build
          type. The Flutter template only declares it for debug/profile, which
          would leave release builds unable to reach the network at all. -->
     <uses-permission android:name="android.permission.INTERNET"/>
+
+    <!-- The audio guide keeps playing with the screen off. audio_service holds
+         a wake lock while a stop plays, so the CPU does not sleep under it,
+         and runs a foreground service, which is what stops Android killing a
+         backgrounded app mid-narration. Since API 34 a foreground
+         service must also declare what it is for, and needs the permission
+         matching that type: without FOREGROUND_SERVICE_MEDIA_PLAYBACK,
+         starting the service throws. All three are install-time grants; the
+         visitor is never asked. Exactly as the audio_service 0.18 README
+         lists them. -->
+    <uses-permission android:name="android.permission.WAKE_LOCK"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"/>
 
     <!-- Android 11 (API 30) package visibility: without this the device's
          text-to-speech engine is invisible to us and flutter_tts finds no
@@ -56,6 +70,31 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+        <!-- The media session behind the lock screen and the notification.
+             `mediaPlayback` is the type the permission above pays for, and the
+             service is exported because media controllers outside the app —
+             the system's media controls, a watch, Android Auto — connect to it. Without this
+             element `AudioService.init` fails, and the guide falls back to
+             playing in the app only — see startGuideMediaSession.
+             `tools:ignore` because the class lives in the plugin, where lint
+             cannot see it. -->
+        <service android:name="com.ryanheise.audioservice.AudioService"
+            android:foregroundServiceType="mediaPlayback"
+            android:exported="true" tools:ignore="Instantiatable">
+            <intent-filter>
+                <action android:name="android.media.browse.MediaBrowserService" />
+            </intent-filter>
+        </service>
+        <!-- Headset and Bluetooth buttons. While a stop plays they reach the
+             session directly; once Android has parked it (paused, screen off a
+             while) they arrive as this broadcast instead, and the receiver
+             hands them back to the service so a press can still resume. -->
+        <receiver android:name="com.ryanheise.audioservice.MediaButtonReceiver"
+            android:exported="true" tools:ignore="Instantiatable">
+            <intent-filter>
+                <action android:name="android.intent.action.MEDIA_BUTTON" />
+            </intent-filter>
+        </receiver>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data

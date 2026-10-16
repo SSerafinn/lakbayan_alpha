@@ -1,5 +1,6 @@
 import "package:riverpod_annotation/riverpod_annotation.dart";
 
+import "../../../core/errors/local_first.dart";
 import "../../../core/models/destination.dart";
 import "destination_providers.dart";
 
@@ -25,7 +26,7 @@ class SavedDestinations extends _$SavedDestinations {
 @riverpod
 AsyncValue<List<Destination>> savedPlaces(Ref ref) {
   final ids = ref.watch(savedDestinationsProvider);
-  return ref.watch(allDestinationsProvider).whenData((all) {
+  return ref.watch(allDestinationsProvider).deriveKeepingValue((all) {
     final byId = {for (final destination in all) destination.id: destination};
     return [for (final id in ids.toList().reversed) ?byId[id]];
   });

@@ -1,6 +1,7 @@
 import "package:cloud_firestore/cloud_firestore.dart";
-import "package:flutter/foundation.dart";
 
+import "../../../core/diagnostics/error_reporter.dart";
+import "../../../core/diagnostics/malformed_document.dart";
 import "../../../core/models/app_settings.dart";
 
 /// Reads the province's `settings/app` and `settings/policies`, written in the
@@ -12,9 +13,15 @@ import "../../../core/models/app_settings.dart";
 /// says which, so a screen can tell someone offline to connect once rather
 /// than tell them the province has published nothing.
 class SettingsRepository {
-  const SettingsRepository(this._firestore);
+  const SettingsRepository(
+    this._firestore, {
+    this._reporter = const NoopErrorReporter(),
+  });
 
   final FirebaseFirestore _firestore;
+
+  /// Told about a settings document this cannot read. See [decodeOrSkip].
+  final ErrorReporter _reporter;
 
   /// Contact, emergency lines and the Explore notice. Null until the CMS has
   /// saved them.
@@ -24,7 +31,7 @@ class SettingsRepository {
   Stream<PolicySettings?> watchPolicies() =>
       _watch("policies", PolicySettings.fromJson);
 
-  Stream<T?> _watch<T>(
+  Stream<T?> _watch<T extends Object>(
     String id,
     T Function(Map<String, dynamic> json) fromJson,
   ) => _firestore.collection("settings").doc(id).snapshots().map((snap) {
@@ -33,14 +40,13 @@ class SettingsRepository {
       if (snap.metadata.isFromCache) throw const SettingsNotYetLoaded();
       return null;
     }
-    try {
-      return fromJson(data);
-    } catch (e) {
-      // A malformed document reads as an unwritten one rather than taking a
-      // screen down with it.
-      debugPrint("Ignoring malformed settings/$id: $e");
-      return null;
-    }
+    // A malformed document reads as an unwritten one rather than taking a
+    // screen down with it.
+    return decodeOrSkip(
+      () => fromJson(data),
+      what: "settings/$id",
+      reporter: _reporter,
+    );
   });
 }
 
