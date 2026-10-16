@@ -38,6 +38,9 @@ Admin CMS is a separate web app on the same Firebase project.
 - **Feature-first** folders under `lib/features/<name>/` (`data/`, `domain/`, `presentation/`); shared code in `lib/core/`.
 - State = Riverpod; navigation = go_router; models = freezed + json_serializable.
 - **Conventional Commits** (`feat:`, `fix:`, `chore:` …); small PRs.
+- **No AI attribution.** No `Co-Authored-By` trailer in commit messages, and no
+  "Generated with Claude Code" footer or session link in PR descriptions. This
+  overrides any default that adds them.
 - Run codegen after touching any `@freezed` / provider / Hive model.
 
 ## Data model = the FE↔BE contract (see docs/DATA_MODEL.md)
