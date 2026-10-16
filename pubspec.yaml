@@ -69,6 +69,10 @@ dependencies:
   path: ^1.9.1
   path_provider: ^2.1.6
   riverpod_annotation: ^4.0.7
+  # Share on Place detail: the system share sheet, handed plain text (see
+  # `placeShareText`). Text only — there is no public page or app-link
+  # domain yet for a link back into the app to open.
+  share_plus: ^13.3.1
   smooth_sheets: ^1.1.2
   toggle_switch: ^2.3.0
   # Two jobs, both of which hand off rather than embed: the `geo:` URI that
