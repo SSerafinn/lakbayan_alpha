@@ -1,4 +1,4 @@
-﻿// Security rules tests.
+// Security rules tests.
 //
 // firestore.rules is code, and these are the cases that are easy to get wrong
 // and expensive to get wrong. Run against the emulator:
@@ -21,6 +21,7 @@ import {
   deleteDoc,
   getDoc,
   setDoc,
+  updateDoc,
   collection,
   getDocs,
   query,
@@ -58,12 +59,12 @@ before(async () => {
     const db = ctx.firestore();
 
     // Complete documents, matching docs/DATA_MODEL.md. Partial fixtures used to
-    // be enough for rules, but they are read by the app too â€” and the app is
+    // be enough for rules, but they are read by the app too — and the app is
     // entitled to assume a published document is well-formed.
     await setDoc(doc(db, "destinations/published"), {
-      name: "Rules Test â€” Published",
+      name: "Rules Test — Published",
       slug: "rules-test-published",
-      town: "PeÃ±ablanca",
+      town: "Peñablanca",
       category: "nature",
       description: "Fixture for the security rules tests.",
       coords: { lat: 17.7, lng: 121.8 },
@@ -72,7 +73,7 @@ before(async () => {
       schemaVersion: 2,
     });
     await setDoc(doc(db, "destinations/draft"), {
-      name: "Rules Test â€” Draft",
+      name: "Rules Test — Draft",
       slug: "rules-test-draft",
       town: "Gattaran",
       category: "heritage",
@@ -143,11 +144,49 @@ describe("destinations", () => {
     await assertFails(getDocs(collection(db, "destinations")));
   });
 
+  // The CMS lists every destination and checks a new slug against all of
+  // them, drafts included (cms/src/lib/destinations.ts), so the status filter
+  // the public needs must not bind an admin.
+  it("lets an admin read a draft, and query without the status filter", async () => {
+    const db = env.authenticatedContext("boss", { admin: true }).firestore();
+    await assertSucceeds(getDoc(doc(db, "destinations/draft")));
+    await assertSucceeds(getDocs(collection(db, "destinations")));
+    await assertSucceeds(
+      getDocs(
+        query(
+          collection(db, "destinations"),
+          where("slug", "==", "rules-test-draft")
+        )
+      )
+    );
+  });
+
   it("refuses writes from a signed-in non-admin", async () => {
     const db = env.authenticatedContext("traveller").firestore();
     await assertFails(
       setDoc(doc(db, "destinations/published"), { name: "Vandalised" })
     );
+  });
+
+  // Overwriting an existing document is an update; a new id is a create.
+  // `allow write` covers both, but a rule split later into create and update
+  // could leave one of them open, so each gets its own case.
+  it("refuses a new destination from anyone but an admin", async () => {
+    const user = env.authenticatedContext("traveller").firestore();
+    const guest = env.unauthenticatedContext().firestore();
+    const fake = {
+      name: "Not a real place",
+      town: "Aparri",
+      category: "landmark",
+      status: "published",
+    };
+    await assertFails(setDoc(doc(user, "destinations/fake"), fake));
+    await assertFails(setDoc(doc(guest, "destinations/fake"), fake));
+  });
+
+  it("refuses a delete from a signed-in non-admin", async () => {
+    const db = env.authenticatedContext("traveller").firestore();
+    await assertFails(deleteDoc(doc(db, "destinations/published")));
   });
 
   it("allows writes from an admin custom claim", async () => {
@@ -160,6 +199,19 @@ describe("destinations", () => {
         status: "published",
       })
     );
+  });
+
+  it("allows an admin to create a destination and to delete it", async () => {
+    const db = env.authenticatedContext("boss", { admin: true }).firestore();
+    await assertSucceeds(
+      setDoc(doc(db, "destinations/retired"), {
+        name: "Rules Test — Retired",
+        town: "Tuguegarao",
+        category: "landmark",
+        status: "draft",
+      })
+    );
+    await assertSucceeds(deleteDoc(doc(db, "destinations/retired")));
   });
 });
 
@@ -178,6 +230,25 @@ describe("segments inherit the parent's visibility", () => {
     await assertFails(
       getDoc(doc(db, "destinations/draft/segments/s1"))
     );
+  });
+
+  // How the app actually loads an audio guide: the whole subcollection at
+  // once. The rule reads the parent rather than each segment, so a list is
+  // allowed or denied as a unit.
+  it("lists a published destination's segments, not a draft's", async () => {
+    const db = env.unauthenticatedContext().firestore();
+    await assertSucceeds(
+      getDocs(collection(db, "destinations/published/segments"))
+    );
+    await assertFails(getDocs(collection(db, "destinations/draft/segments")));
+  });
+
+  // The CMS audio guide editor reads back what it wrote while the destination
+  // is still a draft.
+  it("lets an admin read and list a draft's segments", async () => {
+    const db = env.authenticatedContext("boss", { admin: true }).firestore();
+    await assertSucceeds(getDoc(doc(db, "destinations/draft/segments/s1")));
+    await assertSucceeds(getDocs(collection(db, "destinations/draft/segments")));
   });
 
   it("refuses a segment write from a signed-in non-admin", async () => {
@@ -202,6 +273,18 @@ describe("segments inherit the parent's visibility", () => {
       })
     );
   });
+
+  // The editor deletes a segment taken out of the list, and deleting a
+  // destination deletes its segments first, since Firestore does not cascade
+  // (cms/src/lib/segments.ts).
+  it("lets an admin delete a segment, and nobody else", async () => {
+    const user = env.authenticatedContext("traveller").firestore();
+    const guest = env.unauthenticatedContext().firestore();
+    const admin = env.authenticatedContext("boss", { admin: true }).firestore();
+    await assertFails(deleteDoc(doc(user, "destinations/published/segments/s1")));
+    await assertFails(deleteDoc(doc(guest, "destinations/published/segments/s1")));
+    await assertSucceeds(deleteDoc(doc(admin, "destinations/draft/segments/s2")));
+  });
 });
 
 describe("users", () => {
@@ -217,6 +300,12 @@ describe("users", () => {
 
   it("stops a non-admin listing the collection", async () => {
     const db = env.authenticatedContext("ana").firestore();
+    await assertFails(getDocs(collection(db, "users")));
+  });
+
+  it("refuses an anonymous reader", async () => {
+    const db = env.unauthenticatedContext().firestore();
+    await assertFails(getDoc(doc(db, "users/ana")));
     await assertFails(getDocs(collection(db, "users")));
   });
 
@@ -239,7 +328,7 @@ describe("users", () => {
     );
   });
 
-  it("refuses a client-written role field", async () => {
+  it("refuses a client-written role field when creating a profile", async () => {
     // Admin is a custom claim. A client that can grant itself `role: admin`
     // would defeat every isAdmin() check in the file.
     const db = env.authenticatedContext("ana").firestore();
@@ -259,6 +348,48 @@ describe("users", () => {
       })
     );
   });
+
+  // The same check on the update path, now that users/ana exists. Create and
+  // update are separate rules, so the case above says nothing about this one
+  // — and an update is how a signed-in client would try it, since its
+  // profile is written on first sign-in.
+  it("refuses a role field added to an existing profile", async () => {
+    const db = env.authenticatedContext("ana").firestore();
+    // An ordinary edit goes through, so the refusals below are about `role`.
+    await assertSucceeds(
+      updateDoc(doc(db, "users/ana"), { displayName: "Ana" })
+    );
+    await assertFails(updateDoc(doc(db, "users/ana"), { role: "admin" }));
+    // Any value: the rule forbids the field, not the word "admin".
+    await assertFails(
+      setDoc(doc(db, "users/ana"), { role: "tourist" }, { merge: true })
+    );
+  });
+
+  it("stops anyone else editing or deleting an existing profile", async () => {
+    const ben = env.authenticatedContext("ben").firestore();
+    const guest = env.unauthenticatedContext().firestore();
+    const staff = env.authenticatedContext("staff", { admin: true }).firestore();
+
+    await assertFails(updateDoc(doc(ben, "users/ana"), { savedTourIds: [] }));
+    await assertFails(deleteDoc(doc(ben, "users/ana")));
+    await assertFails(updateDoc(doc(guest, "users/ana"), { savedTourIds: [] }));
+    // Writes stay owner-only for admins too, deletes included.
+    await assertFails(updateDoc(doc(staff, "users/ana"), { savedTourIds: [] }));
+    await assertFails(deleteDoc(doc(staff, "users/ana")));
+  });
+
+  it("stops a user creating a profile under someone else's uid", async () => {
+    const db = env.authenticatedContext("ben").firestore();
+    await assertFails(
+      setDoc(doc(db, "users/carla"), { uid: "carla", savedTourIds: [] })
+    );
+  });
+
+  it("lets the owner delete their own profile", async () => {
+    const db = env.authenticatedContext("ana").firestore();
+    await assertSucceeds(deleteDoc(doc(db, "users/ana")));
+  });
 });
 
 describe("tours", () => {
@@ -268,6 +399,8 @@ describe("tours", () => {
   it("is readable by anyone, signed in or not", async () => {
     const db = env.unauthenticatedContext().firestore();
     await assertSucceeds(getDoc(doc(db, "tours/tour")));
+    // And listable without a filter, for the same reason.
+    await assertSucceeds(getDocs(collection(db, "tours")));
   });
 
   it("refuses a write from a signed-in non-admin", async () => {
@@ -275,6 +408,16 @@ describe("tours", () => {
     await assertFails(
       setDoc(doc(db, "tours/tour"), { title: "Vandalised", stops: [] })
     );
+  });
+
+  it("refuses an anonymous write, and a delete from anyone but an admin", async () => {
+    const user = env.authenticatedContext("traveller").firestore();
+    const guest = env.unauthenticatedContext().firestore();
+    await assertFails(
+      setDoc(doc(guest, "tours/tour"), { title: "Vandalised", stops: [] })
+    );
+    await assertFails(deleteDoc(doc(user, "tours/tour")));
+    await assertFails(deleteDoc(doc(guest, "tours/tour")));
   });
 
   it("allows an admin to write and to delete", async () => {
@@ -307,6 +450,14 @@ describe("settings", () => {
     );
   });
 
+  it("refuses a write from an anonymous visitor", async () => {
+    // Readable before sign-in is not writable before sign-in.
+    const db = env.unauthenticatedContext().firestore();
+    await assertFails(
+      setDoc(doc(db, "settings/policies"), { privacy: "", terms: "" })
+    );
+  });
+
   it("allows an admin to write each of the three documents", async () => {
     const db = env.authenticatedContext("boss", { admin: true }).firestore();
     await assertSucceeds(
@@ -323,6 +474,18 @@ describe("settings", () => {
     // document that nothing reads.
     const db = env.authenticatedContext("boss", { admin: true }).firestore();
     await assertFails(setDoc(doc(db, "settings/polices"), { privacy: "" }));
+  });
+
+  // Only the refusals are pinned. `allow write` covers delete, so today an
+  // admin can delete one of the three as well — settings/policies included,
+  // and the app has to be able to read that before sign-in.
+  // TODO(phase-5): decide this in the "Harden firestore.rules" pass (PLAN.md)
+  // and pin the answer here; until then it is a gap, not the contract.
+  it("refuses a delete from a non-admin", async () => {
+    const user = env.authenticatedContext("traveller").firestore();
+    const guest = env.unauthenticatedContext().firestore();
+    await assertFails(deleteDoc(doc(user, "settings/app")));
+    await assertFails(deleteDoc(doc(guest, "settings/policies")));
   });
 });
 
@@ -389,6 +552,16 @@ describe("offlineBundles", () => {
     );
   });
 
+  it("refuses a write from an anonymous visitor", async () => {
+    const db = env.unauthenticatedContext().firestore();
+    await assertFails(
+      setDoc(doc(db, "offlineBundles/penablanca"), {
+        name: "Peñablanca",
+        status: "ready",
+      })
+    );
+  });
+
   it("allows an admin to write", async () => {
     // In practice only the generateOfflineBundle function writes these, and it
     // uses the Admin SDK, which bypasses rules entirely. The rule still has to
@@ -405,17 +578,32 @@ describe("offlineBundles", () => {
       })
     );
   });
+
+  it("lets an admin delete a manifest, and nobody else", async () => {
+    // Deleting one takes a town out of every phone's download list, which is
+    // as much a write as pointing it at the wrong pack.
+    const user = env.authenticatedContext("traveller").firestore();
+    const guest = env.unauthenticatedContext().firestore();
+    const admin = env.authenticatedContext("boss", { admin: true }).firestore();
+    await assertFails(deleteDoc(doc(user, "offlineBundles/penablanca")));
+    await assertFails(deleteDoc(doc(guest, "offlineBundles/penablanca")));
+    await assertSucceeds(deleteDoc(doc(admin, "offlineBundles/penablanca")));
+  });
 });
 
 describe("guides", () => {
   it("requires sign-in, since rows carry personal contact details", async () => {
     const db = env.unauthenticatedContext().firestore();
     await assertFails(getDoc(doc(db, "guides/guide")));
+    // The list is what a scraper would ask for, so it matters more than the
+    // single document.
+    await assertFails(getDocs(collection(db, "guides")));
   });
 
   it("lets any signed-in user read the directory", async () => {
     const db = env.authenticatedContext("traveller").firestore();
     await assertSucceeds(getDoc(doc(db, "guides/guide")));
+    await assertSucceeds(getDocs(collection(db, "guides")));
   });
 
   // The CMS directory is admin-only for writes. Worth its own case because
@@ -430,6 +618,20 @@ describe("guides", () => {
         contact: "0917-000-0000",
       })
     );
+  });
+
+  it("refuses an anonymous write, and a delete from anyone but an admin", async () => {
+    const user = env.authenticatedContext("traveller").firestore();
+    const guest = env.unauthenticatedContext().firestore();
+    await assertFails(
+      setDoc(doc(guest, "guides/guide"), {
+        name: "Impersonated Guide",
+        town: "Piat",
+        contact: "0917-000-0000",
+      })
+    );
+    await assertFails(deleteDoc(doc(user, "guides/guide")));
+    await assertFails(deleteDoc(doc(guest, "guides/guide")));
   });
 
   it("allows an admin to write and to delete", async () => {
@@ -450,3 +652,40 @@ describe("guides", () => {
   });
 });
 
+describe("the admin claim", () => {
+  // isAdmin() compares the claim with `== true`, and the rules language does
+  // not coerce: a claim stored as the string "true" or the number 1 — say by
+  // a hand-run script instead of setAdminRole — grants nothing. Pinned so
+  // that loosening the comparison is a decision, not a refactor.
+  it("must be the boolean true, not a value that looks like it", async () => {
+    for (const admin of ["true", 1]) {
+      const db = env.authenticatedContext("pretender", { admin }).firestore();
+      await assertFails(getDoc(doc(db, "destinations/draft")));
+      await assertFails(
+        setDoc(doc(db, "destinations/published"), { name: "Vandalised" })
+      );
+      await assertFails(getDocs(collection(db, "users")));
+    }
+  });
+});
+
+describe("everything else", () => {
+  // No catch-all match, so a collection nobody wrote a rule for is closed
+  // rather than open — including to admins, whose rights are granted path by
+  // path.
+  it("is closed, to admins too", async () => {
+    const admin = env.authenticatedContext("boss", { admin: true }).firestore();
+    const user = env.authenticatedContext("traveller").firestore();
+    await assertFails(getDoc(doc(admin, "reports/weekly")));
+    await assertFails(setDoc(doc(admin, "reports/weekly"), { visits: 0 }));
+    await assertFails(getDocs(collection(user, "reports")));
+  });
+
+  it("closes an unmatched subcollection, even to the document's owner", async () => {
+    // The flip side of the itineraries comment in firestore.rules: owning
+    // users/ana grants nothing beneath it except what is matched explicitly.
+    const db = env.authenticatedContext("ana").firestore();
+    await assertFails(setDoc(doc(db, "users/ana/notes/n1"), { text: "" }));
+    await assertFails(getDoc(doc(db, "users/ana/notes/n1")));
+  });
+});

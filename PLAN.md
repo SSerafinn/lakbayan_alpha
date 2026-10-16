@@ -302,6 +302,15 @@ and `flutter test` before committing; commit with `/commit`.
 - [ ] Create the **production** Firebase project; keep its config out of the repo (D-08).
 - [ ] Integration pass; empty/error/loading states everywhere.
 - [ ] Harden `firestore.rules`; extend the rules test suite; wire Analytics + Crashlytics.
+      *Rules suite extended to the rules as they stand (47 → 92 tests, no rule
+      changes): admin reads and deletes of drafts and their segments, segment
+      list queries, creates vs overwrites, `role` on an existing profile,
+      anonymous and cross-user profile writes, who may delete in each
+      collection, guides list queries, a non-boolean `admin` claim and default
+      deny in both files; Storage now covers AR markers, map packs, metadata
+      updates, and who may read and delete each path. Left open for the
+      hardening pass: an admin can delete a `settings` document, privacy
+      policy included (unpinned, TODO in firestore.test.mjs).*
 - [ ] Release signing config + release SHA-1 registered for Google Sign-In.
 - [x] Show what the CMS's Settings now hold (`settings/app`, `settings/policies`,
       `AppSettings`/`PolicySettings` in `lib/core/models/app_settings.dart`):
