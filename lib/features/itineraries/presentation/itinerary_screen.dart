@@ -7,6 +7,8 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
 import "package:motor/motor.dart";
 
+import "../../../core/errors/error_copy.dart";
+import "../../../core/errors/local_first.dart";
 import "../../../core/models/destination.dart";
 import "../../../core/models/itinerary.dart";
 import "../../../core/router/app_router.dart";
@@ -52,10 +54,15 @@ class ItineraryScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) => ref
       .watch(itineraryByIdProvider(id))
-      .when(
+      .whenLocalFirst(
         loading: () =>
             const Scaffold(body: Center(child: CircularProgressIndicator())),
-        error: (e, _) => MessageScreen("Couldn't load this itinerary.\n$e"),
+        // The trip is derived from the list of them, so the list is what is
+        // tried again.
+        error: (e, _) => MessageScreen(
+          errorCopy("Couldn't load this itinerary.", e),
+          onRetry: () => ref.invalidate(myItinerariesProvider),
+        ),
         data: (itinerary) => itinerary == null
             ? const MessageScreen("This itinerary is no longer here.")
             : _Overview(itinerary: itinerary, added: added),
@@ -1237,19 +1244,33 @@ class _AddStopsSheetState extends ConsumerState<_AddStopsSheet> {
       slivers: [
         SliverPadding(
           padding: appSheetBodyPadding,
-          sliver: choices.isEmpty
-              ? const SliverToBoxAdapter(
-                  child: QuietNote("Every place is already on this trip."),
-                )
-              : SliverStopPicker(
-                  items: choices,
-                  selected: _picked,
-                  onToggle: (place) => setState(() {
-                    _picked.contains(place.id)
-                        ? _picked.remove(place.id)
-                        : _picked.add(place.id);
-                  }),
-                ),
+          sliver: choices.whenLocalFirst(
+            loading: () => const SliverToBoxAdapter(
+              child: Padding(
+                padding: EdgeInsets.all(AppSpace.x6),
+                child: Center(child: CircularProgressIndicator()),
+              ),
+            ),
+            error: (error, _) => SliverToBoxAdapter(
+              child: QuietNote(
+                errorCopy("Couldn't load places to add.", error),
+                onRetry: () => ref.invalidate(allDestinationsProvider),
+              ),
+            ),
+            data: (items) => items.isEmpty
+                ? const SliverToBoxAdapter(
+                    child: QuietNote("Every place is already on this trip."),
+                  )
+                : SliverStopPicker(
+                    items: items,
+                    selected: _picked,
+                    onToggle: (place) => setState(() {
+                      _picked.contains(place.id)
+                          ? _picked.remove(place.id)
+                          : _picked.add(place.id);
+                    }),
+                  ),
+          ),
         ),
       ],
     );

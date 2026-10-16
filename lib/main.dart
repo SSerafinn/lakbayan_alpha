@@ -3,18 +3,30 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:path_provider/path_provider.dart";
 
 import "app.dart";
+import "core/diagnostics/error_reporter.dart";
 import "core/firebase/firebase_bootstrap.dart";
 import "core/firebase/firebase_status_provider.dart";
 import "core/prefs/app_preferences.dart";
+import "features/audio/data/guide_audio_handler.dart";
+import "features/audio/domain/audio_providers.dart";
 import "features/offline/data/download_store.dart";
 import "features/offline/domain/offline_providers.dart";
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // Lock screen, notification and headset buttons for the audio guide.
+  // Started first and awaited last, so it comes up alongside the bootstrap
+  // below instead of adding its wait to the splash. Never throws, so nothing
+  // goes unhandled while it runs — see startGuideMediaSession.
+  final startingMediaSession = startGuideMediaSession();
+
   // Never throws — see bootstrapFirebase. The app still boots to the
   // placeholder home screen when Firebase is unconfigured.
   // Also turns on Firestore offline persistence — see _enableOfflinePersistence.
   final status = await bootstrapFirebase();
+  // Crashlytics in a live profile or release build, a no-op otherwise. Also
+  // never throws.
+  final errorReporter = await startErrorReporting(status);
 
   // Device-local flags. Falls back to an in-memory instance rather than
   // failing to boot: the only thing riding on this today is whether the
@@ -42,6 +54,10 @@ Future<void> main() async {
 
   final documents = await getApplicationDocumentsDirectory();
 
+  // Null when the service would not start, and the guide then plays in the
+  // app exactly as it did before there was one.
+  final mediaSession = await startingMediaSession;
+
   runApp(
     ProviderScope(
       // The status used to be discarded here. Handing it to the tree is what
@@ -49,12 +65,14 @@ Future<void> main() async {
       // unreachable emulator and an empty database look identical on screen.
       overrides: [
         firebaseBootstrapStatusProvider.overrideWithValue(status),
+        errorReporterProvider.overrideWithValue(errorReporter),
         appPreferencesProvider.overrideWithValue(prefs),
         downloadStoreProvider.overrideWithValue(downloads),
         // Documents, not cache: the OS may empty a cache directory whenever it
         // likes, and a town that vanishes because the phone got low on space
         // is exactly the failure an offline bundle exists to prevent.
         downloadRootProvider.overrideWithValue(documents),
+        guideMediaSessionProvider.overrideWithValue(mediaSession),
       ],
       child: const LakbayanApp(),
     ),

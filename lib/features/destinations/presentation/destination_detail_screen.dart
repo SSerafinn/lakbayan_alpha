@@ -4,6 +4,8 @@ import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
 
+import "../../../core/errors/error_copy.dart";
+import "../../../core/errors/local_first.dart";
 import "../../../core/models/destination.dart";
 import "../../../core/router/app_router.dart";
 import "../../../core/theme/app_dimens.dart";
@@ -28,6 +30,7 @@ import "../../explore/domain/home_tab.dart";
 import "../../itineraries/presentation/add_to_itinerary_sheet.dart";
 import "../../maps/presentation/map_view.dart" show showDirections;
 import "../domain/destination_providers.dart";
+import "../domain/place_share.dart";
 import "../domain/recently_viewed.dart";
 import "save_heart.dart";
 
@@ -70,10 +73,13 @@ class _DestinationDetailScreenState
   @override
   Widget build(BuildContext context) {
     final destination = ref.watch(destinationByIdProvider(widget.id));
-    return destination.when(
+    return destination.whenLocalFirst(
       loading: () =>
           const Scaffold(body: Center(child: CircularProgressIndicator())),
-      error: (e, _) => MessageScreen("Couldn't load this destination.\n$e"),
+      error: (e, _) => MessageScreen(
+        errorCopy("Couldn't load this destination.", e),
+        onRetry: () => ref.invalidate(destinationByIdProvider(widget.id)),
+      ),
       data: (d) => d == null
           ? const MessageScreen("This destination is no longer available.")
           : Scaffold(
@@ -400,7 +406,7 @@ class _Lede extends StatelessWidget {
 /// away. Once the page is under them they take the grey step up, as a
 /// control on the white page does (`SymbolButton.onGround`): once, on the
 /// chrome spring, when the page crosses them, not on every scroll frame.
-class _PinnedControls extends StatefulWidget {
+class _PinnedControls extends ConsumerStatefulWidget {
   const _PinnedControls({
     required this.destination,
     required this.scroll,
@@ -414,10 +420,10 @@ class _PinnedControls extends StatefulWidget {
   final double groundAt;
 
   @override
-  State<_PinnedControls> createState() => _PinnedControlsState();
+  ConsumerState<_PinnedControls> createState() => _PinnedControlsState();
 }
 
-class _PinnedControlsState extends State<_PinnedControls> {
+class _PinnedControlsState extends ConsumerState<_PinnedControls> {
   bool _onGround = false;
 
   @override
@@ -448,12 +454,29 @@ class _PinnedControlsState extends State<_PinnedControls> {
     if (onGround != _onGround) setState(() => _onGround = onGround);
   }
 
-  void _share() => ScaffoldMessenger.of(context).showSnackBar(
-    const SnackBar(
-      content: Text("Sharing will be available in a future update."),
-      duration: Duration(seconds: 2),
-    ),
-  );
+  /// The place as text, to the phone's share sheet (`placeShareText`), and
+  /// a word when the sheet will not open. Closing it unshared says nothing.
+  Future<void> _share() async {
+    // Resolved before the await, which the sheet holds open until it closes.
+    final messenger = ScaffoldMessenger.of(context);
+    final place = widget.destination;
+    try {
+      await ref.read(textSharerProvider)(
+        placeShareText(place),
+        subject: placeShareSubject(place),
+      );
+    } catch (e) {
+      // Logged, because the snackbar reads the same for a bug as for a phone
+      // with no share sheet.
+      debugPrint("Share failed: $e");
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text("Couldn't open sharing on this device."),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -725,19 +748,41 @@ class _PlanFact extends StatelessWidget {
 /// The audio guide as one capsule, right under the lede: listening is what
 /// the app is for once you are there. Absent entirely when the place has no
 /// stops.
+///
+/// Unlike the page's optional parts it does not simply vanish while it is
+/// not ready: until the stops arrive, a quiet capsule holds its place, and
+/// if they cannot be read, it says so and offers another try. Stops already
+/// on the phone are shown even when a later read fails.
 class _AudioGuide extends ConsumerWidget {
   const _AudioGuide({required this.id});
 
   final String id;
 
+  /// The capsule's height at rest: its play button inside a ring of `x1`.
+  static const _capsule = AppSize.minTouchTarget + 2 * AppSpace.x1;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final stops = ref.watch(destinationSegmentsProvider(id)).value ?? const [];
-    if (stops.isEmpty) return const SizedBox.shrink();
+    final Widget? guide = ref
+        .watch(destinationSegmentsProvider(id))
+        .whenLocalFirst(
+          loading: () => const ImagePlaceholder(
+            height: _capsule,
+            borderRadius: capsuleRadius,
+          ),
+          error: (error, _) => QuietNote(
+            errorCopy("Couldn't load the audio guide.", error),
+            onRetry: () => ref.invalidate(destinationSegmentsProvider(id)),
+          ),
+          data: (stops) => stops.isEmpty
+              ? null
+              // The capsule names itself, so no heading over it.
+              : AudioGuideSection(destinationId: id, segments: stops),
+        );
+    if (guide == null) return const SizedBox.shrink();
     return Padding(
       padding: const EdgeInsets.only(top: _block),
-      // The capsule names itself, so no heading over it.
-      child: AudioGuideSection(destinationId: id, segments: stops),
+      child: guide,
     );
   }
 }
@@ -813,6 +858,8 @@ class _AroundHere extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Hidden while loading, when empty and on an error alike: an ending to
+    // the page, not its subject, which is already on screen.
     final places = ref.watch(aroundHereProvider(destination.id));
     if (places.isEmpty) return const SizedBox.shrink();
 

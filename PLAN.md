@@ -99,9 +99,19 @@ and `flutter test` before committing; commit with `/commit`.
       not resolve falls back to its script rather than going silent. Speech gets
       no scrubber, because the engine reports no length and cannot seek, and
       drawing one would be a fabrication. Auto-advance skips stops with nothing
-      to play. **Background and lock-screen playback are not wired** —
-      `audio_service` needs a foreground service and a background isolate; this
-      interface is what such a handler would delegate to.*
+      to play. **Background and lock-screen playback are wired, and not yet
+      tried on a phone.** `GuideAudioHandler` gives the lock screen, the
+      notification and headset buttons the same controller the in-app player
+      drives, so the two cannot disagree; speech shows no length and offers no
+      seek. No second isolate is needed: `MainActivity` shares the plugin's
+      engine. If the service will not start, the guide plays in the app as it
+      did before. The container cannot run Android, so these still need a
+      device: lock-screen and notification controls, Bluetooth and headset
+      buttons, TTS and auto-advance with the screen off, and a recording
+      picking itself up after a phone call — Android 12+ will not let a
+      backgrounded app restart its foreground service unprompted, and if that
+      bites, `androidStopForegroundOnPause: false` is the known fix, at the
+      cost of a wake lock held while paused.*
 - [x] `features/offline` — manifest, download engine, screen, and packs on the map.
       - [x] `generateOfflineBundle(town)` in `functions/`, plus the CMS screen
             that drives it. Writes `offlineBundles/{townId}`: which places, how
@@ -202,7 +212,12 @@ and `flutter test` before committing; commit with `/commit`.
       lazy slivers. Browse filters without re-subscribing. The audio list
       ignores position ticks. Home's feeds stay alive across tab switches.
       Map tiles draw without a fade, and the camera flies (`CameraFlight`).
-- [ ] **Share on Place detail** is a placeholder snackbar.
+- [x] **Share on Place detail** is a placeholder snackbar.
+      *It now shares text through share_plus: the name, town, a short
+      description and a Google Maps pin (`placeShareText`), so it works
+      offline. A link that opens the app needs a public domain for app
+      links — a separate decision. Share on a trip is still a placeholder,
+      pending a product call.*
 - [ ] **Stops by day** (wireframe 2j). Needs a schema change; see
       `my-docs/backend-requests/itinerary-days.md`.
 - [x] **Tabs keep their scroll position.** `HomeShell` keeps each visited
@@ -254,7 +269,8 @@ and `flutter test` before committing; commit with `/commit`.
   on, and it holds. Said plainly because the tag is slightly ahead of the
   checklist: **Nearby Places** (Phase 2's last box, which needs the location
   permission) and **Share** are still open. The **Explore hero** insets
-  have since been fixed on `feat/home-screen`.
+  have since been fixed on `feat/home-screen`, and **Share** has since
+  landed as a text share.
   None of them is what Beta means here — an offline town is — but a reader
   comparing the tag against the ticks deserves to know which is which.
   Of the two hardware checks, one is done. The `geo:` hand-off (#72) was
@@ -300,8 +316,45 @@ and `flutter test` before committing; commit with `/commit`.
 
 ## Phase 5 · Weeks 13–15 — Ship  → Milestone **M3 (MVP RC)**
 - [ ] Create the **production** Firebase project; keep its config out of the repo (D-08).
-- [ ] Integration pass; empty/error/loading states everywhere.
+- [x] Integration pass; empty/error/loading states everywhere.
+      *Explore's kinds, search and Add a stop showed "nothing here" while
+      their places were loading or had failed: the lists they derive from
+      every place dropped the `AsyncValue`. They keep it now, so each shows a
+      spinner, then an error with Try again, and empty copy only when loaded
+      and empty. What is on the phone outranks a later failure:
+      `whenLocalFirst` and `deriveKeepingValue` (`lib/core/errors/`) decide
+      by what there is, since Riverpod's `when` and `whenData` blank the
+      screen through its ~38 s of retries; tests check it with the default
+      retry on. The audio guide holds a capsule-shaped placeholder while
+      loading and says when it cannot be read. No screen shows an
+      exception's text any more, the narrator's included: `errorCopy` says
+      what failed and what to do, offline or not, and logs the detail once.
+      `QuietNote` and `MessageScreen` take `onRetry`, a text button wired to
+      `ref.invalidate` on the source that failed; a link to nowhere gets
+      `MessageScreen` rather than go_router's page. Optional rails still
+      hide, each saying whether it hides on an error too. The rules are in
+      `docs/DESIGN_SYSTEM.md`; widget tests inject the failures. A
+      walk-through on a phone, online and off, stays part of the QA item
+      below.*
 - [ ] Harden `firestore.rules`; extend the rules test suite; wire Analytics + Crashlytics.
+      *Rules suite extended to the rules as they stand (47 → 92 tests, no rule
+      changes): admin reads and deletes of drafts and their segments, segment
+      list queries, creates vs overwrites, `role` on an existing profile,
+      anonymous and cross-user profile writes, who may delete in each
+      collection, guides list queries, a non-boolean `admin` claim and default
+      deny in both files; Storage now covers AR markers, map packs, metadata
+      updates, and who may read and delete each path. Left open for the
+      hardening pass: an admin can delete a `settings` document, privacy
+      policy included (unpinned, TODO in firestore.test.mjs).*
+      *Crashlytics is wired on the Dart side (`lib/core/diagnostics/`): on a
+      live profile or release launch only, `FlutterError.onError` and
+      `PlatformDispatcher.onError` report fatals; debug builds turn collection
+      off and delete unsent reports, and emulator and unavailable launches
+      never touch it. Every repository reports the documents it drops as
+      malformed as non-fatals (`decodeOrSkip`) — `decodeOrSkip` is tested, the
+      repository wiring only reviewed, as there is no Firestore fake to drive
+      it. Still open: symbol upload for obfuscated release builds, and enabling
+      Crashlytics in the console. Rules hardening and Analytics remain.*
 - [ ] Release signing config + release SHA-1 registered for Google Sign-In.
 - [x] Show what the CMS's Settings now hold (`settings/app`, `settings/policies`,
       `AppSettings`/`PolicySettings` in `lib/core/models/app_settings.dart`):

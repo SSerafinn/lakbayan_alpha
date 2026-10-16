@@ -2,6 +2,8 @@ import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
 
+import "../../../core/errors/error_copy.dart";
+import "../../../core/errors/local_first.dart";
 import "../../../core/models/destination.dart";
 import "../../../core/router/app_router.dart";
 import "../../../core/theme/app_dimens.dart";
@@ -60,12 +62,19 @@ class PlacesListScreen extends ConsumerWidget {
                   AppSpace.gutter,
                   MediaQuery.viewPaddingOf(context).bottom + AppSpace.section,
                 ),
-                sliver: places.when(
+                sliver: places.whenLocalFirst(
                   loading: () => const SliverToBoxAdapter(
                     child: Center(child: CircularProgressIndicator()),
                   ),
                   error: (error, _) => SliverToBoxAdapter(
-                    child: QuietNote("Couldn't load places.\n$error"),
+                    child: QuietNote(
+                      errorCopy("Couldn't load places.", error),
+                      // Saved places are derived from every place.
+                      onRetry: () => ref.invalidate(switch (list) {
+                        PlacesList.popular => popularDestinationsProvider,
+                        PlacesList.saved => allDestinationsProvider,
+                      }),
+                    ),
                   ),
                   data: (items) => items.isEmpty
                       ? SliverToBoxAdapter(

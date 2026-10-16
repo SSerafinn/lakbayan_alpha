@@ -3,6 +3,7 @@ import "dart:io";
 import "package:cloud_firestore/cloud_firestore.dart";
 import "package:riverpod_annotation/riverpod_annotation.dart";
 
+import "../../../core/diagnostics/error_reporter.dart";
 import "../../../core/models/destination.dart";
 import "../../destinations/domain/destination_providers.dart";
 import "../data/asset_fetcher.dart";
@@ -14,8 +15,10 @@ import "offline_bundle.dart";
 part "offline_providers.g.dart";
 
 @Riverpod(keepAlive: true)
-BundleRepository bundleRepository(Ref ref) =>
-    BundleRepository(FirebaseFirestore.instance);
+BundleRepository bundleRepository(Ref ref) => BundleRepository(
+  FirebaseFirestore.instance,
+  reporter: ref.watch(errorReporterProvider),
+);
 
 @Riverpod(keepAlive: true)
 AssetFetcher assetFetcher(Ref ref) => const StorageAssetFetcher();
