@@ -337,6 +337,15 @@ and `flutter test` before committing; commit with `/commit`.
       walk-through on a phone, online and off, stays part of the QA item
       below.*
 - [ ] Harden `firestore.rules`; extend the rules test suite; wire Analytics + Crashlytics.
+      *Rules suite extended to the rules as they stand (47 → 92 tests, no rule
+      changes): admin reads and deletes of drafts and their segments, segment
+      list queries, creates vs overwrites, `role` on an existing profile,
+      anonymous and cross-user profile writes, who may delete in each
+      collection, guides list queries, a non-boolean `admin` claim and default
+      deny in both files; Storage now covers AR markers, map packs, metadata
+      updates, and who may read and delete each path. Left open for the
+      hardening pass: an admin can delete a `settings` document, privacy
+      policy included (unpinned, TODO in firestore.test.mjs).*
       *Crashlytics is wired on the Dart side (`lib/core/diagnostics/`): on a
       live profile or release launch only, `FlutterError.onError` and
       `PlatformDispatcher.onError` report fatals; debug builds turn collection
