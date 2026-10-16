@@ -99,9 +99,19 @@ and `flutter test` before committing; commit with `/commit`.
       not resolve falls back to its script rather than going silent. Speech gets
       no scrubber, because the engine reports no length and cannot seek, and
       drawing one would be a fabrication. Auto-advance skips stops with nothing
-      to play. **Background and lock-screen playback are not wired** —
-      `audio_service` needs a foreground service and a background isolate; this
-      interface is what such a handler would delegate to.*
+      to play. **Background and lock-screen playback are wired, and not yet
+      tried on a phone.** `GuideAudioHandler` gives the lock screen, the
+      notification and headset buttons the same controller the in-app player
+      drives, so the two cannot disagree; speech shows no length and offers no
+      seek. No second isolate is needed: `MainActivity` shares the plugin's
+      engine. If the service will not start, the guide plays in the app as it
+      did before. The container cannot run Android, so these still need a
+      device: lock-screen and notification controls, Bluetooth and headset
+      buttons, TTS and auto-advance with the screen off, and a recording
+      picking itself up after a phone call — Android 12+ will not let a
+      backgrounded app restart its foreground service unprompted, and if that
+      bites, `androidStopForegroundOnPause: false` is the known fix, at the
+      cost of a wake lock held while paused.*
 - [x] `features/offline` — manifest, download engine, screen, and packs on the map.
       - [x] `generateOfflineBundle(town)` in `functions/`, plus the CMS screen
             that drives it. Writes `offlineBundles/{townId}`: which places, how
@@ -202,7 +212,12 @@ and `flutter test` before committing; commit with `/commit`.
       lazy slivers. Browse filters without re-subscribing. The audio list
       ignores position ticks. Home's feeds stay alive across tab switches.
       Map tiles draw without a fade, and the camera flies (`CameraFlight`).
-- [ ] **Share on Place detail** is a placeholder snackbar.
+- [x] **Share on Place detail** is a placeholder snackbar.
+      *It now shares text through share_plus: the name, town, a short
+      description and a Google Maps pin (`placeShareText`), so it works
+      offline. A link that opens the app needs a public domain for app
+      links — a separate decision. Share on a trip is still a placeholder,
+      pending a product call.*
 - [ ] **Stops by day** (wireframe 2j). Needs a schema change; see
       `my-docs/backend-requests/itinerary-days.md`.
 - [x] **Tabs keep their scroll position.** `HomeShell` keeps each visited
@@ -254,7 +269,8 @@ and `flutter test` before committing; commit with `/commit`.
   on, and it holds. Said plainly because the tag is slightly ahead of the
   checklist: **Nearby Places** (Phase 2's last box, which needs the location
   permission) and **Share** are still open. The **Explore hero** insets
-  have since been fixed on `feat/home-screen`.
+  have since been fixed on `feat/home-screen`, and **Share** has since
+  landed as a text share.
   None of them is what Beta means here — an offline town is — but a reader
   comparing the tag against the ticks deserves to know which is which.
   Of the two hardware checks, one is done. The `geo:` hand-off (#72) was
