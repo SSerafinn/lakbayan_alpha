@@ -3,6 +3,7 @@ import "package:flutter/foundation.dart" show kReleaseMode;
 import "package:latlong2/latlong.dart";
 import "package:riverpod_annotation/riverpod_annotation.dart";
 
+import "../../../core/diagnostics/error_reporter.dart";
 import "../../../core/models/destination.dart";
 import "../data/destination_repository.dart";
 import "../data/fake_destination_repository.dart";
@@ -17,7 +18,10 @@ part "destination_providers.g.dart";
 DestinationRepository destinationRepository(Ref ref) =>
     !kReleaseMode && ref.watch(sampleDataProvider)
     ? FakeDestinationRepository(sampleDestinations, segments: sampleSegments)
-    : DestinationRepository(FirebaseFirestore.instance);
+    : DestinationRepository(
+        FirebaseFirestore.instance,
+        reporter: ref.watch(errorReporterProvider),
+      );
 
 /// The debug preview switch, toggled from the Profile tab.
 @Riverpod(keepAlive: true)

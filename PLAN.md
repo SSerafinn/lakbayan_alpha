@@ -302,6 +302,15 @@ and `flutter test` before committing; commit with `/commit`.
 - [ ] Create the **production** Firebase project; keep its config out of the repo (D-08).
 - [ ] Integration pass; empty/error/loading states everywhere.
 - [ ] Harden `firestore.rules`; extend the rules test suite; wire Analytics + Crashlytics.
+      *Crashlytics is wired on the Dart side (`lib/core/diagnostics/`): on a
+      live profile or release launch only, `FlutterError.onError` and
+      `PlatformDispatcher.onError` report fatals; debug builds turn collection
+      off and delete unsent reports, and emulator and unavailable launches
+      never touch it. Every repository reports the documents it drops as
+      malformed as non-fatals (`decodeOrSkip`) — `decodeOrSkip` is tested, the
+      repository wiring only reviewed, as there is no Firestore fake to drive
+      it. Still open: symbol upload for obfuscated release builds, and enabling
+      Crashlytics in the console. Rules hardening and Analytics remain.*
 - [ ] Release signing config + release SHA-1 registered for Google Sign-In.
 - [x] Show what the CMS's Settings now hold (`settings/app`, `settings/policies`,
       `AppSettings`/`PolicySettings` in `lib/core/models/app_settings.dart`):

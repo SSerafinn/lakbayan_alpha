@@ -1,6 +1,7 @@
 import "package:cloud_firestore/cloud_firestore.dart";
-import "package:flutter/foundation.dart";
 
+import "../../../core/diagnostics/error_reporter.dart";
+import "../../../core/diagnostics/malformed_document.dart";
 import "../../../core/models/itinerary.dart";
 
 /// Reads the province's curated tours — `tours/{id}`.
@@ -8,9 +9,15 @@ import "../../../core/models/itinerary.dart";
 /// World-readable, so unlike destinations there is no status filter to
 /// remember. Reads are local-first through Firestore's offline persistence.
 class TourRepository {
-  const TourRepository(this._firestore);
+  const TourRepository(
+    this._firestore, {
+    this._reporter = const NoopErrorReporter(),
+  });
 
   final FirebaseFirestore _firestore;
+
+  /// Told about every document this drops. See [decodeOrSkip].
+  final ErrorReporter _reporter;
 
   CollectionReference<Map<String, dynamic>> get _col =>
       _firestore.collection("tours");
@@ -22,17 +29,18 @@ class TourRepository {
         (snap) => _decode(
           snap.docs,
           (data, id) => Tour.fromJson({...data, "id": id}),
+          label: "tour",
+          reporter: _reporter,
         ),
       );
 
   Stream<Tour?> watchById(String id) => _col.doc(id).snapshots().map((snap) {
     if (!snap.exists) return null;
-    try {
-      return Tour.fromJson({...?snap.data(), "id": snap.id});
-    } catch (e) {
-      debugPrint("Skipping malformed tour '${snap.id}': $e");
-      return null;
-    }
+    return decodeOrSkip(
+      () => Tour.fromJson({...?snap.data(), "id": snap.id}),
+      what: "tour '${snap.id}'",
+      reporter: _reporter,
+    );
   });
 }
 
@@ -42,24 +50,33 @@ class TourRepository {
 /// for the current user. That keeps the repository testable and makes the
 /// ownership obvious at every call site.
 class ItineraryRepository {
-  const ItineraryRepository(this._firestore);
+  const ItineraryRepository(
+    this._firestore, {
+    this._reporter = const NoopErrorReporter(),
+  });
 
   final FirebaseFirestore _firestore;
+
+  /// Told about every document this drops. See [decodeOrSkip].
+  final ErrorReporter _reporter;
 
   CollectionReference<Map<String, dynamic>> _col(String uid) =>
       _firestore.collection("users").doc(uid).collection("itineraries");
 
   /// Most recently touched first. Somebody planning a trip is working on the
   /// one they just edited, not the one they made in March.
-  Stream<List<Itinerary>> watchAll(String uid) => _col(uid)
-      .orderBy("updatedAt", descending: true)
-      .snapshots()
-      .map(
-        (snap) => _decode(
-          snap.docs,
-          (data, id) => Itinerary.fromJson({...data, "id": id}),
-        ),
-      );
+  Stream<List<Itinerary>> watchAll(String uid) =>
+      _col(uid)
+          .orderBy("updatedAt", descending: true)
+          .snapshots()
+          .map(
+            (snap) => _decode(
+              snap.docs,
+              (data, id) => Itinerary.fromJson({...data, "id": id}),
+              label: "itinerary",
+              reporter: _reporter,
+            ),
+          );
 
   Future<String> create(
     String uid, {
@@ -110,21 +127,22 @@ class ItineraryRepository {
   Future<void> delete(String uid, String id) => _col(uid).doc(id).delete();
 }
 
-/// Decode what we can, drop what we cannot.
+/// Decode what we can, drop what we cannot, and report what was dropped.
 ///
 /// One malformed document must not empty a screen — the same reasoning, and
 /// the same trade, as `DestinationRepository._decodeAll`.
-List<T> _decode<T>(
+List<T> _decode<T extends Object>(
   List<QueryDocumentSnapshot<Map<String, dynamic>>> docs,
-  T Function(Map<String, dynamic> data, String id) decode,
-) {
-  final out = <T>[];
-  for (final doc in docs) {
-    try {
-      out.add(decode(doc.data(), doc.id));
-    } catch (e) {
-      debugPrint("Skipping malformed document '${doc.id}': $e");
-    }
-  }
-  return out;
-}
+  T Function(Map<String, dynamic> data, String id) decode, {
+  required String label,
+  required ErrorReporter reporter,
+}) => docs
+    .map(
+      (doc) => decodeOrSkip(
+        () => decode(doc.data(), doc.id),
+        what: "$label '${doc.id}'",
+        reporter: reporter,
+      ),
+    )
+    .nonNulls
+    .toList();
