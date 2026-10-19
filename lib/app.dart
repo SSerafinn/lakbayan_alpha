@@ -4,7 +4,6 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "core/router/app_router.dart";
 import "core/theme/app_theme.dart";
 import "core/theme/app_theme_mode.dart";
-import "core/widgets/chrome/dev_status_banner.dart";
 import "core/widgets/chrome/system_bars.dart";
 
 class LakbayanApp extends ConsumerWidget {
@@ -20,13 +19,15 @@ class LakbayanApp extends ConsumerWidget {
       darkTheme: buildAppDarkTheme(),
       themeMode: ref.watch(appThemeModeProvider),
       routerConfig: router,
-      // Wrapping here rather than in each screen puts the strip and the
-      // system bar style under every route, including the ones that do not
-      // exist yet. A photo header overrides the bars' icons locally.
+      // Wrapping here rather than in each screen puts the system bar style
+      // under every route, including the ones that do not exist yet. A photo
+      // header overrides the bars' icons locally.
+      //
+      // Which backend answered goes to the log at startup
+      // (bootstrapFirebase), not onto the screen: a debug build is also what
+      // gets demoed, and a strip along the bottom showed in every demo.
       builder: (context, child) => _CalmerMotion(
-        child: SystemBars(
-          child: DevStatusBanner(child: child ?? const SizedBox.shrink()),
-        ),
+        child: SystemBars(child: child ?? const SizedBox.shrink()),
       ),
     );
   }

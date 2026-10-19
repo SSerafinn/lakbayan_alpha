@@ -132,8 +132,7 @@ class InMemoryPreferences implements AppPreferences {
 
 /// Overridden in `main()` with the real Hive-backed instance.
 ///
-/// **Defaults to null rather than throwing**, for the same reason
-/// [firebaseBootstrapStatusProvider] does: widget tests pump the app inside
+/// **Defaults to null rather than throwing**: widget tests pump the app inside
 /// their own `ProviderScope` and override only what they care about. Null reads
 /// as "nothing recorded", so the landing page shows — which is the safe
 /// default, and keeps every existing test working without knowing this exists.

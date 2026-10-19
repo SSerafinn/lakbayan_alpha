@@ -18,7 +18,9 @@ enum FirebaseBootstrapStatus {
   ///
   /// Distinct from [unavailable] because initialization *worked* — the address
   /// is simply wrong or unreachable. Almost always a stale
-  /// `FIREBASE_EMULATOR_HOST` after a DHCP change, or Docker not running.
+  /// `FIREBASE_EMULATOR_HOST` after a DHCP change, Docker not running, or a
+  /// phone still signed in as an account an emulator reset wiped (the suite
+  /// answers, but refuses that account's token).
   emulatorsUnreachable,
 
   /// The SDKs are pointed at the emulator suite, but as a different project
@@ -94,7 +96,10 @@ Future<FirebaseBootstrapStatus> bootstrapFirebase() async {
       actual: app.options.projectId,
       answered: await _emulatorAnswered(),
     );
-    if (status == FirebaseBootstrapStatus.emulators) return status;
+    if (status == FirebaseBootstrapStatus.emulators) {
+      debugPrint("Firebase emulators answered on ${AppConfig.emulatorHost}.");
+      return status;
+    }
 
     if (status == FirebaseBootstrapStatus.emulatorsWrongProject) {
       debugPrint(
@@ -118,7 +123,10 @@ Future<FirebaseBootstrapStatus> bootstrapFirebase() async {
       "  - Suite running?  docker compose up -d emulators\n"
       "  - Right address?  on a physical device this must be your PC's current "
       "LAN IP, which changes with the DHCP lease. `node scripts/emulator-host.mjs` "
-      "prints it.",
+      "prints it.\n"
+      "  - Signed in from before an emulator reset?  The suite answers but "
+      "refuses the old account, so this check fails too; logcat shows "
+      "INVALID_REFRESH_TOKEN. Profile → Sign out, then sign in again.",
     );
     return FirebaseBootstrapStatus.emulatorsUnreachable;
   } catch (e, st) {
