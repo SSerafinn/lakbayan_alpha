@@ -1,3 +1,6 @@
+import "dart:io";
+
+import "package:flutter/foundation.dart";
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:path_provider/path_provider.dart";
@@ -51,7 +54,11 @@ Future<void> main() async {
     downloads = InMemoryDownloadStore();
   }
 
-  final documents = await getApplicationDocumentsDirectory();
+  // Browsers have no application documents directory. Keep the web preview
+  // usable; offline file downloads are only supported on mobile devices.
+  final documents = kIsWeb
+      ? Directory(".")
+      : await getApplicationDocumentsDirectory();
 
   // Null when the service would not start, and the guide then plays in the
   // app exactly as it did before there was one.
