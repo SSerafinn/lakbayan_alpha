@@ -51,7 +51,7 @@ destinations/{id}/exhibits/{eid}                               // AR exhibits (D
   description   string?              // one line, on the card when it is recognised
   story         string?              // the exhibit sheet; blank lines split paragraphs
   markerPath    string    required   // Storage path of the image the camera matches:
-                                     //   /ar/{destId}/markers/{eid}.{ext}
+                                     //   /ar/{destId}/markers/{eid}-{timestamp}.{ext}
   markerWidthM  number    required   // the marker's real width in metres — ARCore
                                      // tracks sooner and steadier knowing it
   audioUrl      string?              // Storage path, recorded narration
@@ -259,7 +259,7 @@ Two deliberate calls:
 /destinations/{id}/audio/{segmentId}.{ext}
 /tours/{id}/cover-{timestamp}.{ext}               // uploaded via the CMS
 /tours/{id}/cover.{ext}                           // written by the importer
-/ar/{destId}/markers/{exhibitId}.{ext}             // AR marker images (D-18)
+/ar/{destId}/markers/{exhibitId}-{timestamp}.{ext} // AR markers (D-18), via the CMS
 /tiles/{townId}/pack.pmtiles
 ```
 
@@ -288,12 +288,13 @@ live in `cms/src/types/media.ts` as well; change both together.
 **Images have two naming conventions on purpose.** The CMS uses a timestamp so
 that deleting one photo never renumbers the survivors, and so that a
 replacement never lands on the path the saved document still points at: a
-photo or cover the CMS takes off is deleted only after the save that drops it,
-so Cancel and Discard leave the old one intact. `scripts/import-content.mjs`
-replaces a destination's whole set in one go and has no such problem; what it
-needs instead is a name that is stable across runs, because a fresh timestamp
-each time would strand every object the previous import uploaded. Readers only
-ever follow the path stored on the document, so the two coexist safely.
+photo, cover or AR marker the CMS takes off is deleted only after the save
+that drops it, so Cancel and Discard leave the old one intact.
+`scripts/import-content.mjs` replaces a destination's whole set in one go and
+has no such problem; what it needs instead is a name that is stable across
+runs, because a fresh timestamp each time would strand every object the
+previous import uploaded. Readers only ever follow the path stored on the
+document, so the two coexist safely.
 
 **Audio is one object per segment or exhibit, named after it** — exhibit
 narration shares `/destinations/{id}/audio/`, since exhibit and segment ids are
