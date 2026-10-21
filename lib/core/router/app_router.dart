@@ -3,6 +3,7 @@ import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
 
+import "../../features/ar/presentation/exhibits_screen.dart";
 import "../../features/auth/domain/auth_providers.dart";
 import "../../features/auth/presentation/sign_in_screen.dart";
 import "../../features/auth/presentation/splash_screen.dart";
@@ -67,6 +68,15 @@ abstract final class Routes {
     path: "/destination/$id",
     queryParameters: from == null ? null : {"from": from.name},
   ).toString();
+
+  /// A museum's exhibits as a list (D-18): its page's See all, the way in on
+  /// a phone that cannot scan, and where a scan that could not run lands,
+  /// [why] saying which.
+  static String exhibits(String id, {ExhibitsWhy why = ExhibitsWhy.browse}) =>
+      Uri(
+        path: "/destination/$id/exhibits",
+        queryParameters: why == ExhibitsWhy.browse ? null : {"why": why.name},
+      ).toString();
 }
 
 /// The surfaces a place's photo can open it from. A hero tag must be unique
@@ -170,6 +180,18 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: Routes.home,
         builder: (context, state) => const HomeShell(),
+      ),
+      // Ahead of the place itself, so its longer path is never read as a
+      // place id with something after it.
+      GoRoute(
+        path: "/destination/:id/exhibits",
+        builder: (context, state) => ExhibitsScreen(
+          destinationId: state.pathParameters["id"]!,
+          why:
+              ExhibitsWhy.values
+                  .asNameMap()[state.uri.queryParameters["why"]] ??
+              ExhibitsWhy.browse,
+        ),
       ),
       // Opened from a photo, the photo grows into the page and the page
       // fades in around it; a deep link is pushed.

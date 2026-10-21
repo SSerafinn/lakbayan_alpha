@@ -22,7 +22,8 @@ abstract class Exhibit with _$Exhibit {
     /// 1-based; the order of the list shown when there is no camera to scan.
     required int order,
 
-    /// Storage path, `/ar/{destId}/markers/{eid}.{ext}`.
+    /// Storage path, `/ar/{destId}/markers/{eid}-{timestamp}.{ext}`: a fresh
+    /// name for every upload, so a cached copy is never the wrong image.
     required String markerPath,
 
     /// The marker's real width in metres. ARCore tracks a marker much sooner
