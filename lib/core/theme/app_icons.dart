@@ -79,4 +79,8 @@ abstract final class AppIcons {
   /// Profile's rows to the privacy policy and the terms of use.
   static const IconData privacy = CupertinoIcons.lock_shield;
   static const IconData document = CupertinoIcons.doc_text;
+
+  /// Scan an exhibit (D-18): the camera framing something, not the camera
+  /// alone, which would read as taking a photo.
+  static const IconData scan = CupertinoIcons.viewfinder;
 }

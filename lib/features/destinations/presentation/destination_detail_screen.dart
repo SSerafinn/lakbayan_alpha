@@ -25,6 +25,7 @@ import "../../../core/widgets/controls/bar_item_group.dart";
 import "../../../core/widgets/controls/symbol_button.dart";
 import "../../../core/widgets/motion/motion.dart";
 import "../../../core/widgets/motion/page_transitions.dart";
+import "../../ar/presentation/exhibits_section.dart";
 import "../../audio/presentation/audio_guide_section.dart";
 import "../../explore/domain/home_tab.dart";
 import "../../itineraries/presentation/add_to_itinerary_sheet.dart";
@@ -39,7 +40,8 @@ import "save_heart.dart";
 ///
 /// A clean photo stage under the status bar; the page rises over its foot on
 /// a rounded edge. Back, and share with the heart, stay pinned. On the page:
-/// the name with "kind in town", the lede, the audio guide capsule, the hours
+/// the name with "kind in town", the lede, the audio guide capsule, a
+/// museum's exhibits (Scan an exhibit, D-18), the hours
 /// with Plan your visit (a sheet of every fact) and Getting there, the story
 /// growing open in place, Around here. Floating: Add to trip. Only name,
 /// town, description and coordinates are required in the CMS; any other
@@ -153,10 +155,14 @@ class _ContentState extends State<_Content> {
                   Entrance(child: _Title(destination: destination)),
                   Entrance(order: 1, child: _Lede(destination: destination)),
                   Entrance(order: 2, child: _AudioGuide(id: destination.id)),
-                  Entrance(order: 3, child: _Visit(destination: destination)),
-                  Entrance(order: 4, child: _Story(destination: destination)),
                   Entrance(
-                    order: 5,
+                    order: 3,
+                    child: ExhibitsSection(destination: destination),
+                  ),
+                  Entrance(order: 4, child: _Visit(destination: destination)),
+                  Entrance(order: 5, child: _Story(destination: destination)),
+                  Entrance(
+                    order: 6,
                     child: _AroundHere(destination: destination),
                   ),
                 ],
