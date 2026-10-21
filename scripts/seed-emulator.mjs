@@ -365,6 +365,42 @@ const DESTINATIONS = [
       accessibility: "Ground floor accessible",
     },
     segments: [],
+    // The AR pilot's stand-ins (D-18), until the province sends photos of
+    // real exhibits. Each marker is one of the app's sample photos, already
+    // credited in assets/images/samples/CREDITS.md: open it on a monitor, or
+    // print it, about `widthM` wide, and point the phone at it. Two, so the
+    // scanner has images to tell apart; one narrated and one not, so the
+    // sheet is seen both ways.
+    exhibits: [
+      {
+        id: "rizal-monument",
+        title: "The Rizal monument",
+        description: "A stand-in exhibit: the museum, seen from Rizal Park.",
+        story:
+          "This exhibit stands in for a real one while the scanner is tested. "
+          + "Its marker is the photograph of the museum's front, with the Rizal "
+          + "monument in the park before it.\n\n"
+          + "Show that photograph on a screen or on paper, about 30 cm wide, "
+          + "and point the camera at it. This card should appear within a "
+          + "second or two.",
+        ttsText:
+          "This is a stand-in exhibit, for testing the scanner. Its marker is "
+          + "the photograph of the museum, with the Rizal monument in front.",
+        marker: "cagayan-museum.jpg",
+        widthM: 0.3,
+      },
+      {
+        id: "piat-basilica",
+        title: "The Piat basilica",
+        description: "A second stand-in: the Basilica Minore de Piat.",
+        story:
+          "A second marker, so the scanner has more than one image to tell "
+          + "apart. Point the camera at the photograph of the basilica and "
+          + "this card takes the first one's place.",
+        marker: "basilica-minore-de-piat.jpg",
+        widthM: 0.3,
+      },
+    ],
   },
   {
     name: "St. Peter Metropolitan Cathedral",
@@ -430,7 +466,8 @@ for (const d of DESTINATIONS) {
     nearbyEligible: true,
     offlineEligible: true,
     isMuseum: d.isMuseum ?? false,
-    hasAR: false,
+    // Derived, as the CMS derives it (D-18): a museum with an exhibit.
+    hasAR: (d.isMuseum ?? false) && (d.exhibits ?? []).length > 0,
     tags: d.tags ?? [],
     practical: d.practical ?? {},
     // The reason this script exists rather than reusing the importer.
@@ -454,9 +491,33 @@ for (const d of DESTINATIONS) {
     });
   }
 
+  // The same for AR exhibits. A marker's name carries a hash of its bytes,
+  // as the CMS gives every upload a fresh name: a phone keeps markers by
+  // path, so a changed image under an old name would never reach it.
+  const exhibitCol = ref.collection("exhibits");
+  for (const old of (await exhibitCol.get()).docs) await old.ref.delete();
+  for (const [i, e] of (d.exhibits ?? []).entries()) {
+    const bytes = readFileSync(
+      new URL(`../assets/images/samples/${e.marker}`, import.meta.url),
+    );
+    const hash = createHash("sha256").update(bytes).digest("hex").slice(0, 8);
+    const markerPath = `ar/${slug}/markers/${e.id}-${hash}.jpg`;
+    await store(markerPath, bytes, "image/jpeg");
+    await exhibitCol.doc(e.id).set({
+      title: e.title,
+      description: e.description,
+      story: e.story,
+      markerPath,
+      markerWidthM: e.widthM,
+      order: i + 1,
+      ...(e.ttsText ? { ttsText: e.ttsText } : {}),
+    });
+  }
+
   written++;
   console.log(
     `  ${d.name} (${slug}) — ${(d.segments ?? []).length} stops` +
+      `${d.exhibits ? `, ${d.exhibits.length} AR exhibits` : ""}` +
       `${d.popular ? ", popular" : ""}${d.featured ? ", featured" : ""}`,
   );
 }
@@ -684,7 +745,12 @@ for (const [townId, town] of towns) {
     .filter(
       (path) =>
         path === tilePackRef ||
-        destinationIds.some((id) => path.startsWith(`destinations/${id}/`)),
+        destinationIds.some(
+          (id) =>
+            path.startsWith(`destinations/${id}/`) ||
+            // AR markers, so a downloaded museum scans with no signal.
+            path.startsWith(`ar/${id}/`),
+        ),
     )
     .sort();
   const size = assets.reduce((sum, path) => sum + stored.get(path), 0);

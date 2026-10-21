@@ -46,3 +46,9 @@ android {
 flutter {
     source = "../.."
 }
+
+dependencies {
+    // The AR scan screen (D-18). Pinned, and at least two weeks old when
+    // chosen; ARCore itself arrives on the phone from the Play Store.
+    implementation("com.google.ar:core:1.56.0")
+}
