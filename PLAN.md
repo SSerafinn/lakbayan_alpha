@@ -320,7 +320,11 @@ and `flutter test` before committing; commit with `/commit`.
       markers two of the sample photos. The fallback is the exhibits as a
       list, not Destination Detail: a phone without ARCore, a refused camera
       or markers not on the phone each land there, saying why.*
-- **DoD:** one exhibit recognized and overlaid on a test device (or documented if cut).
+- [x] **DoD:** one exhibit recognized and overlaid on a test device (or documented if cut).
+      *2026-10-21 on the Galaxy A34 (ARCore 1.57 services), against the
+      emulators: both stand-in markers recognised from a monitor, the card
+      named each, and the lock-on outline held to the picture as the phone
+      moved.*
 
 ## Phase 5 · Weeks 13–15 — Ship  → Milestone **M3 (MVP RC)**
 - [ ] Create the **production** Firebase project; keep its config out of the repo (D-08).
