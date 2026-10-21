@@ -54,7 +54,7 @@ import { slugify } from "./lib/slug.mjs";
 // schema moves, they move with it.
 // ---------------------------------------------------------------------------
 
-const DESTINATION_SCHEMA_VERSION = 3;
+const DESTINATION_SCHEMA_VERSION = 4;
 const MAX_DESCRIPTION = 140;
 const CATEGORIES = ["church", "nature", "heritage", "museum", "food", "landmark"];
 const AUDIO_EXTENSIONS = ["mp3", "m4a", "aac", "wav", "ogg"];

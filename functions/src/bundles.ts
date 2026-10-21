@@ -61,11 +61,17 @@ export const generateOfflineBundle = onCall({ region: REGION }, async (req) => {
     if (data.offlineEligible === false) continue;
 
     const segments = await doc.ref.collection("segments").get();
+    // A museum's AR exhibits travel with the town too, so the scanner works
+    // with no signal: its marker images and their narration (D-18).
+    const exhibits = await doc.ref.collection("exhibits").get();
     destinations.push({
       id: doc.id,
       images: Array.isArray(data.images) ? data.images : [],
       audioPaths: segments.docs
         .map((s) => s.data().audioUrl)
+        .filter((p): p is string => typeof p === "string" && p.length > 0),
+      exhibitPaths: exhibits.docs
+        .flatMap((e) => [e.data().markerPath, e.data().audioUrl])
         .filter((p): p is string => typeof p === "string" && p.length > 0),
       updatedAtMillis: data.updatedAt?.toMillis?.() ?? 0,
     });

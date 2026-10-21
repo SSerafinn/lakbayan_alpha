@@ -91,6 +91,18 @@ before(async () => {
       title: "History",
       order: 1,
     });
+    await setDoc(doc(db, "destinations/published/exhibits/e1"), {
+      title: "The church bell",
+      markerPath: "ar/published/markers/e1.jpg",
+      markerWidthM: 0.3,
+      order: 1,
+    });
+    await setDoc(doc(db, "destinations/draft/exhibits/e1"), {
+      title: "Unreleased exhibit",
+      markerPath: "ar/draft/markers/e1.jpg",
+      markerWidthM: 0.3,
+      order: 1,
+    });
     await setDoc(doc(db, "tours/tour"), {
       title: "Rules Test — Tour",
       description: "Fixture for the security rules tests.",
@@ -284,6 +296,57 @@ describe("segments inherit the parent's visibility", () => {
     await assertFails(deleteDoc(doc(user, "destinations/published/segments/s1")));
     await assertFails(deleteDoc(doc(guest, "destinations/published/segments/s1")));
     await assertSucceeds(deleteDoc(doc(admin, "destinations/draft/segments/s2")));
+  });
+});
+
+describe("AR exhibits inherit the parent's visibility", () => {
+  // The same contract as segments (D-18): what the app's scanner downloads
+  // for a published museum is public, an unpublished one's is not.
+  it("exposes a published destination's exhibits, alone and as a list", async () => {
+    const db = env.unauthenticatedContext().firestore();
+    await assertSucceeds(getDoc(doc(db, "destinations/published/exhibits/e1")));
+    await assertSucceeds(
+      getDocs(collection(db, "destinations/published/exhibits"))
+    );
+  });
+
+  it("hides a draft destination's exhibits", async () => {
+    const db = env.unauthenticatedContext().firestore();
+    await assertFails(getDoc(doc(db, "destinations/draft/exhibits/e1")));
+    await assertFails(getDocs(collection(db, "destinations/draft/exhibits")));
+  });
+
+  it("lets an admin read a draft's exhibits and write one", async () => {
+    const db = env.authenticatedContext("boss", { admin: true }).firestore();
+    await assertSucceeds(getDocs(collection(db, "destinations/draft/exhibits")));
+    await assertSucceeds(
+      setDoc(doc(db, "destinations/draft/exhibits/e2"), {
+        title: "The founding stone",
+        markerPath: "ar/draft/markers/e2.jpg",
+        markerWidthM: 0.4,
+        order: 2,
+      })
+    );
+  });
+
+  it("refuses an exhibit write or delete from anyone but an admin", async () => {
+    const user = env.authenticatedContext("traveller").firestore();
+    const guest = env.unauthenticatedContext().firestore();
+    await assertFails(
+      setDoc(doc(user, "destinations/published/exhibits/e1"), {
+        title: "Vandalised",
+        markerPath: "ar/published/markers/e1.jpg",
+        markerWidthM: 0.3,
+        order: 1,
+      })
+    );
+    await assertFails(deleteDoc(doc(user, "destinations/published/exhibits/e1")));
+    await assertFails(deleteDoc(doc(guest, "destinations/published/exhibits/e1")));
+  });
+
+  it("lets an admin delete an exhibit", async () => {
+    const db = env.authenticatedContext("boss", { admin: true }).firestore();
+    await assertSucceeds(deleteDoc(doc(db, "destinations/draft/exhibits/e2")));
   });
 });
 
