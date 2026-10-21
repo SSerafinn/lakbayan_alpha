@@ -1,0 +1,231 @@
+/* Lakbayan exhibit labels (LabelsPrintPage, D-18).
+
+   Sized in millimetres throughout: these are printed and cut, and the
+   picture's printed width is the AR marker's width. Colours are the design
+   system's tokens; the band is the primary green as a full-bleed brand
+   block, and green text, where there is any, is the /700 text role. */
+
+@font-face {
+  font-family: "Barabara";
+  src: url("../../../assets/fonts/Barabara/Barabara.otf") format("opentype");
+  font-display: block;
+}
+
+/* Only the label sheets print landscape and edge to edge; any other CMS page
+   printed keeps the browser's defaults. */
+@page lk-sheet {
+  size: A4 landscape;
+  margin: 0;
+}
+
+.print-page {
+  min-height: 100vh;
+  background: var(--lk-surface-container);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+}
+
+.print-toolbar {
+  width: 297mm;
+  max-width: 100%;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.print-toolbar h1 {
+  font-size: var(--lk-type-title-medium-size);
+  font-weight: var(--lk-type-title-medium-weight);
+  margin: 0 0 4px;
+}
+.print-skipped {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  color: var(--lk-on-surface-variant);
+}
+
+.print-sheet {
+  page: lk-sheet;
+  width: 297mm;
+  height: 210mm;
+  flex: none;
+  background: var(--lk-surface);
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.15);
+  display: grid;
+  grid-template-columns: repeat(2, 148mm);
+  grid-auto-rows: min-content;
+  /* The same four (or two) places on every sheet, however full: the cut
+     lines do not move between sheets. */
+  justify-content: center;
+  align-content: start;
+}
+
+/* ---- The label -------------------------------------------------------- */
+
+.lk-label {
+  background: var(--lk-surface);
+  color: var(--lk-on-surface);
+  font-family: var(--lk-font-body);
+  font-weight: 550;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  /* Where to cut. Faint, so a slightly off cut does not leave a line. */
+  outline: 0.2mm dashed var(--lk-outline-variant);
+  outline-offset: -0.1mm;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+.lk-label.a6 { width: 148mm; height: 105mm; }
+.lk-label.a5 { width: 148mm; height: 210mm; }
+
+.lk-band {
+  flex: none;
+  background: var(--lk-role-primary);
+  color: var(--lk-on-primary);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.lk-wordmark {
+  font-family: "Barabara", var(--lk-font-heading);
+  letter-spacing: 0.06em;
+  line-height: 1;
+}
+.lk-cta {
+  display: flex;
+  align-items: center;
+  gap: 1.6mm;
+  font-weight: 650;
+}
+
+.lk-body { flex: 1; display: flex; min-height: 0; }
+.lk-picture-box {
+  flex: none;
+  display: grid;
+  place-items: center;
+}
+.lk-picture { position: relative; margin: 0; }
+.lk-picture img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: fill; /* never cropped: this is the marker, exactly */
+}
+/* The app's lock-on brackets, just outside the picture: they say "point
+   here", and they are not part of what the camera matches. */
+.lk-picture .c {
+  position: absolute;
+  width: 6mm;
+  height: 6mm;
+  border: 0 solid var(--lk-role-primary);
+}
+.lk-picture .tl { top: -2.4mm; left: -2.4mm; border-top-width: 1mm; border-left-width: 1mm; }
+.lk-picture .tr { top: -2.4mm; right: -2.4mm; border-top-width: 1mm; border-right-width: 1mm; }
+.lk-picture .bl { bottom: -2.4mm; left: -2.4mm; border-bottom-width: 1mm; border-left-width: 1mm; }
+.lk-picture .br { bottom: -2.4mm; right: -2.4mm; border-bottom-width: 1mm; border-right-width: 1mm; }
+
+.lk-side { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.lk-title {
+  margin: 0;
+  font-family: var(--lk-font-heading);
+  font-weight: 750;
+  letter-spacing: -0.015em;
+  line-height: 1.12;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+}
+.lk-line {
+  margin: 0;
+  color: var(--lk-on-surface-variant);
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+}
+.lk-how { margin-top: auto; display: flex; }
+.lk-steps {
+  list-style: none;
+  counter-reset: step;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+.lk-steps li {
+  counter-increment: step;
+  display: flex;
+  align-items: center;
+  font-weight: 650;
+}
+.lk-steps li::before {
+  content: counter(step);
+  flex: none;
+  border-radius: 50%;
+  border: 0.35mm solid var(--lk-on-surface);
+  display: grid;
+  place-items: center;
+  font-weight: 750;
+}
+.lk-qr-row { display: flex; align-items: center; }
+.lk-qr { display: block; flex: none; fill: var(--lk-on-surface); }
+.lk-qr-note { margin: 0; color: var(--lk-on-surface-variant); line-height: 1.3; }
+.lk-qr-note b { display: block; color: var(--lk-on-surface); font-weight: 700; }
+
+.lk-foot {
+  flex: none;
+  border-top: 0.3mm solid var(--lk-outline-variant);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--lk-on-surface-variant);
+}
+.lk-foot img { display: block; }
+
+/* ---- A6, landscape ---------------------------------------------------- */
+.a6 .lk-band { height: 12mm; padding: 0 6mm 0 7mm; }
+.a6 .lk-wordmark { font-size: 6.4mm; }
+.a6 .lk-cta { font-size: 3.1mm; }
+.a6 .lk-cta svg { width: 4.2mm; height: 4.2mm; }
+.a6 .lk-body { gap: 6mm; padding: 6mm 6mm 4mm 7mm; }
+.a6 .lk-title { font-size: 5.4mm; }
+.a6 .lk-line { font-size: 3.1mm; margin-top: 1.4mm; }
+.a6 .lk-how { flex-direction: column; gap: 2.6mm; }
+.a6 .lk-steps { gap: 1.2mm; font-size: 2.9mm; }
+.a6 .lk-steps li::before { width: 4.2mm; height: 4.2mm; font-size: 2.4mm; margin-right: 1.8mm; }
+.a6 .lk-qr-row { gap: 2.4mm; }
+.a6 .lk-qr { width: 19mm; height: 19mm; }
+.a6 .lk-qr-note { font-size: 2.7mm; }
+.a6 .lk-foot { height: 9mm; padding: 0 6mm 0 7mm; font-size: 2.7mm; }
+.a6 .lk-foot img { height: 6.4mm; }
+
+/* ---- A5, portrait ----------------------------------------------------- */
+.a5 .lk-band { height: 16mm; padding: 0 10mm; }
+.a5 .lk-wordmark { font-size: 8.4mm; }
+.a5 .lk-cta { font-size: 3.8mm; }
+.a5 .lk-cta svg { width: 5mm; height: 5mm; }
+.a5 .lk-body { flex-direction: column; padding: 8mm 10mm 6mm; }
+.a5 .lk-picture-box { align-self: center; }
+.a5 .lk-title { font-size: 7.4mm; margin-top: 6mm; }
+.a5 .lk-line { font-size: 4mm; margin-top: 2mm; }
+.a5 .lk-how { align-items: flex-end; justify-content: space-between; gap: 6mm; }
+.a5 .lk-steps { gap: 1.8mm; font-size: 3.6mm; }
+.a5 .lk-steps li::before { width: 5.4mm; height: 5.4mm; font-size: 3mm; margin-right: 2.2mm; }
+.a5 .lk-qr-row { flex-direction: column; align-items: flex-end; gap: 1.6mm; text-align: right; }
+.a5 .lk-qr { width: 26mm; height: 26mm; }
+.a5 .lk-qr-note { font-size: 3.1mm; }
+.a5 .lk-foot { height: 12mm; padding: 0 10mm; font-size: 3.3mm; }
+.a5 .lk-foot img { height: 8.4mm; }
+
+@media print {
+  html, body { background: #fff; }
+  .print-toolbar { display: none; }
+  .print-page { padding: 0; gap: 0; background: none; display: block; }
+  .print-sheet { box-shadow: none; break-after: page; }
+  .print-sheet:last-child { break-after: auto; }
+}

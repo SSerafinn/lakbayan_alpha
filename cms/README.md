@@ -167,6 +167,23 @@ Every screen, the AR editor included:
 - settings: the town list, tags, the tourism office and emergency lines, a
   notice for Explore, and the privacy policy and terms
 
+### Exhibit labels
+
+A museum's AR tab prints **Lakbayan labels** (D-18): the branded placard
+beside an exhibit, whose picture is the exhibit's marker. Choose *A6* or *A5*
+under *Lakbayan label* and the marker width is set to how wide that label
+prints the photo; *Print labels* (or *Print* on one exhibit) opens
+`/print/labels/:id` in a new tab, four A6 or two A5 to an A4 sheet. Print at
+actual size, landscape, with background graphics on: the scanner expects the
+picture exactly as wide as the width says. The page prints what is saved, so
+it is offered only with nothing unsaved.
+
+The QR code on each label opens `VITE_VISIT_URL/e/{destinationId}/{exhibitId}`
+— the visitor site, which is not the CMS's. Until that site exists the
+default is only its intended name; set `VITE_VISIT_URL` in `.env.local` (or
+the build's environment) to change it. Labels already printed keep the
+address they were printed with.
+
 Every editor checks for another admin's save before writing its own (see
 `src/lib/versioned.ts`). Hosting is configured but not yet deployed — see
 *Deploy* below, and `PLAN.md`, Track B, for what is left.

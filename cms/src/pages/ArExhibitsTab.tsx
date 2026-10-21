@@ -4,6 +4,7 @@ import {
   ChevronUp,
   ImagePlus,
   Mic,
+  Printer,
   ScanLine,
   Trash2,
 } from "lucide-react";
@@ -17,6 +18,7 @@ import {
   uploadMarker,
 } from "../lib/exhibits";
 import { ImageRejectedError } from "../lib/image";
+import { useImageAspect } from "../lib/labels";
 import { AUDIO_FORMATS, recordingProblem } from "../types/media";
 import {
   countExhibitProblems,
@@ -28,10 +30,34 @@ import {
   toMetres,
   type ExhibitDraft,
 } from "../types/exhibit";
+import {
+  LABEL_SIZE_ORDER,
+  LABEL_SIZES,
+  labelMarkerWidthM,
+  labelSizeOf,
+  printedPicture,
+} from "../types/label";
 
 /** What makes a marker the camera can find, at the point of choosing one. */
 const MARKER_GUIDANCE =
-  "A photo of the exhibit or its placard, taken straight on: flat, well lit and full of detail. Plain, glossy or repetitive surfaces scan poorly. Measure its real width — the camera judges distance from it.";
+  "A photo of the exhibit or its placard, taken straight on: flat, well lit and full of detail. Plain, glossy or repetitive surfaces scan poorly. For a Lakbayan label, any clear photo of the exhibit will do: the label prints it.";
+
+/** Opens the labels page in its own tab, for every exhibit or some. */
+function openLabels(destinationId: string, ids?: string[]) {
+  const query = ids ? `?ids=${ids.map(encodeURIComponent).join(",")}` : "";
+  window.open(
+    `/print/labels/${encodeURIComponent(destinationId)}${query}`,
+    "_blank",
+    "noopener",
+  );
+}
+
+/** Why Print is not on offer yet, or null when it is. */
+function printBlock(destinationId: string | null, printable: boolean) {
+  if (!destinationId) return "Save the destination first.";
+  if (!printable) return "Save your changes first: labels print what is saved.";
+  return null;
+}
 
 /**
  * Admin wireframe screen 6 — AR content for a museum (D-18).
@@ -54,11 +80,17 @@ export function ArExhibitsTab({
   exhibits,
   onChange,
   onSaveFirst,
+  printable,
 }: {
   /** Null until the destination has been written once. */
   destinationId: string | null;
   destinationName: string;
   exhibits: ExhibitDraft[];
+  /**
+   * Saved, with nothing unsaved: labels print from Firestore, so a label
+   * printed now shows what the phones will scan for.
+   */
+  printable: boolean;
   /**
    * Takes an updater as well as a list. A marker resolves seconds after it was
    * picked, and patching the list as it stood then would undo whatever was
@@ -104,6 +136,17 @@ export function ArExhibitsTab({
           </p>
         </div>
         <span className="spacer" />
+        {exhibits.length > 0 && (
+          <button
+            className="btn-quiet"
+            disabled={printBlock(destinationId, printable) !== null}
+            title={printBlock(destinationId, printable) ?? undefined}
+            onClick={() => destinationId && openLabels(destinationId)}
+          >
+            <Printer size={16} aria-hidden="true" />
+            Print labels
+          </button>
+        )}
         <button className="btn-secondary" onClick={add}>
           Add exhibit
         </button>
@@ -137,6 +180,7 @@ export function ArExhibitsTab({
                 index={i}
                 count={exhibits.length}
                 destinationId={destinationId}
+                printable={printable}
                 onPatch={(patch) => update(exhibit.id, patch)}
                 onMove={(by) => move(i, by)}
                 onRemove={() =>
@@ -161,11 +205,13 @@ function ExhibitRow({
   onMove,
   onRemove,
   onSaveFirst,
+  printable,
 }: {
   exhibit: ExhibitDraft;
   index: number;
   count: number;
   destinationId: string | null;
+  printable: boolean;
   onPatch: (patch: Partial<ExhibitDraft>) => void;
   onMove: (by: -1 | 1) => void;
   onRemove: () => void;
@@ -180,6 +226,16 @@ function ExhibitRow({
   const problems = exhibitProblems(exhibit);
   const markerReady = !problems.marker && !problems.width;
   const n = index + 1;
+  // The marker's shape decides how wide a label prints it, so a label size
+  // can be chosen only once the photo has loaded.
+  const aspect = useImageAspect(exhibit.markerPath || undefined);
+  const labelSize =
+    aspect && exhibit.markerWidthM
+      ? labelSizeOf(exhibit.markerWidthM, aspect)
+      : null;
+  const printBlocked =
+    printBlock(destinationId, printable) ??
+    (labelSize ? null : "Choose a label size first.");
 
   async function onPickMarker(files: FileList | null) {
     const file = files?.[0];
@@ -378,7 +434,7 @@ function ExhibitRow({
           // A wrong width says so as it is typed; a missing one is the
           // badge's and the checklist's to mention, not a red line on arrival.
           error={exhibit.markerWidthM ? problems.width : undefined}
-          hint="Edge to edge, measured on the exhibit or placard itself — not on the photo."
+          hint="Set for you by a Lakbayan label below. For the exhibit's own placard, measure it edge to edge — on the placard, not on the photo."
         >
           <input
             type="number"
@@ -397,6 +453,54 @@ function ExhibitRow({
             }}
             placeholder="e.g. 30"
           />
+        </Field>
+
+        <Field
+          label="Lakbayan label"
+          hint={
+            !exhibit.markerPath
+              ? "Upload a marker photo first."
+              : !aspect
+                ? "Reading the photo…"
+                : labelSize
+                  ? `The ${LABEL_SIZES[labelSize].name} label prints this photo ${toCentimetres(labelMarkerWidthM(aspect, labelSize))} cm wide, and the width above is set to match. ${LABEL_SIZES[labelSize].use}`
+                  : "Printing a Lakbayan label for it? Choose a size and the width is set to match. Leave this for the exhibit's own placard."
+          }
+        >
+          <div className="segment-audio">
+            <div className="size-choice" role="group" aria-label="Label size">
+              {LABEL_SIZE_ORDER.map((size) => (
+                <button
+                  key={size}
+                  className={labelSize === size ? "on" : undefined}
+                  aria-pressed={labelSize === size}
+                  disabled={!aspect}
+                  title={
+                    aspect
+                      ? `Prints the photo ${printedPicture(aspect, size).widthMm / 10} cm wide`
+                      : undefined
+                  }
+                  onClick={() =>
+                    aspect &&
+                    onPatch({ markerWidthM: labelMarkerWidthM(aspect, size) })
+                  }
+                >
+                  {LABEL_SIZES[size].name}
+                </button>
+              ))}
+            </div>
+            <button
+              className="btn-quiet sm"
+              disabled={printBlocked !== null}
+              title={printBlocked ?? undefined}
+              onClick={() =>
+                destinationId && openLabels(destinationId, [exhibit.id])
+              }
+            >
+              <Printer size={14} aria-hidden="true" />
+              Print
+            </button>
+          </div>
         </Field>
 
         <Field
