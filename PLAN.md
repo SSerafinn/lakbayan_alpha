@@ -467,8 +467,15 @@ CMS consumes that contract; it does not redefine it.
       stays as the bootstrap for the first admin only. The function refuses a
       self-revoke. First `functions/` in the repo — see D-12 for the conventions
       the offline-bundle function inherits.*
-- [ ] AR Content editor: marker upload, exhibit binding *(screen 6)*.
-      *Cut with Phase 4 if AR is dropped.*
+- [x] AR Content editor: marker upload, exhibit binding *(screen 6)*.
+      *The destination editor's AR tab, open once Museum site is on (D-18):
+      exhibits in order, each with a marker photo, its real width (typed in
+      centimetres, stored in metres), a story, and narration recorded or read
+      aloud. Exhibits save with the destination, as the audio guide does, and
+      that save sets `hasAR` — there is no switch for it. A replaced marker or
+      recording is deleted only after the save that drops it, so Discard
+      always keeps the saved one, and deleting a destination takes its
+      exhibits with it.*
 
 ## CMS-4 · Weeks 13–15 — Settings and ship
 - [x] Settings: taxonomy, app settings, policies *(screen 11)*.

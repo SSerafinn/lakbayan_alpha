@@ -157,11 +157,12 @@ way on Windows. A deploy always rebuilds, so the emulator build left in
 
 ## What is built
 
-Everything except the AR editor:
+Every screen, the AR editor included:
 
 - login with role gating
 - the dashboard — counts, what needs attention, recent activity, quick actions
-- destinations: the list, and the editor with location, photos and audio-guide stops
+- destinations: the list, and the editor with location, photos, audio-guide
+  stops and, for a museum, the AR exhibits the camera recognises
 - tours, local guides, offline bundles, and users with admin roles
 - settings: the town list, tags, the tourism office and emergency lines, a
   notice for Explore, and the privacy policy and terms
