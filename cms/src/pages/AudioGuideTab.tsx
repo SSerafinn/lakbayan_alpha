@@ -1,23 +1,16 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { ChevronDown, ChevronUp, Mic, Trash2, Volume2 } from "lucide-react";
+import { AudioPreview } from "../components/AudioPreview";
 import { Field } from "../components/Form";
 import { useToast } from "../components/toast-context";
-import {
-  audioDownloadUrl,
-  deleteAudio,
-  newSegmentId,
-  uploadAudio,
-} from "../lib/segments";
-import { formatBytes } from "../types/bundle";
-import { AUDIO_TYPES, audioExtension, MAX_AUDIO_BYTES } from "../types/media";
+import { deleteAudio, newSegmentId, uploadAudio } from "../lib/segments";
+import { AUDIO_FORMATS, recordingProblem } from "../types/media";
 import {
   emptySegment,
   narrationSource,
   segmentProblems,
   type SegmentDraft,
 } from "../types/segment";
-
-const AUDIO_FORMATS = Object.keys(AUDIO_TYPES).join(", ");
 
 /**
  * Admin wireframe screen 5 — the audio guide for one destination.
@@ -163,21 +156,10 @@ function SegmentRow({
     const file = files?.[0];
     if (!file) return;
 
-    if (!audioExtension(file.name)) {
-      toast.toast({
-        variant: "warning",
-        title: "That file was not uploaded",
-        description: `Narration must be one of ${AUDIO_FORMATS}.`,
-      });
-      return;
-    }
     // storage.rules refuses it anyway; this says why, and what to do.
-    if (file.size > MAX_AUDIO_BYTES) {
-      toast.toast({
-        variant: "warning",
-        title: "That recording is too large",
-        description: `It is ${formatBytes(file.size)}; the limit is ${formatBytes(MAX_AUDIO_BYTES)}. Export it as MP3 or M4A — a few minutes is then a few MB.`,
-      });
+    const problem = recordingProblem(file);
+    if (problem) {
+      toast.toast({ variant: "warning", ...problem });
       return;
     }
 
@@ -323,33 +305,4 @@ function SegmentRow({
       </div>
     </li>
   );
-}
-
-/**
- * Play back what was uploaded.
- *
- * The document stores a Storage path, so this resolves a download URL the same
- * way `ImageThumb` does. Worth the round trip: an editor who cannot hear the
- * file has no way to catch the wrong take, and the app is where they would
- * find out.
- */
-function AudioPreview({ path }: { path: string }) {
-  const [url, setUrl] = useState<string | null>(null);
-  const [failed, setFailed] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    setUrl(null);
-    setFailed(false);
-    audioDownloadUrl(path)
-      .then((u) => !cancelled && setUrl(u))
-      .catch(() => !cancelled && setFailed(true));
-    return () => {
-      cancelled = true;
-    };
-  }, [path]);
-
-  if (failed) return <p className="hint">Recording unavailable.</p>;
-  if (!url) return <p className="hint">Loading the recording…</p>;
-  return <audio className="segment-player" controls src={url} />;
 }

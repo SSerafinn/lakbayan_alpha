@@ -4,7 +4,9 @@ import {
   extensionFor,
   fitWithin,
   keepOriginal,
+  MAX_AUDIO_BYTES,
   MAX_EDGE,
+  recordingProblem,
 } from "./media";
 
 describe("fitWithin", () => {
@@ -54,5 +56,30 @@ describe("file names", () => {
     expect(audioExtension("notes.txt")).toBeNull();
     // Not fooled by names that happen to be object properties.
     expect(audioExtension("x.constructor")).toBeNull();
+  });
+});
+
+describe("recordingProblem", () => {
+  it("accepts a recording of a known format under the cap", () => {
+    expect(recordingProblem({ name: "stop.m4a", size: 4_000_000 })).toBeNull();
+    expect(
+      recordingProblem({ name: "stop.mp3", size: MAX_AUDIO_BYTES }),
+    ).toBeNull();
+  });
+
+  it("refuses another format, naming the ones it takes", () => {
+    expect(recordingProblem({ name: "stop.flac", size: 1 })).toEqual({
+      title: "That file was not uploaded",
+      description: "Narration must be one of mp3, m4a, aac, wav, ogg.",
+    });
+  });
+
+  it("refuses one over the cap, saying how large it is", () => {
+    const problem = recordingProblem({
+      name: "stop.wav",
+      size: MAX_AUDIO_BYTES + 1,
+    });
+    expect(problem?.title).toBe("That recording is too large");
+    expect(problem?.description).toMatch(/limit is 50/);
   });
 });

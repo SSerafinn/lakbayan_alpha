@@ -26,6 +26,7 @@ import { useAdminNames } from "../components/useAdminNames";
 import { useAuth } from "../auth/auth-context";
 import { versionOf, whoChanged, type Conflict } from "../types/conflict";
 import { listSegments, saveSegments } from "../lib/segments";
+import { listExhibits, saveExhibits } from "../lib/exhibits";
 import { Alert } from "../components/Alert";
 import { useCrumb } from "../components/crumb-context";
 import { PageHeader } from "../components/PageHeader";
@@ -35,8 +36,10 @@ import { useInView } from "../components/useInView";
 import { useToast } from "../components/toast-context";
 import { ImageThumb } from "../components/ImageThumb";
 import { AudioGuideTab } from "./AudioGuideTab";
+import { ArExhibitsTab } from "./ArExhibitsTab";
 import { formatCoord, searchPlaces, type GeocodeResult } from "../lib/geocode";
 import type { SegmentDraft } from "../types/segment";
+import { museumHasAR, type ExhibitDraft } from "../types/exhibit";
 import { editorActions } from "../types/editor";
 import { relativeTime } from "../types/dashboard";
 import { CircleAlert, CircleCheck, ImagePlus } from "lucide-react";
@@ -56,10 +59,10 @@ import {
 } from "../types/destination";
 
 type Draft = Omit<Destination, "id">;
-type Tab = "details" | "location" | "media" | "audio";
+type Tab = "details" | "location" | "media" | "audio" | "ar";
 
 /**
- * Admin wireframe screens 4 and 5 — Destination Editor and Audio Guide.
+ * Admin wireframe screens 4, 5 and 6 — Destination Editor, Audio Guide and AR.
  *
  * One form across tabs rather than a wizard: the wireframe shows an unsaved
  * banner spanning Details and Media, so tab switching must not lose edits.
@@ -70,7 +73,9 @@ type Tab = "details" | "location" | "media" | "audio";
  * different rules for unsaved work on one screen, and the tab you were not
  * looking at would be the one that behaved differently.
  *
- * AR is still a stub — it arrives with CMS-3.
+ * A museum's AR exhibits are a second subcollection held the same way (D-18).
+ * Their tab opens only under Museum site, and every save derives `hasAR` from
+ * them rather than leaving it to a switch.
  */
 export function DestinationEditorPage() {
   const { id } = useParams<{ id: string }>();
@@ -110,6 +115,9 @@ export function DestinationEditorPage() {
   // presents the two as one document.
   const [segments, setSegments] = useState<SegmentDraft[]>([]);
   const [savedSegments, setSavedSegments] = useState<SegmentDraft[]>([]);
+  // A museum's AR exhibits, held the same way and for the same reason.
+  const [exhibits, setExhibits] = useState<ExhibitDraft[]>([]);
+  const [savedExhibits, setSavedExhibits] = useState<ExhibitDraft[]>([]);
 
   const [tab, setTab] = useState<Tab>("details");
   const [busy, setBusy] = useState(false);
@@ -161,13 +169,18 @@ export function DestinationEditorPage() {
       setSaved(rest);
       versionRef.current = versionOf(found.updatedAt);
 
-      // Loaded unconditionally rather than when the Audio Guide tab is first
-      // opened. The tab shows a count, and `readiness` needs the segments to
-      // know whether the guide blocks publishing — both are wrong on a page
-      // that has not opened the tab.
-      const stops = await listSegments(id);
+      // Loaded unconditionally rather than when the Audio Guide or AR tab is
+      // first opened. The tabs show a count, `readiness` needs both lists to
+      // know whether they block publishing, and the save derives `hasAR` from
+      // the exhibits — all wrong on a page that has not opened the tab.
+      const [stops, items] = await Promise.all([
+        listSegments(id),
+        listExhibits(id),
+      ]);
       setSegments(stops);
       setSavedSegments(stops);
+      setExhibits(items);
+      setSavedExhibits(items);
     })();
   }, [id]);
 
@@ -195,8 +208,9 @@ export function DestinationEditorPage() {
   const dirty = useMemo(
     () =>
       JSON.stringify(draft) !== JSON.stringify(saved) ||
-      JSON.stringify(segments) !== JSON.stringify(savedSegments),
-    [draft, saved, segments, savedSegments],
+      JSON.stringify(segments) !== JSON.stringify(savedSegments) ||
+      JSON.stringify(exhibits) !== JSON.stringify(savedExhibits),
+    [draft, saved, segments, savedSegments, exhibits, savedExhibits],
   );
 
   // With no edits of its own, the editor simply takes the newer version — there
@@ -268,11 +282,17 @@ export function DestinationEditorPage() {
     setDraft((d) => (d ? { ...d, [key]: value } : d));
 
   const errors = attempted ? validate(draft) : {};
-  const checklist = readiness(draft, segments);
-  const blockers = publishBlockers(draft, segments);
+  const checklist = readiness(draft, segments, exhibits);
+  const blockers = publishBlockers(draft, segments, exhibits);
 
   /** Is anything on this tab still unmet? Drives the dot on the tab label. */
   const unmetIn = (t: Tab) => checklist.some((i) => !i.ok && i.tab === t);
+
+  // The tab on show. AR is there only for a museum, and Museum site can go
+  // off while it is open — from the rail, by Discard, or by loading theirs —
+  // so the page falls back to Details rather than show a tab it no longer
+  // offers. The choice is kept, and comes back with the switch.
+  const view: Tab = tab === "ar" && !draft.isMuseum ? "details" : tab;
 
   /** Publish, or explain why it cannot be published yet. */
   function onPublish() {
@@ -299,7 +319,13 @@ export function DestinationEditorPage() {
   ): Promise<string | null> {
     if (!draft) return null;
     setAttempted(true);
-    const next = nextStatus ? { ...draft, status: nextStatus } : draft;
+    const next = {
+      ...draft,
+      ...(nextStatus ? { status: nextStatus } : {}),
+      // Derived on every save, never edited: the AR badge in the app promises
+      // the camera has something to find, which only the exhibits can say.
+      hasAR: museumHasAR(draft.isMuseum, exhibits),
+    };
 
     const invalid = validate(next);
     if (Object.keys(invalid).length > 0) {
@@ -343,9 +369,12 @@ export function DestinationEditorPage() {
       }
 
       // After the destination, so a brand-new one has a parent document to
-      // hang its subcollection from — and before the state below is marked
+      // hang its subcollections from — and before the state below is marked
       // clean, so a failure here still reads as unsaved rather than saved.
       await saveSegments(savedId, segments, savedSegments);
+      // Files the saved exhibits used and these do not are deleted inside,
+      // once the documents have landed — see `planExhibitSave`.
+      await saveExhibits(savedId, exhibits, savedExhibits);
 
       // Read back the version this save produced. `updatedAt` is a server
       // timestamp, unknown until the write lands, and the next save is
@@ -365,6 +394,7 @@ export function DestinationEditorPage() {
       setDraft(stamped);
       setSaved(stamped);
       setSavedSegments(segments);
+      setSavedExhibits(exhibits);
       setRemote(null);
 
       // Photos taken off are deleted only now that the saved version no
@@ -421,12 +451,17 @@ export function DestinationEditorPage() {
       return;
     }
     const { id: _drop, ...rest } = found;
-    const stops = await listSegments(docId);
+    const [stops, items] = await Promise.all([
+      listSegments(docId),
+      listExhibits(docId),
+    ]);
     versionRef.current = versionOf(found.updatedAt);
     setDraft(rest);
     setSaved(rest);
     setSegments(stops);
     setSavedSegments(stops);
+    setExhibits(items);
+    setSavedExhibits(items);
     setConflict(null);
     setRemote(null);
     toast.toast({
@@ -445,6 +480,7 @@ export function DestinationEditorPage() {
   const discard = () => {
     setDraft(saved);
     setSegments(savedSegments);
+    setExhibits(savedExhibits);
   };
   const actionButtons = (
     <>
@@ -575,28 +611,28 @@ export function DestinationEditorPage() {
 
       <nav className="tabs" aria-label="Editor sections">
         <button
-          className={tab === "details" ? "tab on" : "tab"}
+          className={view === "details" ? "tab on" : "tab"}
           onClick={() => setTab("details")}
         >
           Details
           {unmetIn("details") && <span className="tab-dot" />}
         </button>
         <button
-          className={tab === "location" ? "tab on" : "tab"}
+          className={view === "location" ? "tab on" : "tab"}
           onClick={() => setTab("location")}
         >
           Location
           {unmetIn("location") && <span className="tab-dot" />}
         </button>
         <button
-          className={tab === "media" ? "tab on" : "tab"}
+          className={view === "media" ? "tab on" : "tab"}
           onClick={() => setTab("media")}
         >
           Photos <span className="tab-count">{draft.images.length}</span>
           {unmetIn("media") && <span className="tab-dot" />}
         </button>
         <button
-          className={tab === "audio" ? "tab on" : "tab"}
+          className={view === "audio" ? "tab on" : "tab"}
           onClick={() => setTab("audio")}
         >
           Audio guide{" "}
@@ -605,9 +641,26 @@ export function DestinationEditorPage() {
           )}
           {unmetIn("audio") && <span className="tab-dot" />}
         </button>
-        <button className="tab" disabled title="Arrives with the AR work">
-          AR
-        </button>
+        {draft.isMuseum ? (
+          <button
+            className={view === "ar" ? "tab on" : "tab"}
+            onClick={() => setTab("ar")}
+          >
+            AR{" "}
+            {exhibits.length > 0 && (
+              <span className="tab-count">{exhibits.length}</span>
+            )}
+            {unmetIn("ar") && <span className="tab-dot" />}
+          </button>
+        ) : (
+          <button
+            className="tab"
+            disabled
+            title="Turn on Museum site to add exhibits"
+          >
+            AR
+          </button>
+        )}
       </nav>
 
       {/* Content on the left, the facts about it on the right — after
@@ -616,7 +669,7 @@ export function DestinationEditorPage() {
           in view while you work on photos or the audio guide. */}
       <div className="editor-grid">
         <div className="editor-main">
-          {tab === "details" && (
+          {view === "details" && (
             <DetailsTab
               draft={draft}
               errors={errors}
@@ -628,9 +681,9 @@ export function DestinationEditorPage() {
             />
           )}
 
-          {tab === "location" && <LocationTab draft={draft} set={set} />}
+          {view === "location" && <LocationTab draft={draft} set={set} />}
 
-          {tab === "media" && (
+          {view === "media" && (
             <MediaTab
               draft={draft}
               destinationId={isNew ? null : docId!}
@@ -639,12 +692,22 @@ export function DestinationEditorPage() {
             />
           )}
 
-          {tab === "audio" && (
+          {view === "audio" && (
             <AudioGuideTab
               destinationId={isNew ? null : docId!}
               destinationName={draft.name}
               segments={segments}
               onChange={setSegments}
+              onSaveFirst={() => save("draft")}
+            />
+          )}
+
+          {view === "ar" && (
+            <ArExhibitsTab
+              destinationId={isNew ? null : docId!}
+              destinationName={draft.name}
+              exhibits={exhibits}
+              onChange={setExhibits}
               onSaveFirst={() => save("draft")}
             />
           )}

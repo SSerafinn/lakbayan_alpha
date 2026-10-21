@@ -1870,6 +1870,20 @@ table.data .tag-row {
   height: 36px;
 }
 
+/* ---- AR exhibits ---------------------------------------------------------
+   Screen 6 reuses the audio guide's cards above: the same ordered list, with
+   a marker photo and its width where a stop has neither. */
+
+/* The whole marker rather than a crop of it: the camera matches every part
+   of the photo, so the editor should be able to see every part. */
+.thumb.marker-preview {
+  width: 100%;
+  max-width: 320px;
+  aspect-ratio: 4 / 3;
+  object-fit: contain;
+  margin-top: var(--lk-space-2);
+}
+
 /* ---- save bar ------------------------------------------------------------
    Persistent save state lives beside the buttons that resolve it — it is a
    condition, not an event. */
