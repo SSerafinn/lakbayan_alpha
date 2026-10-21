@@ -12,6 +12,7 @@ import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.opengl.GLES20
 import android.opengl.GLSurfaceView
+import android.opengl.Matrix
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
@@ -32,7 +33,9 @@ import android.widget.TextView
 import com.google.ar.core.ArCoreApk
 import com.google.ar.core.AugmentedImage
 import com.google.ar.core.AugmentedImageDatabase
+import com.google.ar.core.Camera
 import com.google.ar.core.Config
+import com.google.ar.core.Pose
 import com.google.ar.core.Session
 import com.google.ar.core.TrackingState
 import com.google.ar.core.exceptions.CameraNotAvailableException
@@ -44,8 +47,9 @@ import kotlin.math.roundToInt
 
 /**
  * The scan screen (D-18): the camera, full screen, looking for a museum's
- * exhibits by their marker images. When it finds one, a card names it; a tap
- * on the card ends the screen with that exhibit's id, and the app opens its
+ * exhibits by their marker images. When it finds one, an outline locks on to
+ * it in the camera image ([ExhibitHighlight]) and a card names it; a tap on
+ * either ends the screen with that exhibit's id, and the app opens its
  * story. Back ends it with nothing.
  *
  * A separate activity rather than a camera view inside a Flutter screen, so
@@ -80,6 +84,7 @@ class ExhibitScanActivity : Activity(), GLSurfaceView.Renderer {
     private lateinit var colours: Colours
 
     private lateinit var surfaceView: GLSurfaceView
+    private lateinit var highlight: ExhibitHighlight
     private lateinit var hint: TextView
     private lateinit var card: LinearLayout
     private lateinit var cardTitle: TextView
@@ -103,9 +108,19 @@ class ExhibitScanActivity : Activity(), GLSurfaceView.Renderer {
     private var geometryChanged = false
     private var viewportWidth = 0
     private var viewportHeight = 0
+    private val projection = FloatArray(16)
+    private val view = FloatArray(16)
+    private val viewProjection = FloatArray(16)
+    private val corner = FloatArray(4)
+    private val clip = FloatArray(4)
+    private var outlined = false
 
-    /** The exhibit on the card, if any. Main thread. */
-    private var shownId: String? = null
+    /**
+     * The exhibit on the card, if any. Written on the main thread; the GL
+     * thread reads it to keep the outline on the same exhibit while two are
+     * in view.
+     */
+    @Volatile private var shownId: String? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -301,14 +316,55 @@ class ExhibitScanActivity : Activity(), GLSurfaceView.Renderer {
         }
         background.draw(frame)
 
-        for (image in frame.getUpdatedTrackables(AugmentedImage::class.java)) {
-            if (image.trackingState == TrackingState.TRACKING &&
-                image.trackingMethod == AugmentedImage.TrackingMethod.FULL_TRACKING
-            ) {
-                val id = image.name
-                runOnUiThread { show(id) }
-            }
+        // Every exhibit the camera can see right now. FULL_TRACKING only: an
+        // image ARCore merely remembers (LAST_KNOWN_POSE) is out of view, and
+        // an outline there would point at nothing.
+        val seen = current.getAllTrackables(AugmentedImage::class.java).filter {
+            it.trackingState == TrackingState.TRACKING &&
+                it.trackingMethod == AugmentedImage.TrackingMethod.FULL_TRACKING
         }
+        val focus = seen.firstOrNull { it.name == shownId } ?: seen.firstOrNull()
+        val points = focus?.let { outlineOf(frame.camera, it) }
+        if (focus != null && points != null) {
+            outlined = true
+            val id = focus.name
+            runOnUiThread {
+                show(id)
+                highlight.track(id, points)
+            }
+        } else if (outlined) {
+            outlined = false
+            runOnUiThread { highlight.lose() }
+        }
+    }
+
+    /**
+     * [image]'s four corners on screen, clockwise from its top left, in the
+     * surface's pixels — which are the highlight's, both filling the screen.
+     * Null when a corner is behind the camera.
+     */
+    private fun outlineOf(camera: Camera, image: AugmentedImage): FloatArray? {
+        camera.getProjectionMatrix(projection, 0, 0.05f, 50f)
+        camera.getViewMatrix(view, 0)
+        Matrix.multiplyMM(viewProjection, 0, projection, 0, view, 0)
+        val pose: Pose = image.centerPose
+        val halfX = image.extentX / 2f
+        val halfZ = image.extentZ / 2f
+        // In the image's own frame X runs to its right and Z down it.
+        val local = floatArrayOf(-halfX, -halfZ, halfX, -halfZ, halfX, halfZ, -halfX, halfZ)
+        val out = FloatArray(8)
+        for (i in 0 until 4) {
+            val world = pose.transformPoint(floatArrayOf(local[2 * i], 0f, local[2 * i + 1]))
+            corner[0] = world[0]
+            corner[1] = world[1]
+            corner[2] = world[2]
+            corner[3] = 1f
+            Matrix.multiplyMV(clip, 0, viewProjection, 0, corner, 0)
+            if (clip[3] <= 0f) return null
+            out[2 * i] = (clip[0] / clip[3] + 1f) / 2f * viewportWidth
+            out[2 * i + 1] = (1f - clip[1] / clip[3]) / 2f * viewportHeight
+        }
+        return out
     }
 
     // ---- The screen ------------------------------------------------------
@@ -342,6 +398,9 @@ class ExhibitScanActivity : Activity(), GLSurfaceView.Renderer {
             setEGLConfigChooser(8, 8, 8, 8, 16, 0)
             setRenderer(this@ExhibitScanActivity)
             renderMode = GLSurfaceView.RENDERMODE_CONTINUOUSLY
+        }
+        highlight = ExhibitHighlight(this, line = colours.surface, tint = colours.primary).apply {
+            onTap = { openShown() }
         }
 
         val close = ImageButton(this).apply {
@@ -430,6 +489,7 @@ class ExhibitScanActivity : Activity(), GLSurfaceView.Renderer {
         val root = FrameLayout(this).apply {
             setBackgroundColor(Color.BLACK)
             addView(surfaceView, FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT))
+            addView(highlight, FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT))
             addView(overlay, FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT))
         }
         // Edge to edge (the default from API 35): the camera runs under the
