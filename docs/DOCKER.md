@@ -143,10 +143,11 @@ force. Two things now prevent it:
 - `android/app/src/debug/AndroidManifest.xml` removes `FirebaseInitProvider`,
   so the first app created is the one Dart asks for. Debug build type only.
 - `bootstrapFirebase` compares the project that came up with the one it asked
-  for, and the strip along the bottom says **"Not the emulators' project"** if
-  they differ. Before, it said "Emulators" either way.
+  for, and logs **"Firebase came up as '…', not 'demo-lakbayan'"** at startup
+  if they differ.
 
-If that strip ever appears, look at the debug manifest first. To see what the
+If that line ever appears in `adb logcat -s flutter`, look at the debug
+manifest first. To see what the
 suite holds for each project, with admin rights:
 
 ```bash

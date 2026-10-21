@@ -247,9 +247,10 @@ is exported on clean shutdown, so your test users survive.
 4. **Emulator calls hang on a physical device** — Windows Firewall. Load
    `http://<your-ip>:4000` in the phone's browser to confirm before touching code.
 5. **Every list in the app is empty** — usually a stale `FIREBASE_EMULATOR_HOST`
-   after a DHCP change, not missing content. In debug the app now says so in a
-   strip along the bottom; `node scripts/emulator-host.mjs` gives you the
-   current address.
+   after a DHCP change, or a phone still signed in from before an emulator
+   reset; not missing content. The app logs which on startup
+   (`adb logcat -s flutter`, look for "Firebase emulators");
+   `node scripts/emulator-host.mjs` gives you the current address.
 6. **Google Sign-In fails on web** — needs `GOOGLE_WEB_CLIENT_ID`; Android reads it
    from `google-services.json` instead. Android is the platform that matters here.
 

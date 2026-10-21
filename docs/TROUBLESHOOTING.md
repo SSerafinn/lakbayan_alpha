@@ -120,10 +120,13 @@ and looks exactly like a database with no content in it.
 
 Two things now catch this:
 
-- The app **probes the emulator on startup** and, in debug builds, shows a red
-  strip along the bottom reading *"No emulator at 192.168.x.x — lists will look
-  empty"*. A green strip naming the host means the connection is fine and the
-  data really is missing.
+- The app **probes the emulator on startup** and logs the result
+  (`adb logcat -s flutter`): *"Firebase emulators answered on 192.168.x.x"*
+  means the connection is fine and the data really is missing; *"Firebase
+  emulators did NOT answer"* lists what to check. That includes a phone still
+  signed in from before an emulator reset — the suite answers but refuses the
+  old account (`INVALID_REFRESH_TOKEN` in logcat), so sign out and back in.
+  Nothing is shown on screen, so a debug build demos cleanly.
 - `node scripts/emulator-host.mjs` tells you the address that works right now.
 
 Re-run the app after changing it. Dart-defines are compiled in, so a hot reload

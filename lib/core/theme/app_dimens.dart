@@ -127,9 +127,6 @@ abstract final class AppSize {
   // Glyph sizes. Material's icon default is 24; the Cupertino strokes read
   // heavier, so most in-row glyphs step down. One ladder, no inline sizes.
 
-  /// A status glyph in a debug strip.
-  static const glyphXs = 14.0;
-
   /// A glyph inside a selection circle.
   static const glyphSm = 16.0;
 
