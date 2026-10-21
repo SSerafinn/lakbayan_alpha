@@ -59,8 +59,19 @@ void main() {
       description: "Cast in Manila.",
     );
 
-    Future<ScanOutcome> scan() =>
-        scanner.scan(placeName: "Cagayan Museum", markers: const [marker]);
+    const colors = ScanColors(
+      primary: Color(0xFF1B6B3A),
+      onPrimary: Color(0xFFFFFFFF),
+      surface: Color(0xFFFFFFFF),
+      onSurface: Color(0xFF1A1C1A),
+      onSurfaceVariant: Color(0xFF5B615B),
+    );
+
+    Future<ScanOutcome> scan() => scanner.scan(
+      placeName: "Cagayan Museum",
+      markers: const [marker],
+      colors: colors,
+    );
 
     test("hands over the place and every marker", () async {
       answer((_) => {"result": "cancelled"});
@@ -78,6 +89,13 @@ void main() {
             "description": "Cast in Manila.",
           },
         ],
+        "colors": {
+          "primary": 0xFF1B6B3A,
+          "onPrimary": 0xFFFFFFFF,
+          "surface": 0xFFFFFFFF,
+          "onSurface": 0xFF1A1C1A,
+          "onSurfaceVariant": 0xFF5B615B,
+        },
       });
     });
 

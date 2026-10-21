@@ -1,4 +1,4 @@
-import "package:flutter/foundation.dart";
+import "package:flutter/material.dart";
 
 /// Whether this phone can scan exhibits with its camera (D-18).
 enum ArSupport {
@@ -41,6 +41,42 @@ class ScanMarker {
     "widthM": widthM,
     "title": title,
     "description": description,
+  };
+}
+
+/// The app's colours for the native scan screen, which cannot read the
+/// Flutter theme: handed over with every scan, so `lib/core/theme/` stays
+/// the one place they are defined.
+@immutable
+class ScanColors {
+  const ScanColors({
+    required this.primary,
+    required this.onPrimary,
+    required this.surface,
+    required this.onSurface,
+    required this.onSurfaceVariant,
+  });
+
+  ScanColors.of(ColorScheme scheme)
+    : primary = scheme.primary,
+      onPrimary = scheme.onPrimary,
+      surface = scheme.surface,
+      onSurface = scheme.onSurface,
+      onSurfaceVariant = scheme.onSurfaceVariant;
+
+  final Color primary;
+  final Color onPrimary;
+  final Color surface;
+  final Color onSurface;
+  final Color onSurfaceVariant;
+
+  /// As Android colour ints, ARGB.
+  Map<String, int> toMap() => {
+    "primary": primary.toARGB32(),
+    "onPrimary": onPrimary.toARGB32(),
+    "surface": surface.toARGB32(),
+    "onSurface": onSurface.toARGB32(),
+    "onSurfaceVariant": onSurfaceVariant.toARGB32(),
   };
 }
 
@@ -89,5 +125,6 @@ abstract interface class ExhibitScanner {
   Future<ScanOutcome> scan({
     required String placeName,
     required List<ScanMarker> markers,
+    required ScanColors colors,
   });
 }

@@ -37,11 +37,13 @@ class ChannelExhibitScanner implements ExhibitScanner {
   Future<ScanOutcome> scan({
     required String placeName,
     required List<ScanMarker> markers,
+    required ScanColors colors,
   }) async {
     try {
       final answer = await _channel.invokeMapMethod<String, Object?>("scan", {
         "placeName": placeName,
         "markers": [for (final marker in markers) marker.toMap()],
+        "colors": colors.toMap(),
       });
       return switch (answer) {
         {"result": "found", "id": final String id} => ExhibitRecognised(id),

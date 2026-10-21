@@ -24,6 +24,7 @@ class FakeExhibitScanner implements ExhibitScanner {
   Future<ScanOutcome> scan({
     required String placeName,
     required List<ScanMarker> markers,
+    required ScanColors colors,
   }) async {
     lastPlaceName = placeName;
     scans.add(markers);

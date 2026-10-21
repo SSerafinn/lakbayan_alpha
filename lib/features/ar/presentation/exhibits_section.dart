@@ -63,7 +63,11 @@ class _ExhibitsSectionState extends ConsumerState<ExhibitsSection> {
 
       final outcome = await ref
           .read(exhibitScannerProvider)
-          .scan(placeName: widget.destination.name, markers: markers);
+          .scan(
+            placeName: widget.destination.name,
+            markers: markers,
+            colors: ScanColors.of(Theme.of(context).colorScheme),
+          );
       if (!mounted) return;
       switch (outcome) {
         case ExhibitRecognised(:final exhibitId):
