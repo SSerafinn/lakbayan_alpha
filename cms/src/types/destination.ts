@@ -1,4 +1,5 @@
 import type { Timestamp } from "firebase/firestore";
+import { countExhibitProblems, type ExhibitDraft } from "./exhibit";
 import { segmentProblems, type SegmentDraft } from "./segment";
 
 /**
@@ -59,6 +60,10 @@ export type Destination = {
   nearbyEligible: boolean;
   offlineEligible: boolean;
   isMuseum: boolean;
+  /**
+   * Derived, never edited: set on every save from whether a museum has an
+   * exhibit the scanner can find (`museumHasAR`, D-18).
+   */
   hasAR: boolean;
   tags: string[];
   practical?: PracticalInfo;
@@ -146,7 +151,7 @@ export type ReadinessItem = {
   label: string;
   ok: boolean;
   /** Which tab to send the editor to when this is the thing that is missing. */
-  tab: "details" | "location" | "media" | "audio";
+  tab: "details" | "location" | "media" | "audio" | "ar";
   /** Shown when `ok` is false. */
   why?: string;
 };
@@ -158,17 +163,20 @@ export type ReadinessItem = {
  * can never be disabled for a reason the checklist does not show — which is
  * exactly what a `title` tooltip on a disabled button used to do.
  *
- * Segments are passed in rather than read here: they live in a subcollection,
- * so they are not part of the destination document this module otherwise
- * describes. They contribute checks only when the guide has stops at all — an
- * audio guide is optional, but a half-built one must not go live.
+ * Segments and exhibits are passed in rather than read here: they live in
+ * subcollections, so they are not part of the destination document this module
+ * otherwise describes. They contribute checks only when there are any — an
+ * audio guide and AR are optional, but a half-built one must not go live.
+ * Exhibits count only on a museum, the one place the app looks for them.
  */
 export function readiness(
   d: Omit<Destination, "id">,
   segments: SegmentDraft[] = [],
+  exhibits: ExhibitDraft[] = [],
 ): ReadinessItem[] {
   const desc = d.description.trim();
   const { untitled, silent } = segmentProblems(segments);
+  const exhibitCounts = countExhibitProblems(exhibits);
   return [
     { label: "Name", ok: d.name.trim() !== "", tab: "details" },
     { label: "Slug", ok: d.slug.trim() !== "", tab: "details" },
@@ -215,6 +223,22 @@ export function readiness(
           },
         ]
       : []),
+    ...(d.isMuseum && exhibits.length > 0
+      ? [
+          {
+            label: "Every exhibit is named",
+            ok: exhibitCounts.untitled === 0,
+            tab: "ar" as const,
+            why: `${exhibitCounts.untitled} exhibit${exhibitCounts.untitled === 1 ? " has" : "s have"} no title — the card the camera shows would be blank.`,
+          },
+          {
+            label: "Every exhibit has a marker",
+            ok: exhibitCounts.unmarked === 0,
+            tab: "ar" as const,
+            why: `${exhibitCounts.unmarked} exhibit${exhibitCounts.unmarked === 1 ? " is" : "s are"} missing a marker photo or its real width — the camera cannot look for ${exhibitCounts.unmarked === 1 ? "it" : "them"}.`,
+          },
+        ]
+      : []),
   ];
 }
 
@@ -225,8 +249,9 @@ export function readiness(
 export function publishBlockers(
   d: Omit<Destination, "id">,
   segments: SegmentDraft[] = [],
+  exhibits: ExhibitDraft[] = [],
 ): string[] {
-  return readiness(d, segments)
+  return readiness(d, segments, exhibits)
     .filter((r) => !r.ok)
     .map((r) => (r.why ? `${r.label} — ${r.why}` : `${r.label} is required.`));
 }

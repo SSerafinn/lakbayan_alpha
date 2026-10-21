@@ -1,3 +1,5 @@
+import { formatBytes } from "./bundle";
+
 /**
  * What a photo or a recording may be once it leaves the CMS.
  *
@@ -74,4 +76,34 @@ export const MAX_AUDIO_BYTES = 50 * 1024 * 1024;
 export function audioExtension(name: string): AudioExtension | null {
   const ext = name.split(".").pop()?.toLowerCase() ?? "";
   return Object.hasOwn(AUDIO_TYPES, ext) ? (ext as AudioExtension) : null;
+}
+
+/** The accepted formats, as the editors list them. */
+export const AUDIO_FORMATS = Object.keys(AUDIO_TYPES).join(", ");
+
+/**
+ * Why a recording will not be uploaded, as the warning toast puts it, or null
+ * if it will.
+ *
+ * Shared by the audio guide and the AR exhibits so that both refuse the same
+ * files in the same words. storage.rules refuses them anyway; this says why,
+ * and what to do.
+ */
+export function recordingProblem(file: {
+  name: string;
+  size: number;
+}): { title: string; description: string } | null {
+  if (!audioExtension(file.name)) {
+    return {
+      title: "That file was not uploaded",
+      description: `Narration must be one of ${AUDIO_FORMATS}.`,
+    };
+  }
+  if (file.size > MAX_AUDIO_BYTES) {
+    return {
+      title: "That recording is too large",
+      description: `It is ${formatBytes(file.size)}; the limit is ${formatBytes(MAX_AUDIO_BYTES)}. Export it as MP3 or M4A — a few minutes is then a few MB.`,
+    };
+  }
+  return null;
 }
