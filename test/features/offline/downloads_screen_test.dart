@@ -8,6 +8,7 @@ import "package:lakbayan/core/theme/app_theme.dart";
 import "package:lakbayan/features/offline/data/asset_fetcher.dart";
 import "package:lakbayan/features/offline/data/bundle_repository.dart";
 import "package:lakbayan/features/offline/data/download_store.dart";
+import "package:lakbayan/features/offline/domain/downloads_controller.dart";
 import "package:lakbayan/features/offline/domain/offline_bundle.dart";
 import "package:lakbayan/features/offline/domain/offline_providers.dart";
 import "package:lakbayan/features/offline/presentation/downloads_screen.dart";
@@ -85,11 +86,28 @@ void main() {
   /// * While it runs, the progress bar is an **indeterminate**
   ///   `LinearProgressIndicator`, which animates forever, so `pumpAndSettle`
   ///   would never return afterwards. Pump a bounded number of frames instead.
+  ///
+  /// It waits for the work itself, not for a guessed length of time: a fixed
+  /// 400 ms was enough on a laptop and not always on a CI runner, where
+  /// "removing a town clears it" once found the download unfinished. Bounded,
+  /// so a download that hangs still fails the test rather than stalling it.
   Future<void> tapAndFinish(WidgetTester tester, Finder target) async {
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(DownloadsScreen)),
+    );
+    bool running() => container
+        .read(downloadsControllerProvider)
+        .values
+        .any((town) => town.isRunning);
     await tester.runAsync(() async {
       await tester.tap(target);
-      // Long enough for a handful of small writes to a temp directory.
-      await Future<void>.delayed(const Duration(milliseconds: 400));
+      final deadline = DateTime.now().add(const Duration(seconds: 10));
+      while (running() && DateTime.now().isBefore(deadline)) {
+        await Future<void>.delayed(const Duration(milliseconds: 20));
+      }
+      // What follows a settled download, or a removal (which never shows as
+      // running): a file delete and the store read the row redraws from.
+      await Future<void>.delayed(const Duration(milliseconds: 150));
     });
     for (var i = 0; i < 5; i++) {
       await tester.pump(const Duration(milliseconds: 20));
