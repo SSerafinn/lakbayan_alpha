@@ -85,6 +85,7 @@ class ExhibitScanActivity : Activity(), GLSurfaceView.Renderer {
 
     private lateinit var surfaceView: GLSurfaceView
     private lateinit var highlight: ExhibitHighlight
+    private lateinit var guide: ScanGuide
     private lateinit var hint: TextView
     private lateinit var card: LinearLayout
     private lateinit var cardTitle: TextView
@@ -331,10 +332,14 @@ class ExhibitScanActivity : Activity(), GLSurfaceView.Renderer {
             runOnUiThread {
                 show(id)
                 highlight.track(id, points)
+                guide.setLocked(true)
             }
         } else if (outlined) {
             outlined = false
-            runOnUiThread { highlight.lose() }
+            runOnUiThread {
+                highlight.lose()
+                guide.setLocked(false)
+            }
         }
     }
 
@@ -399,6 +404,7 @@ class ExhibitScanActivity : Activity(), GLSurfaceView.Renderer {
             setRenderer(this@ExhibitScanActivity)
             renderMode = GLSurfaceView.RENDERMODE_CONTINUOUSLY
         }
+        guide = ScanGuide(this)
         highlight = ExhibitHighlight(this, line = colours.surface, tint = colours.primary).apply {
             onTap = { openShown() }
         }
@@ -489,6 +495,7 @@ class ExhibitScanActivity : Activity(), GLSurfaceView.Renderer {
         val root = FrameLayout(this).apply {
             setBackgroundColor(Color.BLACK)
             addView(surfaceView, FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT))
+            addView(guide, FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT))
             addView(highlight, FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT))
             addView(overlay, FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT))
         }

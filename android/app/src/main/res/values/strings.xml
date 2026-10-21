@@ -2,7 +2,7 @@
 <resources>
     <!-- The AR scan screen (ExhibitScanActivity, D-18). Everything else the
          visitor reads is in the Flutter app. -->
-    <string name="scan_hint">Point your camera at an exhibit or its label</string>
+    <string name="scan_hint">Come close, so the picture fills the box</string>
     <string name="scan_open">Open its story</string>
     <string name="scan_close">Close</string>
 </resources>
