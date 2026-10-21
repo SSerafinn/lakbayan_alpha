@@ -8,7 +8,7 @@ part "destination.g.dart";
 /// Current shape of `destinations` and `segments`. Bump alongside
 /// `docs/DATA_MODEL.md` whenever the schema changes, so a client reading a
 /// document cached by an older build can detect the mismatch.
-const destinationSchemaVersion = 3;
+const destinationSchemaVersion = 4;
 
 /// What kind of place this is. Drives the filter chips on Explore.
 ///

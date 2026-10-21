@@ -31,6 +31,15 @@ service cloud.firestore {
                .data.status == 'published';
         allow write: if isAdmin();
       }
+
+      // AR exhibits (D-18): the same rule as segments, for the same reason —
+      // an unpublished museum's exhibits and their narration must not leak.
+      match /exhibits/{eid} {
+        allow read: if isAdmin()
+          || get(/databases/$(database)/documents/destinations/$(destId))
+               .data.status == 'published';
+        allow write: if isAdmin();
+      }
     }
 
     // Offline bundle manifests and curated tours are public catalog data.

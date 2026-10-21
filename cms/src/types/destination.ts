@@ -7,7 +7,7 @@ import { segmentProblems, type SegmentDraft } from "./segment";
  * Three representations of one contract. When the schema changes, all three
  * move together — that is why the CMS lives in this repo (D-10).
  */
-export const DESTINATION_SCHEMA_VERSION = 3;
+export const DESTINATION_SCHEMA_VERSION = 4;
 
 export const CATEGORIES = [
   "church",

@@ -1,13 +1,19 @@
 import "../../../core/models/destination.dart";
+import "../../../core/models/exhibit.dart";
 import "destination_repository.dart";
 
 /// In-memory [DestinationRepository] for tests and the debug preview. Like
 /// the real one, it only ever returns published destinations.
 class FakeDestinationRepository implements DestinationRepository {
-  FakeDestinationRepository(this.destinations, {this.segments = const {}});
+  FakeDestinationRepository(
+    this.destinations, {
+    this.segments = const {},
+    this.exhibits = const {},
+  });
 
   final List<Destination> destinations;
   final Map<String, List<Segment>> segments;
+  final Map<String, List<Exhibit>> exhibits;
 
   List<Destination> get _published => destinations
       .where((d) => d.status == DestinationStatus.published)
@@ -36,6 +42,10 @@ class FakeDestinationRepository implements DestinationRepository {
   @override
   Stream<List<Segment>> watchSegments(String destinationId) =>
       Stream.value(segments[destinationId] ?? const []);
+
+  @override
+  Stream<List<Exhibit>> watchExhibits(String destinationId) =>
+      Stream.value(exhibits[destinationId] ?? const []);
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);

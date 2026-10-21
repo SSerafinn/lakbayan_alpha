@@ -44,7 +44,7 @@ Admin CMS is a separate web app on the same Firebase project.
 - Run codegen after touching any `@freezed` / provider / Hive model.
 
 ## Data model = the FE↔BE contract (see docs/DATA_MODEL.md)
-Firestore collections: `destinations` (+ `segments` sub), `offlineBundles`, `tours`,
+Firestore collections: `destinations` (+ `segments`, `exhibits` subs), `offlineBundles`, `tours`,
 `guides`, `users`. Change the schema only alongside `firestore.rules`,
 `firestore.indexes.json`, and a `schemaVersion` bump. Use the `add-collection` skill.
 

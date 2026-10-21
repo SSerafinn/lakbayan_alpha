@@ -22,6 +22,7 @@ function place(
     id,
     images: [`destinations/${id}/images/1.jpg`],
     audioPaths: [],
+    exhibitPaths: [],
     updatedAtMillis: 1000,
     ...overrides,
   };
@@ -77,6 +78,24 @@ describe("parseGenerateRequest", () => {
 });
 
 describe("collectAssetPaths", () => {
+  it("includes a museum's AR markers and their narration", () => {
+    // D-18: the scanner has to work offline, so a downloaded museum carries
+    // the images it recognises and what it then plays.
+    const paths = collectAssetPaths([
+      place("museum", {
+        images: [],
+        exhibitPaths: [
+          "ar/museum/markers/e1.webp",
+          "destinations/museum/audio/e1.m4a",
+        ],
+      }),
+    ]);
+    assert.deepEqual(paths, [
+      "ar/museum/markers/e1.webp",
+      "destinations/museum/audio/e1.m4a",
+    ]);
+  });
+
   it("gathers images and recordings together", () => {
     const paths = collectAssetPaths([
       place("callao", {

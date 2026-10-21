@@ -4,7 +4,7 @@ Change collection shapes only alongside `firestore.rules`, `firestore.indexes.js
 and a `schemaVersion` bump. Use the `add-collection` skill.
 
 ```
-destinations/{id}                                              // schemaVersion 3
+destinations/{id}                                              // schemaVersion 4
   name          string    required
   slug          string    required   // auto from name; used in deep links
   town          string    required   // municipality, e.g. "Peñablanca"
@@ -21,7 +21,9 @@ destinations/{id}                                              // schemaVersion 
   nearbyEligible bool     default true    // may appear in others' "Nearby"
   offlineEligible bool    default true    // include in town offline bundles
   isMuseum      bool      default false   // gates the AR tab in the CMS
-  hasAR         bool      default false   // drives the AR badge
+  hasAR         bool      default false   // drives the AR badge; the CMS keeps it
+                                          // true exactly when a museum has an
+                                          // exhibit (D-18)
   tags          string[]             // free-form, e.g. ["caves","river"]
   practical     map?                 // all optional free text, see below
   status        string    required   // draft | published
@@ -43,6 +45,20 @@ destinations/{id}/segments/{sid}                               // audio guide st
   // `order` is written from list position by the CMS editor and is contiguous
   // from 1. Readers should still sort by it rather than assume the gap-free
   // sequence — a document written by hand or by a script need not honour it.
+
+destinations/{id}/exhibits/{eid}                               // AR exhibits (D-18), v4
+  title         string    required   // "The Callao Man replica"
+  description   string?              // one line, on the card when it is recognised
+  story         string?              // the exhibit sheet; blank lines split paragraphs
+  markerPath    string    required   // Storage path of the image the camera matches:
+                                     //   /ar/{destId}/markers/{eid}.{ext}
+  markerWidthM  number    required   // the marker's real width in metres — ARCore
+                                     // tracks sooner and steadier knowing it
+  audioUrl      string?              // Storage path, recorded narration
+  ttsText       string?              // spoken when there is no recording
+  order         number    required   // 1-based; the no-camera list's sequence
+  // No status field, as with segments: visibility follows the parent
+  // destination in firestore.rules. Only meaningful under `isMuseum`.
 offlineBundles/{townId}                          // written only by a function
   name          string    required   // the town's display name, exactly
   destinationIds string[] required   // published + offlineEligible, sorted
@@ -51,9 +67,9 @@ offlineBundles/{townId}                          // written only by a function
   version       string    required   // content fingerprint; see below
   status        string    required   // pending | ready  (never `stale` — below)
   generatedAt              // serverTimestamp
-  // No asset list. A client already reads the destinations and their segments,
-  // so the image and audio paths are derivable; storing them twice would let
-  // the two drift.
+  // No asset list. A client already reads the destinations, their segments
+  // and their exhibits, so the image, audio and AR marker paths are derivable;
+  // storing them twice would let the two drift.
 tours/{id}                        // id is slugify(title) — see below
   title         string    required
   description   string?
@@ -196,9 +212,18 @@ records who obtained it and when (`docs/data-intake/04-local-guides.csv`), and
 Firestore carries that fact. If the province ever needs to prove consent from the
 system rather than from a spreadsheet, that is a schema change.
 
-**schemaVersion 3** (destinations). Bump it here and in
+**schemaVersion 4** (destinations). Bump it here and in
 `destinationSchemaVersion` together with any shape change, so a client reading a
 cached document written by an older build can tell.
+
+### Changes in v4 (2026-10-21)
+
+Added the `exhibits` subcollection for the AR pilot (D-18). The destination
+document itself is unchanged; the bump marks that a museum's content now has a
+second subcollection, which the offline bundle covers (its markers and
+narration download with the town, so scanning works with no signal). `hasAR`
+becomes derived: the CMS sets it when a museum has at least one exhibit, rather
+than leaving it a switch that can claim AR nobody built.
 
 ### Changes in v3 (2026-10-12)
 
@@ -234,7 +259,7 @@ Two deliberate calls:
 /destinations/{id}/audio/{segmentId}.{ext}
 /tours/{id}/cover-{timestamp}.{ext}               // uploaded via the CMS
 /tours/{id}/cover.{ext}                           // written by the importer
-/ar/{destId}/markers/{n}.jpg
+/ar/{destId}/markers/{exhibitId}.{ext}             // AR marker images (D-18)
 /tiles/{townId}/pack.pmtiles
 ```
 
@@ -270,7 +295,9 @@ needs instead is a name that is stable across runs, because a fresh timestamp
 each time would strand every object the previous import uploaded. Readers only
 ever follow the path stored on the document, so the two coexist safely.
 
-**Audio is one object per segment, named after it.** The extension is whatever
+**Audio is one object per segment or exhibit, named after it** — exhibit
+narration shares `/destinations/{id}/audio/`, since exhibit and segment ids are
+both Firestore auto-ids and cannot collide. The extension is whatever
 was uploaded (mp3, m4a, aac, wav, ogg) rather than a fixed `.mp3` — that suffix
 on an m4a file misleads everything downstream that sniffs by name. Replacing a
 recording with a different format therefore writes a new object, and both the

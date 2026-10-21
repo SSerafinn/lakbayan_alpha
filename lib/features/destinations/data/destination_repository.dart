@@ -3,6 +3,7 @@ import "package:cloud_firestore/cloud_firestore.dart";
 import "../../../core/diagnostics/error_reporter.dart";
 import "../../../core/diagnostics/malformed_document.dart";
 import "../../../core/models/destination.dart";
+import "../../../core/models/exhibit.dart";
 
 /// Reads published destinations.
 ///
@@ -83,6 +84,21 @@ class DestinationRepository {
           // import names every destination's stops `stop-01`, `stop-02` … —
           // so the report names the parent too.
           label: "destination '$destinationId' segment",
+        ),
+      );
+
+  /// A museum's AR exhibits, in order (D-18). Readable exactly when the
+  /// destination is, by the same rule as its segments.
+  Stream<List<Exhibit>> watchExhibits(String destinationId) => _col
+      .doc(destinationId)
+      .collection("exhibits")
+      .orderBy("order")
+      .snapshots()
+      .map(
+        (snap) => _decodeAll(
+          snap.docs,
+          (data, id) => Exhibit.fromJson({...data, "id": id}),
+          label: "destination '$destinationId' exhibit",
         ),
       );
 

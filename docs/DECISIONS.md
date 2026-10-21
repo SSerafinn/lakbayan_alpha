@@ -384,6 +384,38 @@ twice, since they read `CupertinoTheme`. Their edge swipe fights Android's
 back gesture. Their sheets and alerts also rise from a fixed edge instead of
 from their source. So the feel is built from our own tokens.
 
+## D-18 · AR pilot: a native scan screen, image markers, a card and narration (2026-10-21) · ACCEPTED
+
+Phase 4 goes ahead as a pilot: one museum, recognised exhibits, tested in a
+controlled setting before anything is deployed. It refines D-05 (native
+channel to ARCore) into these choices:
+
+- **ARCore Augmented Images.** The camera recognises a flat reference image —
+  a photo of the exhibit or its placard — which is what museum exhibits offer
+  without any extra hardware. No 3D models: what appears is a card naming the
+  exhibit, and tapping it opens the story and narration, played by the same
+  player as the audio guide. Models would need modelled assets nobody has.
+- **A separate, full-screen native scan screen** (`ExhibitScanActivity`,
+  Kotlin), started over a method channel and returning the recognised
+  exhibit's id. Not a camera view embedded in a Flutter screen: hybrid
+  composition with a camera surface is the fragile part of every AR plugin, and
+  a separate activity keeps AR isolated — if it fails, nothing else does.
+  `MainActivity` stays the `AudioServiceActivity` it must be.
+- **AR is optional at install** (`com.google.ar.core` = `optional`, the AR
+  camera feature not required), so the app still installs and runs fully on
+  phones without ARCore. Those, a refused camera, or markers that are not on
+  the phone get the same exhibits as a plain list, without the camera.
+- **Content is a subcollection,** `destinations/{id}/exhibits`, with the
+  segments' visibility rule. `hasAR` is set by the CMS from whether a museum
+  has exhibits. Markers and narration travel in the town's offline bundle.
+- **The pilot uses a stand-in marker** (a sample photo, printed or shown on a
+  screen) for the Cagayan Museum until the province supplies photos of real
+  exhibits and their placard text.
+
+Rejected: `ar_flutter_plugin` (D-05's alternative; unmaintained, and its
+Sceneform base is archived) and a WebXR or web-based route (Android-first app,
+offline-first content).
+
 ## D-17 · The CMS: design system 2.3 for its look, an admin's layout for its structure (2026-10-07) · ACCEPTED
 
 **Status.** Accepted 2026-10-07. Three directions were mocked on the

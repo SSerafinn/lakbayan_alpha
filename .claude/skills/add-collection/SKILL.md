@@ -24,5 +24,5 @@ The schema is the **FE↔BE contract**. Change these together, in one PR.
    (e.g. `/$ARGUMENTS/{id}/images/{n}.jpg`).
 6. Test rules against the emulator before committing.
 
-Current collections: destinations (+segments), offlineBundles, tours, guides, users.
+Current collections: destinations (+segments, +exhibits), offlineBundles, tours, guides, users, settings.
 See `docs/DATA_MODEL.md`.

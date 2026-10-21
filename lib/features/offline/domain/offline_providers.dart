@@ -5,6 +5,7 @@ import "package:riverpod_annotation/riverpod_annotation.dart";
 
 import "../../../core/diagnostics/error_reporter.dart";
 import "../../../core/models/destination.dart";
+import "../../../core/models/exhibit.dart";
 import "../../destinations/domain/destination_providers.dart";
 import "../data/asset_fetcher.dart";
 import "../data/bundle_repository.dart";
@@ -53,27 +54,40 @@ Stream<List<OfflineBundle>> offlineBundles(Ref ref) =>
 /// Every Storage object a town's bundle implies.
 ///
 /// Derived here rather than read from the manifest: the app already has the
-/// destinations and their segments, and a second copy of the paths in Firestore
-/// would drift from the first. Mirrors `collectAssetPaths` in `functions/`.
+/// destinations, their segments and their exhibits, and a second copy of the
+/// paths in Firestore would drift from the first. Mirrors `collectAssetPaths`
+/// in `functions/`.
 Future<List<String>> assetPathsFor(Ref ref, OfflineBundle bundle) async {
   final repository = ref.read(destinationRepositoryProvider);
   final paths = <String>{};
 
-  // Fetch all place documents and segments in parallel.
+  // Fetch all place documents, segments and exhibits in parallel.
   final places = await Future.wait([
     for (final id in bundle.destinationIds)
       Future.wait<Object?>([
         repository.watchById(id).first,
         repository.watchSegments(id).first,
+        repository.watchExhibits(id).first,
       ]),
   ]);
 
-  for (final [destination as Destination?, segments as List<Segment>]
+  for (final [
+        destination as Destination?,
+        segments as List<Segment>,
+        exhibits as List<Exhibit>,
+      ]
       in places) {
     if (destination == null) continue;
     paths.addAll(destination.images.where((p) => p.isNotEmpty));
     for (final segment in segments) {
       final audio = segment.audioUrl;
+      if (audio != null && audio.isNotEmpty) paths.add(audio);
+    }
+    // The AR scanner's markers and the exhibits' narration (D-18), so a
+    // downloaded museum can be scanned with no signal.
+    for (final exhibit in exhibits) {
+      if (exhibit.markerPath.isNotEmpty) paths.add(exhibit.markerPath);
+      final audio = exhibit.audioUrl;
       if (audio != null && audio.isNotEmpty) paths.add(audio);
     }
   }

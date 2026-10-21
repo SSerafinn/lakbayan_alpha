@@ -12,6 +12,8 @@ export type BundleDestination = {
   images: string[];
   /** Storage paths of the audio guide's recordings. */
   audioPaths: string[];
+  /** AR exhibits' marker images and narration (D-18). */
+  exhibitPaths: string[];
   /** Millis. Part of the version, so an edit invalidates the bundle. */
   updatedAtMillis: number;
 };
@@ -50,6 +52,7 @@ export function collectAssetPaths(destinations: BundleDestination[]): string[] {
   for (const d of destinations) {
     for (const p of d.images) if (p) paths.add(p);
     for (const p of d.audioPaths) if (p) paths.add(p);
+    for (const p of d.exhibitPaths) if (p) paths.add(p);
   }
   return [...paths].sort();
 }
