@@ -8,7 +8,6 @@ import "package:path_provider/path_provider.dart";
 import "app.dart";
 import "core/diagnostics/error_reporter.dart";
 import "core/firebase/firebase_bootstrap.dart";
-import "core/firebase/firebase_status_provider.dart";
 import "core/prefs/app_preferences.dart";
 import "features/audio/data/guide_audio_handler.dart";
 import "features/audio/domain/audio_providers.dart";
@@ -67,11 +66,7 @@ Future<void> main() async {
 
   runApp(
     ProviderScope(
-      // The status used to be discarded here. Handing it to the tree is what
-      // lets the debug strip say which backend is answering — without it, an
-      // unreachable emulator and an empty database look identical on screen.
       overrides: [
-        firebaseBootstrapStatusProvider.overrideWithValue(status),
         errorReporterProvider.overrideWithValue(errorReporter),
         appPreferencesProvider.overrideWithValue(prefs),
         downloadStoreProvider.overrideWithValue(downloads),
