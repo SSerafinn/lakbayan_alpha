@@ -699,8 +699,6 @@ for (const [ref, r] of destsByRef) {
     nearbyEligible: bool(r.eligible_for_nearby, true),
     offlineEligible: bool(r.include_in_offline, true),
     isMuseum: bool(r.is_museum, false),
-    // Set by the AR editor when a marker exists, never by intake.
-    hasAR: false,
     tags: list(r.tags).map((t) => t.toLowerCase()),
     status: "draft",
     schemaVersion: DESTINATION_SCHEMA_VERSION,
@@ -719,6 +717,10 @@ for (const [ref, r] of destsByRef) {
   if (!existing) {
     doc.createdAt = FieldValue.serverTimestamp();
     doc.images = [];
+    // Derived by the CMS from a museum's AR exhibits (D-18), never by intake.
+    // Written only on create: a re-import merging `false` into a museum
+    // would hide exhibits that are still there.
+    doc.hasAR = false;
     created++;
   } else {
     updated++;

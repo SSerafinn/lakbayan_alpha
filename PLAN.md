@@ -310,8 +310,16 @@ and `flutter test` before committing; commit with `/commit`.
   build-time tooling rather than app code, and how the result looks.
 
 ## Phase 4 · Weeks 11–12 — AR pilot *(stretch — only if on schedule)*
-- [ ] `features/ar`: ARCore Augmented Images native channel behind a Dart interface.
-- [ ] One pilot museum exhibit; graceful fallback to Destination Detail when unsupported.
+- [x] `features/ar`: ARCore Augmented Images native channel behind a Dart interface.
+      *D-18. `ExhibitScanner` in Dart; `ExhibitScanActivity`, a separate
+      native screen, over a method channel. AR is optional at install
+      (ARCore 1.56.0). The theme's colours travel with each scan, so the
+      native screen holds no copy of the brand.*
+- [x] One pilot museum exhibit; graceful fallback when unsupported.
+      *Two stand-ins on the Cagayan Museum in the emulator seed, their
+      markers two of the sample photos. The fallback is the exhibits as a
+      list, not Destination Detail: a phone without ARCore, a refused camera
+      or markers not on the phone each land there, saying why.*
 - **DoD:** one exhibit recognized and overlaid on a test device (or documented if cut).
 
 ## Phase 5 · Weeks 13–15 — Ship  → Milestone **M3 (MVP RC)**

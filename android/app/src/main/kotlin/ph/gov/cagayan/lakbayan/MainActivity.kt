@@ -1,6 +1,9 @@
 package ph.gov.cagayan.lakbayan
 
+import android.content.Intent
 import com.ryanheise.audioservice.AudioServiceActivity
+import io.flutter.embedding.engine.FlutterEngine
+import io.flutter.plugin.common.MethodChannel
 
 /**
  * `AudioServiceActivity`, not a bare `FlutterActivity`, and the difference is
@@ -23,4 +26,58 @@ import com.ryanheise.audioservice.AudioServiceActivity
  * goes, which is what background audio needs and means the app comes back
  * where it was.
  */
-class MainActivity : AudioServiceActivity()
+class MainActivity : AudioServiceActivity() {
+    /** The Dart call waiting on the scan screen. One scan at a time. */
+    private var pendingScan: MethodChannel.Result? = null
+
+    /**
+     * The AR channel (D-18): `support` asks whether this phone runs ARCore,
+     * and `scan` opens [ExhibitScanActivity] and answers when it closes.
+     * The Dart half is `ChannelExhibitScanner`.
+     */
+    override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
+        super.configureFlutterEngine(flutterEngine)
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, AR_CHANNEL)
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "support" -> ExhibitScanActivity.support(this, result::success)
+                    "scan" -> {
+                        if (pendingScan != null) {
+                            result.error("busy", "A scan is already open.", null)
+                        } else {
+                            pendingScan = result
+                            @Suppress("DEPRECATION")
+                            startActivityForResult(
+                                ExhibitScanActivity.intent(this, call.arguments as? Map<*, *> ?: emptyMap<String, Any>()),
+                                REQUEST_SCAN,
+                            )
+                        }
+                    }
+                    else -> result.notImplemented()
+                }
+            }
+    }
+
+    @Deprecated("The engine's own plugins still arrive this way.")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        if (requestCode != REQUEST_SCAN) {
+            @Suppress("DEPRECATION")
+            super.onActivityResult(requestCode, resultCode, data)
+            return
+        }
+        val result = pendingScan ?: return
+        pendingScan = null
+        // Back, or the close button, sets no result: a cancel.
+        result.success(
+            mapOf(
+                "result" to (data?.getStringExtra(ExhibitScanActivity.EXTRA_RESULT) ?: "cancelled"),
+                "id" to data?.getStringExtra(ExhibitScanActivity.EXTRA_ID),
+            ),
+        )
+    }
+
+    private companion object {
+        const val AR_CHANNEL = "ph.gov.cagayan.lakbayan/ar"
+        const val REQUEST_SCAN = 7300
+    }
+}
