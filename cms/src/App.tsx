@@ -17,6 +17,7 @@ import { DashboardPage } from "./pages/DashboardPage";
 import { DestinationsListPage } from "./pages/DestinationsListPage";
 import { DestinationEditorPage } from "./pages/DestinationEditorPage";
 import { GuidesPage } from "./pages/GuidesPage";
+import { LabelsPrintPage } from "./pages/LabelsPrintPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { ToursPage } from "./pages/ToursPage";
 import { UsersPage } from "./pages/UsersPage";
@@ -173,6 +174,15 @@ function GatedShell() {
  * which is the far more likely way to lose work.
  */
 const router = createBrowserRouter([
+  // Outside the shell: a page of A4 sheets to print, with no sidebar.
+  {
+    path: "/print/labels/:id",
+    element: (
+      <Gate>
+        <LabelsPrintPage />
+      </Gate>
+    ),
+  },
   {
     path: "/",
     element: <GatedShell />,

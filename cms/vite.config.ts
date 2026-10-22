@@ -10,8 +10,13 @@ export default defineConfig({
       // files the app bundles, rather than a copy that could drift. The dev
       // server refuses anything outside cms/ unless it is listed here; the
       // production build reads the file directly and needs no permission.
-      // Only that one folder — not the repo root, which holds config/.
-      allow: [searchForWorkspaceRoot(process.cwd()), '../assets/fonts'],
+      // Only that one folder — not the repo root, which holds config/. The
+      // province's logo, for the exhibit labels, is let through by name.
+      allow: [
+        searchForWorkspaceRoot(process.cwd()),
+        '../assets/fonts',
+        '../assets/images/EndlessFunCagayan.png',
+      ],
     },
   },
 })
