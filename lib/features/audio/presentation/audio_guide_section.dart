@@ -8,25 +8,33 @@ import "../../../core/theme/app_icons.dart";
 import "../../../core/theme/app_motion.dart";
 import "../../../core/theme/app_typography.dart";
 import "../../../core/widgets/content/stop_numeral.dart";
+import "../../../core/widgets/content/storage_image.dart";
 import "../../../core/widgets/motion/motion.dart";
 import "../domain/audio_providers.dart";
 import "../domain/narration.dart";
 
-/// The audio guide on Place detail: one capsule on the page (play, "Audio
-/// guide" and the stop count; the playing stop once one plays). A tap opens
-/// the player sheet over a scrim: the stop, its progress, transport, then
-/// every stop, the running one a solid green numeral. Drag down, a scrim tap
-/// or back closes it. The sheet is this section's own [OverlayPortal], so it
-/// is always this place's player.
+/// The audio guide on Place detail: one white card on the page, the place's
+/// photo with play on it and "Audio Guide" (the playing stop once one
+/// plays), no count (D-19). A tap opens the player sheet over a scrim: the
+/// stop, its progress, transport, then every stop, the running one a solid
+/// numeral. Drag down, a scrim tap or back closes it. The sheet is this
+/// section's own [OverlayPortal], so it is always this place's player.
 class AudioGuideSection extends ConsumerStatefulWidget {
   const AudioGuideSection({
     required this.destinationId,
     required this.segments,
+    this.cover,
     super.key,
   });
 
   final String destinationId;
   final List<Segment> segments;
+
+  /// The place's photo, under the play glyph.
+  final String? cover;
+
+  /// The card's height at rest: its photo inside the card's padding.
+  static const height = AppSize.rowMedia + 2 * AppSpace.x2;
 
   @override
   ConsumerState<AudioGuideSection> createState() => _AudioGuideSectionState();
@@ -141,11 +149,6 @@ class _AudioGuideSectionState extends ConsumerState<AudioGuideSection>
         ? null
         : () => play(first);
 
-    final count = segments.length;
-    final where = currentIndex == null
-        ? (count == 1 ? "1 stop" : "$count stops")
-        : "${currentIndex + 1} of $count";
-
     return PopScope(
       // System back closes the player before it leaves the screen.
       canPop: !_open,
@@ -175,8 +178,8 @@ class _AudioGuideSectionState extends ConsumerState<AudioGuideSection>
           ),
         ),
         child: _Capsule(
-          title: current?.title ?? "Audio guide",
-          where: where,
+          title: current?.title ?? "Audio Guide",
+          cover: widget.cover,
           playing: playing,
           loading: loading,
           onPlayPause: playPause,
@@ -187,13 +190,14 @@ class _AudioGuideSectionState extends ConsumerState<AudioGuideSection>
   }
 }
 
-/// The guide at rest on the page: a white capsule with its play button,
-/// its name (or the stop playing) and where in the guide it is. A tap on
-/// the capsule opens the player; the button plays and pauses in place.
+/// The guide at rest on the page: a white card, the place's photo with
+/// play or pause on a dark glass circle, and the guide's name or the stop
+/// playing. A tap on the card opens the player; the photo plays and pauses
+/// in place.
 class _Capsule extends StatelessWidget {
   const _Capsule({
     required this.title,
-    required this.where,
+    required this.cover,
     required this.playing,
     required this.loading,
     required this.onPlayPause,
@@ -201,7 +205,7 @@ class _Capsule extends StatelessWidget {
   });
 
   final String title;
-  final String where;
+  final String? cover;
   final bool playing;
   final bool loading;
   final VoidCallback? onPlayPause;
@@ -210,21 +214,57 @@ class _Capsule extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final photoRadius = concentricRadius(
+      parentRadius: AppRadii.md,
+      padding: AppSpace.x2,
+      fallback: AppRadii.xs,
+    );
     return Pressable(
       child: Material(
         color: scheme.surfaceContainerLowest,
-        shape: const StadiumBorder(),
+        shape: const RoundedRectangleBorder(borderRadius: AppRadii.mdAll),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: onOpen,
           child: Padding(
-            padding: const EdgeInsets.all(AppSpace.x1),
+            padding: const EdgeInsets.all(AppSpace.x2),
             child: Row(
               children: [
-                _PlayButton(
-                  playing: playing,
-                  loading: loading,
-                  onPressed: onPlayPause,
+                SizedBox.square(
+                  dimension: AppSize.rowMedia,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(photoRadius),
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        CoverImage(cover),
+                        IconButton(
+                          onPressed: onPlayPause,
+                          tooltip: playing ? "Pause" : "Play the audio guide",
+                          style: IconButton.styleFrom(
+                            backgroundColor: scheme.scrim,
+                            fixedSize: const Size.square(AppSize.tileSave),
+                          ),
+                          icon: FadeSwap(
+                            id: loading,
+                            child: loading
+                                ? const SizedBox.square(
+                                    dimension: AppSize.spinner,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: AppStroke.bold,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : SymbolSwap(
+                                    playing ? AppIcons.pause : AppIcons.play,
+                                    size: AppSize.glyphSm,
+                                    color: Colors.white,
+                                  ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
                 const SizedBox(width: AppSpace.x3),
                 Expanded(
@@ -239,14 +279,6 @@ class _Capsule extends StatelessWidget {
                     ),
                   ),
                 ),
-                const SizedBox(width: AppSpace.x2),
-                Text(
-                  where,
-                  style: AppTypography.secondLine.copyWith(
-                    color: scheme.onSurfaceVariant,
-                  ),
-                ),
-                const SizedBox(width: AppSpace.x4),
               ],
             ),
           ),

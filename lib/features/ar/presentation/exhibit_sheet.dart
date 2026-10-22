@@ -6,6 +6,7 @@ import "../../../core/theme/app_dimens.dart";
 import "../../../core/theme/app_icons.dart";
 import "../../../core/theme/app_typography.dart";
 import "../../../core/widgets/chrome/app_sheet.dart";
+import "../../../core/widgets/content/storage_image.dart";
 import "../../audio/domain/audio_providers.dart";
 import "../../audio/domain/narration.dart";
 import "../domain/ar_providers.dart";
@@ -21,7 +22,8 @@ Future<void> showExhibitSheet(
   builder: (_) => ExhibitSheet(destinationId: destinationId, exhibit: exhibit),
 );
 
-/// One exhibit: its line, its story, and Listen pinned below (D-18).
+/// One exhibit: its photo, its line, its story, and Listen pinned below
+/// (D-18).
 ///
 /// The narration is the audio guide's player with this exhibit as its only
 /// stop, so it gets everything the guide has: a downloaded recording offline,
@@ -57,6 +59,16 @@ class ExhibitSheet extends ConsumerWidget {
           padding: appSheetBodyPadding,
           sliver: SliverList.list(
             children: [
+              if (exhibit.markerPath.isNotEmpty) ...[
+                ClipRRect(
+                  borderRadius: AppRadii.mdAll,
+                  child: AspectRatio(
+                    aspectRatio: 16 / 10,
+                    child: StorageImage(path: exhibit.markerPath),
+                  ),
+                ),
+                const SizedBox(height: AppSpace.x4),
+              ],
               if (description.isNotEmpty)
                 Text(
                   description,

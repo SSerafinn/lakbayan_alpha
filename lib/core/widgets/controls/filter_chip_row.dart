@@ -107,7 +107,7 @@ class _FilterChipRowState extends State<FilterChipRow>
       ..animateTo(1);
   }
 
-  Rect? _pillAt() {
+  Rect? _pillAt(Size _) {
     final from = _from;
     final to = _to.value;
     return from == null || to == null
@@ -134,9 +134,9 @@ class _FilterChipRowState extends State<FilterChipRow>
           children: [
             Positioned.fill(
               child: CustomPaint(
-                painter: _PillPainter(
+                painter: TravellingPill(
                   moves: _moves,
-                  rect: _pillAt,
+                  at: _pillAt,
                   color: Theme.of(context).colorScheme.primary,
                 ),
               ),
@@ -158,26 +158,6 @@ class _FilterChipRowState extends State<FilterChipRow>
       ),
     );
   }
-}
-
-class _PillPainter extends CustomPainter {
-  _PillPainter({required this.moves, required this.rect, required this.color})
-    : super(repaint: moves);
-
-  final Listenable moves;
-  final ValueGetter<Rect?> rect;
-  final Color color;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final at = rect();
-    if (at == null) return;
-    canvas.drawPath(capsule.getOuterPath(at), Paint()..color = color);
-  }
-
-  @override
-  bool shouldRepaint(_PillPainter old) =>
-      old.color != color || old.moves != moves;
 }
 
 /// One chip, the theme's: clear while chosen so the travelling pill shows

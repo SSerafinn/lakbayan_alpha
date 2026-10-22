@@ -86,10 +86,8 @@ What this means in code:
   compact, with a 48 photo and one second line; its heading is small and
   quiet above it. A card never holds a card.
 - **No coloured tiles** (retired 2026-09-26, D-16 amendment). Shortcuts and
-  small actions are rows on the white ground, a glyph in its meaning's
-  colour leading (the saved heart red, downloads blue). A fact is words
-  where it is needed: the one that decides now on one line, the rest in a
-  sheet behind a quiet button (Place detail's Plan your visit).
+  small actions are rows on a card. A fact is words where it is needed,
+  folded away until asked for (Place detail's Details).
 - Exactly **one primary action per screen**, a solid green
   `FloatingActionButton` or `FilledButton`, separated from every bar group.
 - Bar actions sit in a `BarItemGroup`: two to four symbol-only items on one
@@ -328,6 +326,16 @@ line under the field**: an error is the error border plus a trailing
   nothing swinging. A town opens its own page (`TownScreen`), the photo
   zooming: its kinds as chips, the first place wide, the rest as a grid,
   and taking it offline on glass beside back.
+- **Place detail (D-19)** keeps its photo stage, a third of the screen with
+  the dots on the photo, then the name and the place one part at a time:
+  Overview (the description and history cut at three lines with Read
+  More, the facts folded under Details, the audio guide card, Location
+  with a small still map, Known For), a museum's Exhibits, Photos and
+  Nearby. The parts' pill travels and their content slides in on the
+  `animations` shared axis, inside the page. CMS free text is tidied for
+  reading, never rewritten: times as "8 AM", PHP as ₱, the part after the
+  first comma on a quieter line. A photo opens the viewer, a dark stage
+  whose blur is the photo decoded tiny; a pull down closes it.
 - **Presented surfaces come from their source.** Menus are `AppMenu`
   (`app_menu.dart`), on `RawMenuAnchor`: it grows from the control that
   opened it and folds back into it on one spring, whether closed by an item,
@@ -435,7 +443,7 @@ unless they name a feature.
 
 | Widget | File | What it is |
 |---|---|---|
-| `AppMotionBuilder`, `Pressable`, `SymbolSwap`, `Fold`, `FadeSwap`, `PopIn`, `Entrance`, `SpringCurve`, `showAppDialog` | `motion/motion.dart` | every shared motion, each settling on identity values in the same tree |
+| `AppMotionBuilder`, `Pressable`, `SymbolSwap`, `Fold`, `FadeSwap`, `PopIn`, `Entrance`, `SpringCurve`, `TravellingPill`, `showAppDialog` | `motion/motion.dart` | every shared motion, each settling on identity values in the same tree; `TravellingPill` paints the selection pill of the chips and a place's parts |
 | `PushPageTransitionsBuilder`, `ZoomPage`, `PhotoHero` | `motion/page_transitions.dart` | every route's push, in from the trailing edge with the page beneath drifting back; a place opened from its photo zooms instead, the photo (`PhotoHero`) scaled, never re-decoded. Both follow Android's back gesture |
 | `FloatingTabBar`, `TabBarLayout`, `TabGlyph` | `chrome/floating_tab_bar.dart` | one capsule, the four sections then search, all drawn glyphs, the chosen one's name growing out of its pill; shrinks on scroll as one transform, slides away for search |
 | `SystemBars`, `StatusBarGround` | `chrome/system_bars.dart` | the bars' icon style for a region; the opaque ground under the status bar (`.below` closes in under a resting header) |
@@ -455,10 +463,11 @@ unless they name a feature.
 | `SectionHeading` | `content/section_heading.dart` | a one or two word Title Case heading with an optional emerald "See All" |
 | `FeaturedDeck` | `features/destinations/presentation/featured_deck.dart` | Explore's featured places as a deck: one transform per card on the chrome spring |
 | `TownPhoto` | `features/destinations/presentation/explore_sections.dart` | a town's photo with its name, opening its page; Explore's hanging towns and search's |
-| `AudioGuideSection` | `features/audio/presentation/audio_guide_section.dart` | one white capsule on the page that opens the player sheet: the stop playing, progress, transport and every stop |
+| `AudioGuideSection` | `features/audio/presentation/audio_guide_section.dart` | one white card on the page, the place's photo with play on it, that opens the player sheet: the stop playing, progress, transport and every stop |
+| `PhotoViewer` | `features/destinations/presentation/photo_viewer.dart` | a place's photos full screen on a dark stage, zoomed from their tile; a pull down closes it |
 | `SaveHeart` | `features/destinations/presentation/save_heart.dart` | the save control in its four sizes, `bar` inside a `BarItemGroup` |
 | `SelectionCircle`, `StopPicker` | `features/itineraries/presentation/stop_picker.dart` | the green check circle and selectable place rows |
-| `CameraFlight`, `Basemap` | `features/maps/presentation/map_view.dart` | a map camera's flight (pull back, cross, settle in) and the tiles every map draws, appearing without a fade |
+| `CameraFlight`, `Basemap`, `StillMapCredit` | `features/maps/presentation/map_view.dart` | a map camera's flight (pull back, cross, settle in), the tiles every map draws, appearing without a fade, and the ODbL credit on a map that does not move |
 | `TourTile`, `TourRail` | `features/itineraries/presentation/tour_tile.dart` | a province tour as a 3:4 poster, and a row of them |
 
 ## Migrating from 1.0.0

@@ -340,23 +340,21 @@ List<Destination> moreInTown(Ref ref, String id) {
   ].take(3).toList();
 }
 
-/// One of Place detail's "Around here": a place and the line under its
-/// name.
-typedef AroundHerePlace = ({Destination place, String line});
+/// One of Place detail's Nearby: a place, and how far it is when it is one
+/// of the nearest rather than more of the same town.
+typedef AroundHerePlace = ({Destination place, String? distance});
 
-/// Place detail's "Around here": nearest places with distance, then more from the same town.
+/// Place detail's Nearby: nearest places with distance, then more from the
+/// same town.
 @riverpod
 List<AroundHerePlace> aroundHere(Ref ref, String id) {
   final origin = ref.watch(destinationByIdProvider(id)).value;
   if (origin == null) return const [];
   return [
     for (final place in ref.watch(nearbyProvider(id)))
-      (
-        place: place,
-        line: "${distanceLabel(distanceBetween(origin, place))} away",
-      ),
+      (place: place, distance: distanceLabel(distanceBetween(origin, place))),
     for (final place in ref.watch(moreInTownProvider(id)))
-      (place: place, line: place.town),
+      (place: place, distance: null),
   ];
 }
 

@@ -90,7 +90,7 @@ void main() {
         find.byKey(const ValueKey("stop-s3")).evaluate().isNotEmpty) {
       return;
     }
-    await tester.tap(find.text("Audio guide"));
+    await tester.tap(find.text("Audio Guide"));
     await settle(tester);
   }
 

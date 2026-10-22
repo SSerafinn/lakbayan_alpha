@@ -16,10 +16,18 @@ import "../motion/motion.dart";
 /// more pages beyond it is drawn smaller, so the row still reads as "more
 /// this way". Decorative for a screen reader: the pages carry the content.
 class PageDots extends StatefulWidget {
-  const PageDots({required this.count, required this.current, super.key});
+  const PageDots({
+    required this.count,
+    required this.current,
+    this.onPhoto = false,
+    super.key,
+  });
 
   final int count;
   final int current;
+
+  /// White on a photo (Place detail's stage), rather than the page's ink.
+  final bool onPhoto;
 
   static const maxDots = 7;
 
@@ -60,6 +68,10 @@ class _PageDotsState extends State<PageDots> {
   Widget build(BuildContext context) {
     if (widget.count < 2) return const SizedBox.shrink();
     final scheme = Theme.of(context).colorScheme;
+    final on = widget.onPhoto ? Colors.white : scheme.onSurface;
+    final off = widget.onPhoto
+        ? Colors.white.withValues(alpha: 0.6)
+        : scheme.outlineVariant;
     final shown = _shown;
     final first = _first;
     return ExcludeSemantics(
@@ -87,11 +99,7 @@ class _PageDotsState extends State<PageDots> {
                       height: dot,
                       child: DecoratedBox(
                         decoration: ShapeDecoration(
-                          color: Color.lerp(
-                            scheme.outlineVariant,
-                            scheme.onSurface,
-                            t.clamp(0.0, 1.0),
-                          ),
+                          color: Color.lerp(off, on, t.clamp(0.0, 1.0)),
                           shape: capsule,
                         ),
                       ),

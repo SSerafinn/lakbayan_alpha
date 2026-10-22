@@ -564,3 +564,45 @@ class MapAttribution extends StatelessWidget {
     );
   }
 }
+
+/// The credit on a still map (a trip's header at rest, a place's Location
+/// card), as plain text in the corner.
+///
+/// Not [MapAttribution]: that is a control, and a still map gives every touch
+/// to what it opens, so a control there would be dead. The credit itself is
+/// what the licence asks for; the maps somebody can explore carry the full
+/// control with its link.
+class StillMapCredit extends StatelessWidget {
+  const StillMapCredit({required this.source, this.inset = 0, super.key});
+
+  final TileSource source;
+
+  /// How much of the map's foot something else covers.
+  final double inset;
+
+  @override
+  Widget build(BuildContext context) => Align(
+    alignment: Alignment.bottomRight,
+    child: Padding(
+      padding: EdgeInsets.only(right: AppSpace.x2, bottom: inset + AppSpace.x1),
+      child: DecoratedBox(
+        decoration: ShapeDecoration(
+          color: context.lakbayan.glass,
+          shape: capsule,
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpace.x2,
+            vertical: AppSpace.x1,
+          ),
+          child: Text(
+            source.attribution,
+            style: AppTypography.labelSmall.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+}

@@ -9,6 +9,7 @@ import "../../features/auth/presentation/sign_in_screen.dart";
 import "../../features/auth/presentation/splash_screen.dart";
 import "../../features/design_system/presentation/design_system_gallery.dart";
 import "../../features/destinations/presentation/destination_detail_screen.dart";
+import "../../features/destinations/presentation/photo_viewer.dart";
 import "../../features/destinations/presentation/places_list_screen.dart";
 import "../../features/destinations/presentation/swipe_screen.dart";
 import "../../features/destinations/presentation/town_screen.dart";
@@ -70,6 +71,12 @@ abstract final class Routes {
     queryParameters: from == null ? null : {"from": from.name},
   ).toString();
 
+  /// A place's photos, full screen, opening on the one [at] (D-19).
+  static String photos(String id, {int at = 0}) => Uri(
+    path: "/destination/$id/photos",
+    queryParameters: {"at": "$at"},
+  ).toString();
+
   /// Every place in one town (D-19). Opened from the town's photo on
   /// Explore or in search, which [from] names so the photo can zoom.
   static String town(String name, {HeroSource? from}) => Uri(
@@ -110,6 +117,10 @@ enum HeroSource {
 
 /// The `Hero` tag for [id]'s cover on [from].
 String coverHeroTag(String id, HeroSource from) => "cover:${from.name}:$id";
+
+/// The `Hero` tag for [id]'s photo number [index]: its tile on the page and
+/// the same photo in the viewer.
+String photoHeroTag(String id, int index) => "photo:$id:$index";
 
 /// The `Hero` tag for a town's photo on [from] and at the top of its page.
 String townHeroTag(String name, HeroSource from) => "town:${from.name}:$name";
@@ -204,6 +215,17 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               ExhibitsWhy.values
                   .asNameMap()[state.uri.queryParameters["why"]] ??
               ExhibitsWhy.browse,
+        ),
+      ),
+      // Always opened from a photo on the place's page, which zooms.
+      GoRoute(
+        path: "/destination/:id/photos",
+        pageBuilder: (context, state) => ZoomPage<void>(
+          key: state.pageKey,
+          child: PhotoViewer(
+            id: state.pathParameters["id"]!,
+            at: int.tryParse(state.uri.queryParameters["at"] ?? "") ?? 0,
+          ),
         ),
       ),
       // Opened from a photo, the photo grows into the page and the page

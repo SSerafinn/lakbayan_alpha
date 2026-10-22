@@ -47,19 +47,16 @@ class ExhibitsScreen extends ConsumerWidget {
     ref.listen(audioGuideControllerProvider, (_, _) {});
     final place = ref.watch(destinationByIdProvider(destinationId)).value;
     final exhibits = ref.watch(destinationExhibitsProvider(destinationId));
+    // One short line each: what stopped the camera and what brings it back.
     final note = switch (why) {
       ExhibitsWhy.browse => null,
       ExhibitsWhy.cameraDenied =>
-        "Lakbayan can't use the camera, so here are the exhibits as a list. "
-            "Camera access can be turned on in your phone's settings.",
-      ExhibitsWhy.arUnavailable =>
-        "Scanning isn't working on this phone right now, so here are the "
-            "exhibits as a list.",
+        "Lakbayan can't use the camera. Turn it on in your phone's settings "
+            "to scan.",
+      ExhibitsWhy.arUnavailable => "Scanning isn't available on this phone.",
       ExhibitsWhy.notOnPhone =>
-        "The photos the camera looks for aren't on this phone yet. "
-            "${place == null ? "Download this town" : "Download ${place.town}"} "
-            "or connect to the internet to scan. Here are the exhibits as a "
-            "list until then.",
+        "${place == null ? "Download this town" : "Download ${place.town}"} "
+            "or go online to scan.",
     };
 
     return EntranceScope(
@@ -68,16 +65,14 @@ class ExhibitsScreen extends ConsumerWidget {
           bottom: false,
           child: CustomScrollView(
             slivers: [
-              SliverPadding(
-                padding: const EdgeInsets.fromLTRB(
+              const SliverPadding(
+                padding: EdgeInsets.fromLTRB(
                   AppSpace.gutter,
                   AppSpace.x2,
                   AppSpace.gutter,
                   AppSpace.section,
                 ),
-                sliver: SliverToBoxAdapter(
-                  child: _Header(placeName: place?.name),
-                ),
+                sliver: SliverToBoxAdapter(child: _Header()),
               ),
               if (note != null)
                 SliverPadding(
@@ -143,41 +138,25 @@ class ExhibitsScreen extends ConsumerWidget {
   }
 }
 
+/// Back on its circle, then the large title, as Settings has (D-19).
 class _Header extends StatelessWidget {
-  const _Header({required this.placeName});
-
-  final String? placeName;
+  const _Header();
 
   @override
-  Widget build(BuildContext context) {
-    final placeName = this.placeName;
-    return Row(
-      children: [
-        SymbolButton(
-          icon: AppIcons.back,
-          tooltip: "Back",
-          onTap: () => context.popOrHome(),
-        ),
-        const SizedBox(width: AppSpace.x2),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text("Exhibits", style: AppTypography.titleLarge),
-              if (placeName != null)
-                Text(
-                  placeName,
-                  style: AppTypography.bodyMedium.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      SymbolButton(
+        icon: AppIcons.back,
+        tooltip: "Back",
+        onTap: () => context.popOrHome(),
+        onGround: true,
+      ),
+      const SizedBox(height: AppSpace.x2),
+      Semantics(
+        header: true,
+        child: Text("Exhibits", style: AppTypography.display),
+      ),
+    ],
+  );
 }
