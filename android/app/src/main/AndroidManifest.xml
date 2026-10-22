@@ -18,6 +18,16 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"/>
 
+    <!-- Scan an exhibit (D-18). Asked for on the scan screen, the first time
+         a visitor opens it, never at launch. Neither feature is required: a
+         phone with no camera, or one ARCore does not support, still installs
+         the app from the Play Store and gets the exhibits as a list. Without
+         required="false" the CAMERA permission alone would hide the app from
+         every phone without a camera. -->
+    <uses-permission android:name="android.permission.CAMERA"/>
+    <uses-feature android:name="android.hardware.camera" android:required="false"/>
+    <uses-feature android:name="android.hardware.camera.ar" android:required="false"/>
+
     <!-- Android 11 (API 30) package visibility: without this the device's
          text-to-speech engine is invisible to us and flutter_tts finds no
          engine at all. That is the audio guide's fallback for any stop with a
@@ -95,6 +105,21 @@
                 <action android:name="android.intent.action.MEDIA_BUTTON" />
             </intent-filter>
         </receiver>
+        <!-- AR is optional (D-18): the Play Store does not install ARCore
+             with the app, and the scan screen asks for it the first time it
+             is needed. "required" would hide the app from every phone ARCore
+             does not support. -->
+        <meta-data android:name="com.google.ar.core" android:value="optional" />
+        <!-- The scan screen. Not exported: only MainActivity opens it, over
+             the AR channel. Portrait, because the camera's image and the card
+             over it are laid out for one orientation; a turn would restart
+             the AR session for nothing. -->
+        <activity
+            android:name=".ExhibitScanActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:theme="@style/ExhibitScanTheme"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden" />
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data
