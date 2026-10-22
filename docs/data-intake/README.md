@@ -175,6 +175,10 @@ Three properties worth knowing:
 - **Validation is all-or-nothing.** One bad row and nothing is written. A
   half-imported province is worse than an unimported one, because you cannot
   tell by looking which half arrived.
+- **Silence keeps what is there.** A place with no rows on sheet 2 keeps its
+  audio guide, and one with no rows on sheet 5 keeps its photos, as they are
+  — they may have been made in the CMS since. For a place the sheet *does*
+  list, it is the whole set: stops or photos it no longer names are removed.
 - **It is idempotent.** Re-running updates rather than duplicates, matching on
   the slug derived from the name, and overwrites the same Storage objects
   instead of stranding the previous ones. Send a corrected sheet back through
