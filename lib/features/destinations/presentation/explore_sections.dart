@@ -1,5 +1,5 @@
 import "dart:async";
-import "dart:math" show pi;
+import "dart:math" show pi, sin;
 
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
@@ -15,6 +15,7 @@ import "../../../core/theme/app_dimens.dart";
 import "../../../core/theme/app_icons.dart";
 import "../../../core/theme/app_motion.dart";
 import "../../../core/theme/app_typography.dart";
+import "../../../core/theme/lakbayan_colors.dart";
 import "../../../core/widgets/content/lakbayan_badge.dart";
 import "../../../core/widgets/content/media_tile.dart";
 import "../../../core/widgets/content/quiet_note.dart";
@@ -22,7 +23,6 @@ import "../../../core/widgets/content/section_heading.dart";
 import "../../../core/widgets/content/storage_image.dart";
 import "../../../core/widgets/motion/motion.dart";
 import "../../../core/widgets/motion/page_transitions.dart";
-import "../../explore/domain/home_tab.dart";
 import "../../guides/domain/guide_providers.dart";
 import "../../itineraries/domain/itinerary_providers.dart";
 import "../../itineraries/presentation/tour_tile.dart";
@@ -34,10 +34,9 @@ import "save_heart.dart";
 // caption on its own scrim, so no section spends a line of white under a
 // picture.
 
-/// Popular this week as a bento: the most visited place a tall tile, the
-/// next two stacked beside it, one block of photos with no gaps to read
-/// across (doc 01: give the top item real size). The heading is the way to
-/// the rest.
+/// Popular as a bento: the most visited place a tall tile, the next two
+/// stacked beside it, one block of photos to read across (doc 01: give the
+/// top item real size). See All is the way to the rest.
 class PopularSection extends ConsumerWidget {
   const PopularSection({super.key});
 
@@ -47,10 +46,7 @@ class PopularSection extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        SectionHeading(
-          "Popular this week",
-          onSeeAll: () => context.push(Routes.popular),
-        ),
+        SectionHeading("Popular", onSeeAll: () => context.push(Routes.popular)),
         popular.whenLocalFirst(
           loading: () => const AspectRatio(
             aspectRatio: 1 / _Bento.heightShare,
@@ -161,9 +157,9 @@ class ReadyMadeDays extends ConsumerWidget {
         children: [
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: AppSpace.gutter),
-            child: SectionHeading("Ready-made days"),
+            child: SectionHeading("Day Tours"),
           ),
-          const SizedBox(height: AppSpace.x2),
+          const SizedBox(height: AppSpace.near),
           TourRail(tours: tours),
         ],
       ),
@@ -173,25 +169,26 @@ class ReadyMadeDays extends ConsumerWidget {
 
 /// The people who know the place (`guides`, from the CMS): the app
 /// complements local guides, and this is where it hands you to one. Each is
-/// a grey card, the name, the town and what they lead, VERIFIED
-/// when the province accredits them; a tap calls or emails them. Signed-in
+/// a white card, their initial, the name with the seal when the province
+/// accredits them, and the town; a tap calls or emails them. Signed-in
 /// only, as the rules require, so the section is not there for a guest.
 class LocalGuides extends ConsumerWidget {
   const LocalGuides({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Hidden while loading, when empty and on an error alike, as Ready-made
-    // days are: extras, from the guides.
+    // Hidden while loading, when empty and on an error alike, as Day Tours
+    // are: extras, from the guides.
     final guides = ref.watch(guidesProvider).value ?? const [];
     if (guides.isEmpty) return const SizedBox.shrink();
     final scaler = MediaQuery.textScalerOf(context);
-    // The first line holds the name and the VERIFIED badge side by side, so
-    // it is whichever of the two is taller.
-    final title = scaler.lineHeightOf(AppTypography.titleSmall);
-    final first = title > AppSize.badge ? title : AppSize.badge;
-    final lines = first + 2 * scaler.lineHeightOf(AppTypography.secondLine);
-    final height = (lines + 2 * AppSpace.x3).ceilToDouble();
+    final lines =
+        scaler.lineHeightOf(AppTypography.titleSmall) +
+        scaler.lineHeightOf(AppTypography.secondLine);
+    final content = lines > AppSize.rowMediaDense
+        ? lines
+        : AppSize.rowMediaDense;
+    final height = (content + 2 * AppSpace.x3).ceilToDouble();
 
     return Padding(
       padding: const EdgeInsets.only(top: AppSpace.section),
@@ -200,9 +197,9 @@ class LocalGuides extends ConsumerWidget {
         children: [
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: AppSpace.gutter),
-            child: SectionHeading("Local guides"),
+            child: SectionHeading("Guides"),
           ),
-          const SizedBox(height: AppSpace.x2),
+          const SizedBox(height: AppSpace.near),
           SizedBox(
             height: height,
             child: ListView.separated(
@@ -257,13 +254,9 @@ class _GuideCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
+    final brand = context.lakbayan;
     final uri = contactUri(guide.contact);
-    final leads = guide.specialties.isEmpty
-        ? guide.contact
-        : "Leads ${guide.specialties.join(", ")}";
-    final second = AppTypography.secondLine.copyWith(
-      color: scheme.onSurfaceVariant,
-    );
+    final name = guide.name.trim();
 
     return Pressable(
       enabled: uri != null,
@@ -277,30 +270,63 @@ class _GuideCard extends ConsumerWidget {
               : () => unawaited(_reach(context, ref, uri)),
           child: Padding(
             padding: const EdgeInsets.all(AppSpace.x3),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
+            child: Row(
               children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        guide.name,
-                        style: AppTypography.titleSmall,
+                // Their initial on an emerald wash, as on Profile.
+                ExcludeSemantics(
+                  child: Container(
+                    width: AppSize.rowMediaDense,
+                    height: AppSize.rowMediaDense,
+                    alignment: Alignment.center,
+                    decoration: ShapeDecoration(
+                      color: brand.tint,
+                      shape: const CircleBorder(),
+                    ),
+                    child: Text(
+                      name.isEmpty ? "" : name.characters.first.toUpperCase(),
+                      style: AppTypography.titleMedium.copyWith(
+                        color: brand.textOnLightGreen,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: AppSpace.x3),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              name,
+                              style: AppTypography.titleSmall,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          if (guide.verified) ...[
+                            const SizedBox(width: AppSpace.x1),
+                            Icon(
+                              AppIcons.verified,
+                              size: AppSize.glyphSm,
+                              color: brand.textOnLightGreen,
+                              semanticLabel: "Verified",
+                            ),
+                          ],
+                        ],
+                      ),
+                      Text(
+                        guide.town,
+                        style: AppTypography.secondLine.copyWith(
+                          color: scheme.onSurfaceVariant,
+                        ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
-                    ),
-                    if (guide.verified)
-                      const LakbayanBadge("Verified", kind: BadgeKind.neutral),
-                  ],
-                ),
-                Text(guide.town, style: second, maxLines: 1),
-                Text(
-                  leads,
-                  style: second,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -432,19 +458,35 @@ class _Fan extends StatelessWidget {
   }
 }
 
-/// Every town as a wide photo card, the name and the places in it on the
-/// photo: a row of destinations to pick from, not a directory to read. A
-/// town is a tab switch to the map with its name as the filter.
-class TownRail extends ConsumerWidget {
+/// Every town hanging from one river on its own cord: a framed photo with
+/// the name on it, each at a small fixed tilt. A still picture, drawn once,
+/// nothing swinging (D-19, PERFORMANCE). A town opens its page, the photo
+/// zooming.
+class TownRail extends ConsumerStatefulWidget {
   const TownRail({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<TownRail> createState() => _TownRailState();
+}
+
+class _TownRailState extends ConsumerState<TownRail> {
+  /// Read by the river's painter, so the river runs with the towns.
+  final _scroll = ScrollController();
+
+  @override
+  void dispose() {
+    _scroll.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     // Hidden while loading, when empty and on an error alike. Its places
     // are every place, a listener apart from Popular's: if only that read
     // fails, the rail goes without a word, and Popular says nothing of it.
     final towns = ref.watch(townsProvider);
     if (towns.isEmpty) return const SizedBox.shrink();
+    final brand = context.lakbayan;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -452,40 +494,249 @@ class TownRail extends ConsumerWidget {
           padding: EdgeInsets.symmetric(horizontal: AppSpace.gutter),
           child: SectionHeading("Towns"),
         ),
-        const SizedBox(height: AppSpace.x2),
         SizedBox(
-          height: AppSize.townCard * 10 / 16,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: AppSpace.gutter),
-            itemCount: towns.length,
-            separatorBuilder: (_, _) => const SizedBox(width: AppSpace.x2),
-            itemBuilder: (context, index) {
-              final town = towns[index];
-              return SizedBox(
-                width: AppSize.townCard,
-                child: MediaTile(
-                  media: CoverImage(town.cover),
-                  aspectRatio: 16 / 10,
-                  overlay: true,
-                  dense: true,
-                  title: town.name,
-                  subtitle: town.placesLine,
-                  onTap: () {
-                    ref.read(browseQueryProvider.notifier).update(town.name);
-                    ref.read(browseCategoryProvider.notifier).select(null);
-                    ref
-                        .read(selectedHomeTabProvider.notifier)
-                        .select(HomeTab.map);
-                  },
+          height: _Hanging.height,
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: RepaintBoundary(
+                  child: CustomPaint(
+                    painter: _River(scroll: _scroll, color: brand.river),
+                  ),
                 ),
-              );
-            },
+              ),
+              ListView.builder(
+                controller: _scroll,
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpace.gutter,
+                ),
+                itemExtent: _Hanging.extent,
+                itemCount: towns.length,
+                itemBuilder: (context, index) =>
+                    _Hanging(town: towns[index], index: index),
+              ),
+            ],
           ),
         ),
       ],
     );
   }
+}
+
+/// The river's height at [x] along the rail's content: one gentle wave,
+/// shared by the painter and by each town's dot, so the dots sit on it.
+double _riverAt(double x) =>
+    _Hanging.riverY + _Hanging.wave * sin(x * 2 * pi / _Hanging.wavelength);
+
+class _River extends CustomPainter {
+  _River({required this.scroll, required this.color}) : super(repaint: scroll);
+
+  final ScrollController scroll;
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final offset = scroll.hasClients ? scroll.offset : 0.0;
+    final path = Path()..moveTo(0, _riverAt(offset));
+    for (var x = 0.0; x <= size.width; x += AppSpace.x2) {
+      path.lineTo(x, _riverAt(x + offset));
+    }
+    canvas.drawPath(
+      path,
+      Paint()
+        ..color = color
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = _Hanging.river
+        ..strokeCap = StrokeCap.round
+        ..strokeJoin = StrokeJoin.round,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_River old) => old.color != color || old.scroll != scroll;
+}
+
+/// One town on its cord: a blue dot on the river, the cord, the clip, then
+/// the photo in its white frame, turned a little on the clip.
+class _Hanging extends StatelessWidget {
+  const _Hanging({required this.town, required this.index});
+
+  final Town town;
+  final int index;
+
+  /// A rail tile, 5:6 like the deck's cards.
+  static const width = AppSize.tourTile;
+  static const _photo = width * 6 / 5;
+  static const extent = width + AppSpace.x4;
+
+  /// The river: where it runs, how far it bends, one bend per town and a
+  /// quarter.
+  static const riverY = AppSpace.x4;
+  static const wave = AppSpace.near;
+  static const wavelength = extent * 1.25;
+  static const river = AppStroke.mapRoute;
+
+  static const _dot = AppSpace.x3;
+  static const _clip = Size(AppSpace.x4, AppSpace.x2);
+
+  /// The white frame round each photo, like a print's.
+  static const _frame = AppSpace.x1;
+
+  /// Each town's own cord and tilt in degrees, in turn, so the row reads
+  /// hung by hand.
+  static const _cords = [
+    AppSpace.x3,
+    AppSpace.x6,
+    AppSpace.x2,
+    AppSpace.x4,
+    AppSpace.x5,
+  ];
+  static const _tilts = [-3.0, 2.5, -1.5, 3.0, -2.0];
+
+  /// The longest cord, its clip and photo, and room for the tilt.
+  static const height =
+      riverY + wave + AppSpace.x6 + AppSpace.x2 + _photo + AppSpace.x4;
+
+  @override
+  Widget build(BuildContext context) {
+    final brand = context.lakbayan;
+    final card = Theme.of(context).colorScheme.surfaceContainerLowest;
+    final anchor = _riverAt(AppSpace.gutter + index * extent + width / 2);
+    final cord = _cords[index % _cords.length];
+    final tilt = _tilts[index % _tilts.length] * pi / 180;
+    final inner = concentricRadius(
+      parentRadius: AppRadii.md,
+      padding: _frame,
+      fallback: AppRadii.sm,
+    );
+
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Positioned(
+          left: width / 2 - AppStroke.regular / 2,
+          top: anchor,
+          width: AppStroke.regular,
+          height: cord,
+          child: ColoredBox(color: brand.cord),
+        ),
+        Positioned(
+          left: (width - _dot) / 2,
+          top: anchor - _dot / 2,
+          width: _dot,
+          height: _dot,
+          child: DecoratedBox(
+            decoration: ShapeDecoration(
+              color: brand.spatial,
+              shape: const CircleBorder(),
+            ),
+          ),
+        ),
+        Positioned(
+          left: 0,
+          top: anchor + cord,
+          width: width,
+          child: Transform.rotate(
+            angle: tilt,
+            alignment: Alignment.topCenter,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: _clip.width,
+                  height: _clip.height,
+                  decoration: BoxDecoration(
+                    color: brand.cord,
+                    borderRadius: AppRadii.xsAll,
+                  ),
+                ),
+                Container(
+                  height: _photo,
+                  padding: const EdgeInsets.all(_frame),
+                  decoration: BoxDecoration(
+                    color: card,
+                    borderRadius: AppRadii.mdAll,
+                  ),
+                  child: TownPhoto(
+                    town: town,
+                    from: HeroSource.towns,
+                    radius: inner,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// A town as its photo with its name on it, in the headings' face; a tap
+/// opens the town's page, the photo zooming. Explore's hanging towns and
+/// search's towns.
+class TownPhoto extends StatelessWidget {
+  const TownPhoto({
+    required this.town,
+    required this.from,
+    this.radius = AppRadii.tile,
+    this.onOpen,
+    super.key,
+  });
+
+  final Town town;
+  final HeroSource from;
+  final double radius;
+
+  /// Called just before the page opens: search folds away.
+  final VoidCallback? onOpen;
+
+  @override
+  Widget build(BuildContext context) => Pressable(
+    child: GestureDetector(
+      onTap: () {
+        onOpen?.call();
+        context.push(Routes.town(town.name, from: from));
+      },
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(radius),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            ParentRadius(
+              radius: radius,
+              child: PhotoHero(
+                tag: townHeroTag(town.name, from),
+                child: CoverImage(town.cover),
+              ),
+            ),
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: MediaScrim(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpace.x2,
+                  AppSpace.x8,
+                  AppSpace.x2,
+                  AppSpace.x2,
+                ),
+                child: Text(
+                  town.name,
+                  style: AppTypography.titleMedium.copyWith(
+                    color: Colors.white,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
 }
 
 /// Places to eat, a rail of photos with the name on each: food is part of
@@ -507,7 +758,7 @@ class WhereToEat extends ConsumerWidget {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: AppSpace.gutter),
             child: SectionHeading(
-              "Where to eat",
+              "Food",
               onSeeAll: () => ref
                   .read(homeCategoryProvider.notifier)
                   .toggle(DestinationCategory.food),

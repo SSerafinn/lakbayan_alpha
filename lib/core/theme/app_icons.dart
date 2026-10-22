@@ -83,4 +83,7 @@ abstract final class AppIcons {
   /// Scan an exhibit (D-18): the camera framing something, not the camera
   /// alone, which would read as taking a photo.
   static const IconData scan = CupertinoIcons.viewfinder;
+
+  /// A guide the province accredits: a status as a glyph, not a word (D-19).
+  static const IconData verified = CupertinoIcons.checkmark_seal_fill;
 }

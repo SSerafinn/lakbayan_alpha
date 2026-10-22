@@ -72,18 +72,12 @@ abstract final class AppSize {
   /// The audio player sheet's play button, the sheet's one focal control.
   static const playerButton = 64.0;
 
-  /// A featured card on Explore's carousel, at the default text size.
-  static const featuredCard = 320.0;
-
   /// A tour's tile on a rail: 3:4, so the rail reads as a row of posters.
   static const tourTile = 124.0;
 
   /// A photo tile on a rail with its caption on the photo, 4:5: Where to
   /// eat, Around here.
   static const railTile = 136.0;
-
-  /// A town's card on Explore's rail, 16:10.
-  static const townCard = 220.0;
 
   /// A local guide's card on Explore's rail.
   static const guideCard = 232.0;

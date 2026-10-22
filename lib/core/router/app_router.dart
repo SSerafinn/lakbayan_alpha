@@ -11,6 +11,7 @@ import "../../features/design_system/presentation/design_system_gallery.dart";
 import "../../features/destinations/presentation/destination_detail_screen.dart";
 import "../../features/destinations/presentation/places_list_screen.dart";
 import "../../features/destinations/presentation/swipe_screen.dart";
+import "../../features/destinations/presentation/town_screen.dart";
 import "../../features/explore/presentation/home_shell.dart";
 import "../../features/landing/presentation/landing_screen.dart";
 import "../../features/itineraries/presentation/itinerary_screen.dart";
@@ -69,6 +70,13 @@ abstract final class Routes {
     queryParameters: from == null ? null : {"from": from.name},
   ).toString();
 
+  /// Every place in one town (D-19). Opened from the town's photo on
+  /// Explore or in search, which [from] names so the photo can zoom.
+  static String town(String name, {HeroSource? from}) => Uri(
+    path: "/town/$name",
+    queryParameters: from == null ? null : {"from": from.name},
+  ).toString();
+
   /// A museum's exhibits as a list (D-18): its page's See all, the way in on
   /// a phone that cannot scan, and where a scan that could not run lands,
   /// [why] saying which.
@@ -96,10 +104,15 @@ enum HeroSource {
   search,
   swipe,
   around,
+  town,
+  towns,
 }
 
 /// The `Hero` tag for [id]'s cover on [from].
 String coverHeroTag(String id, HeroSource from) => "cover:${from.name}:$id";
+
+/// The `Hero` tag for a town's photo on [from] and at the top of its page.
+String townHeroTag(String name, HeroSource from) => "town:${from.name}:$name";
 
 /// The `Hero` tag for a trip: its row on the Itineraries tab and the route map
 /// at the top of the trip, so one grows into the other.
@@ -202,6 +215,20 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               .asNameMap()[state.uri.queryParameters["from"]];
           final screen = DestinationDetailScreen(
             id: state.pathParameters["id"]!,
+            from: from,
+          );
+          return from == null
+              ? MaterialPage<void>(key: state.pageKey, child: screen)
+              : ZoomPage<void>(key: state.pageKey, child: screen);
+        },
+      ),
+      GoRoute(
+        path: "/town/:name",
+        pageBuilder: (context, state) {
+          final from = HeroSource.values
+              .asNameMap()[state.uri.queryParameters["from"]];
+          final screen = TownScreen(
+            name: state.pathParameters["name"]!,
             from: from,
           );
           return from == null

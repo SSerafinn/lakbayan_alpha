@@ -9,16 +9,16 @@ import "../../../core/router/app_router.dart";
 import "../../../core/theme/app_dimens.dart";
 import "../../../core/theme/app_icons.dart";
 import "../../../core/theme/app_typography.dart";
-import "../../../core/widgets/content/grouped_section.dart";
+import "../../../core/widgets/content/media_tile.dart";
 import "../../../core/widgets/content/quiet_note.dart";
 import "../../../core/widgets/content/section_heading.dart";
 import "../../../core/widgets/content/storage_image.dart";
-import "../../../core/widgets/controls/filter_chip_row.dart";
+import "../../../core/widgets/controls/symbol_button.dart";
 import "../../../core/widgets/motion/motion.dart";
 import "../../../core/widgets/motion/page_transitions.dart";
 import "../../destinations/domain/destination_providers.dart";
 import "../../destinations/domain/recently_viewed.dart";
-import "../domain/home_tab.dart";
+import "../../destinations/presentation/explore_sections.dart";
 
 /// Search surface that grows out of the bar's search cell. Finds a place
 /// or town by name; picking a row or system back folds it back into the cell.
@@ -91,7 +91,7 @@ class _SearchSurfaceState extends State<SearchSurface> {
       style: AppTypography.bodyLarge,
       decoration: const InputDecoration(
         isDense: true,
-        hintText: "Places or towns",
+        hintText: "Places and Towns",
         filled: false,
         border: InputBorder.none,
         enabledBorder: InputBorder.none,
@@ -99,10 +99,12 @@ class _SearchSurfaceState extends State<SearchSurface> {
         contentPadding: EdgeInsets.zero,
       ),
     );
-    final close = IconButton(
-      icon: const Icon(AppIcons.close, size: AppSize.glyphMd),
+    final close = SymbolButton(
+      icon: AppIcons.close,
       tooltip: "Close search",
-      onPressed: widget.onClose,
+      onTap: widget.onClose,
+      onGround: true,
+      size: _fieldHeight(context),
     );
     // Measured outside the motion: the constraints change with the keyboard,
     // not with `t`.
@@ -138,8 +140,8 @@ double _fieldHeight(BuildContext context) {
       .ceilToDouble();
 }
 
-/// The ground, the body above the field, and the field on its way from the
-/// bar's search cell to the dock.
+/// The ground, the body above the field, the field on its way from the
+/// bar's search cell to the dock, and close beside it once it is there.
 class _Layout extends StatelessWidget {
   const _Layout({
     required this.t,
@@ -169,11 +171,12 @@ class _Layout extends StatelessWidget {
     final docked = Rect.fromLTWH(
       AppSpace.gutter,
       constraints.maxHeight - bottom - height,
-      constraints.maxWidth - 2 * AppSpace.gutter,
+      constraints.maxWidth - 2 * AppSpace.gutter - height - AppSpace.x2,
       height,
     );
     final rect = Rect.lerp(origin ?? docked, docked, t)!;
-    final field = _Field(t: t, lead: rect.height, input: input, close: close);
+    final field = _Field(t: t, lead: rect.height, input: input);
+    final reveal = ((t - 0.5) * 2).clamp(0.0, 1.0);
 
     return Stack(
       children: [
@@ -196,21 +199,21 @@ class _Layout extends StatelessWidget {
           ),
         ),
         Positioned.fromRect(rect: rect, child: field),
+        Positioned(
+          left: docked.right + AppSpace.x2,
+          top: docked.top,
+          child: Opacity(opacity: reveal, child: close),
+        ),
       ],
     );
   }
 }
 
 /// A capsule at every width: the glyph keeps its place at the leading end
-/// and travels with it; the text and the close glyph come in once there is
-/// room. Its hairline turns green once it is a field (focus, doc 03).
+/// and travels with it; the text comes in once there is room. Its hairline
+/// turns emerald and 2dp once it is a field (focus, doc 03).
 class _Field extends StatelessWidget {
-  const _Field({
-    required this.t,
-    required this.lead,
-    required this.input,
-    required this.close,
-  });
+  const _Field({required this.t, required this.lead, required this.input});
 
   final double t;
 
@@ -218,18 +221,19 @@ class _Field extends StatelessWidget {
   /// start it is centred in the bar's search cell, where it came from.
   final double lead;
   final Widget input;
-  final Widget close;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final reveal = ((t - 0.5) * 2).clamp(0.0, 1.0);
+    final focused = t > 0.5;
 
     return Material(
       color: scheme.surfaceContainerLowest,
       shape: StadiumBorder(
         side: BorderSide(
-          color: t > 0.5 ? scheme.primary : scheme.outlineVariant,
+          color: focused ? scheme.primary : scheme.outlineVariant,
+          width: focused ? AppStroke.bold : AppStroke.hairline,
         ),
       ),
       clipBehavior: Clip.antiAlias,
@@ -245,14 +249,10 @@ class _Field extends StatelessWidget {
           if (reveal > 0)
             Positioned.fill(
               left: lead,
+              right: AppSpace.x4,
               child: Opacity(
                 opacity: reveal,
-                child: Row(
-                  children: [
-                    Expanded(child: input),
-                    close,
-                  ],
-                ),
+                child: Align(alignment: Alignment.centerLeft, child: input),
               ),
             ),
         ],
@@ -261,16 +261,16 @@ class _Field extends StatelessWidget {
   }
 }
 
-/// What sits above the search field: the kinds, then either somewhere to
-/// start (what you looked at last, the towns) or the matches.
+/// What sits above the search field: somewhere to start (the places looked
+/// at last, the towns, every place) or the matches, all as photos (D-19).
 ///
 /// The body arrives in order each time it changes between those two, not on
-/// every keystroke, so typing reads as the list narrowing rather than
+/// every keystroke, so typing reads as the grid narrowing rather than
 /// replaying ([EntranceScope] keyed on the mode).
 class _SearchBody extends ConsumerWidget {
   const _SearchBody({required this.onLeave});
 
-  /// Called before a row takes somebody elsewhere, so search folds away.
+  /// Called before a tile takes somebody elsewhere, so search folds away.
   final VoidCallback onLeave;
 
   @override
@@ -285,13 +285,7 @@ class _SearchBody extends ConsumerWidget {
       child: CustomScrollView(
         keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
         slivers: [
-          const SliverPadding(
-            padding: EdgeInsets.only(
-              top: AppSpace.x2,
-              bottom: AppSpace.section,
-            ),
-            sliver: SliverToBoxAdapter(child: Entrance(child: _Kinds())),
-          ),
+          const SliverToBoxAdapter(child: SizedBox(height: AppSpace.x3)),
           if (searching)
             SliverPadding(
               padding: gutter,
@@ -302,36 +296,15 @@ class _SearchBody extends ConsumerWidget {
               padding: gutter,
               sliver: SliverToBoxAdapter(child: _Recent(onLeave: onLeave)),
             ),
+            SliverToBoxAdapter(child: _Towns(onLeave: onLeave)),
             SliverPadding(
               padding: gutter,
-              sliver: _Towns(onLeave: onLeave),
+              sliver: _Places(onLeave: onLeave),
             ),
           ],
           const SliverToBoxAdapter(child: SizedBox(height: AppSpace.x3)),
         ],
       ),
-    );
-  }
-}
-
-/// The kinds of place, single-select. Tapping the chosen one clears it.
-class _Kinds extends ConsumerWidget {
-  const _Kinds();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final chosen = ref.watch(searchCategoryProvider);
-    return FilterChipRow(
-      items: [
-        for (final kind in DestinationCategory.values)
-          if (kind != DestinationCategory.unknown)
-            FilterChipItem(
-              label: kind.label,
-              selected: chosen == kind,
-              onTap: () =>
-                  ref.read(searchCategoryProvider.notifier).toggle(kind),
-            ),
-      ],
     );
   }
 }
@@ -354,20 +327,14 @@ class _Matches extends ConsumerWidget {
         ),
         data: (results) => results.isEmpty
             ? const SliverToBoxAdapter(
-                child: QuietNote("Nothing matches. Try another word or kind."),
+                child: QuietNote("Nothing matches. Try another word."),
               )
-            : SliverGroupedSection(
-                itemCount: results.length,
-                itemBuilder: (context, index) => Entrance(
-                  order: index,
-                  child: _PlaceRow(place: results[index], onLeave: onLeave),
-                ),
-              ),
+            : _Grid(places: results, onLeave: onLeave),
       );
 }
 
-/// The last places opened, so going back to one is a tap. A history, so
-/// the section is not there until there is one.
+/// The places opened last, as chips, so going back to one is a tap. A
+/// history, so the chips are not there until there is one.
 class _Recent extends ConsumerWidget {
   const _Recent({required this.onLeave});
 
@@ -380,20 +347,20 @@ class _Recent extends ConsumerWidget {
     final recent = ref.watch(recentlyViewedDestinationsProvider);
     if (recent.isEmpty) return const SizedBox.shrink();
     return Entrance(
-      order: 1,
       child: Padding(
         padding: const EdgeInsets.only(bottom: AppSpace.section),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+        child: Wrap(
+          spacing: AppSpace.near,
+          runSpacing: AppSpace.near,
           children: [
-            const SectionHeading("Recently viewed"),
-            const SizedBox(height: AppSpace.x2),
-            GroupedSection(
-              children: [
-                for (final place in recent.take(4))
-                  _PlaceRow(place: place, onLeave: onLeave),
-              ],
-            ),
+            for (final place in recent.take(4))
+              ActionChip(
+                label: Text(place.name),
+                onPressed: () {
+                  onLeave();
+                  context.push(Routes.destination(place.id));
+                },
+              ),
           ],
         ),
       ),
@@ -401,90 +368,127 @@ class _Recent extends ConsumerWidget {
   }
 }
 
-/// Every town. A town is a tab switch to the map, its name as the filter.
+/// Every town as a small photo with its name, opening its page.
 class _Towns extends ConsumerWidget {
   const _Towns({required this.onLeave});
 
   final VoidCallback onLeave;
+
+  /// A town's tile, 4:3, a rail tile's width.
+  static const _width = AppSize.tourTile;
+  static const _height = _width * 3 / 4;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final towns = ref.watch(townsProvider);
     if (towns.isEmpty) {
       // Hidden while loading and when empty, but not on an error: before a
-      // search, the towns are all this surface has to say, so a failure is
-      // said here rather than left as a blank.
+      // search, the towns are what this surface starts with, so a failure
+      // is said here rather than left as a blank.
       final failure = ref.watch(
         allDestinationsProvider.select(
           (all) => all.hasValue ? null : all.error,
         ),
       );
-      return SliverToBoxAdapter(
-        child: failure == null
-            ? const SizedBox.shrink()
-            : QuietNote(
+      return failure == null
+          ? const SizedBox.shrink()
+          : Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpace.gutter),
+              child: QuietNote(
                 errorCopy("Couldn't load the towns.", failure),
                 onRetry: () => ref.invalidate(allDestinationsProvider),
               ),
-      );
+            );
     }
 
+    return Entrance(
+      order: 1,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: AppSpace.gutter),
+            child: SectionHeading("Towns"),
+          ),
+          SizedBox(
+            height: _height,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: AppSpace.gutter),
+              itemCount: towns.length,
+              separatorBuilder: (_, _) => const SizedBox(width: AppSpace.near),
+              itemBuilder: (context, index) => SizedBox(
+                width: _width,
+                child: TownPhoto(
+                  town: towns[index],
+                  from: HeroSource.search,
+                  onOpen: onLeave,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: AppSpace.section),
+        ],
+      ),
+    );
+  }
+}
+
+/// Every place, three photos to a row.
+class _Places extends ConsumerWidget {
+  const _Places({required this.onLeave});
+
+  final VoidCallback onLeave;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    // The towns above say when this list fails.
+    final all = ref.watch(allDestinationsProvider).value ?? const [];
+    if (all.isEmpty) return const SliverToBoxAdapter(child: SizedBox.shrink());
     return SliverMainAxisGroup(
       slivers: [
         const SliverToBoxAdapter(
-          child: Entrance(
-            order: 2,
-            child: Padding(
-              padding: EdgeInsets.only(bottom: AppSpace.x2),
-              child: SectionHeading("Towns"),
-            ),
-          ),
+          child: Entrance(order: 2, child: SectionHeading("Places")),
         ),
-        SliverGroupedSection(
-          itemCount: towns.length,
-          itemBuilder: (context, index) {
-            final town = towns[index];
-            return Entrance(
-              order: 3 + index,
-              child: GroupedRow(
-                title: town.name,
-                subtitle: town.placesLine,
-                leading: CoverImage(town.cover),
-                onTap: () {
-                  onLeave();
-                  ref.read(browseQueryProvider.notifier).update(town.name);
-                  ref.read(browseCategoryProvider.notifier).select(null);
-                  ref
-                      .read(selectedHomeTabProvider.notifier)
-                      .select(HomeTab.map);
-                },
-              ),
-            );
-          },
-        ),
+        _Grid(places: all, onLeave: onLeave),
       ],
     );
   }
 }
 
-/// A place: its photo flies into detail.
-class _PlaceRow extends StatelessWidget {
-  const _PlaceRow({required this.place, required this.onLeave});
+/// Places as a grid of photos, each name on its photo; a photo flies into
+/// the place's page.
+class _Grid extends StatelessWidget {
+  const _Grid({required this.places, required this.onLeave});
 
-  final Destination place;
+  final List<Destination> places;
   final VoidCallback onLeave;
 
   @override
-  Widget build(BuildContext context) => GroupedRow(
-    title: place.name,
-    subtitle: place.town,
-    leading: PhotoHero(
-      tag: coverHeroTag(place.id, HeroSource.search),
-      child: CoverImage(place.coverImage),
+  Widget build(BuildContext context) => SliverGrid.builder(
+    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+      crossAxisCount: 3,
+      mainAxisSpacing: AppSpace.near,
+      crossAxisSpacing: AppSpace.near,
+      childAspectRatio: 7 / 8,
     ),
-    onTap: () {
-      onLeave();
-      context.push(Routes.destination(place.id, from: HeroSource.search));
+    itemCount: places.length,
+    itemBuilder: (context, index) {
+      final place = places[index];
+      return MediaTile(
+        media: PhotoHero(
+          tag: coverHeroTag(place.id, HeroSource.search),
+          child: CoverImage(place.coverImage),
+        ),
+        aspectRatio: 7 / 8,
+        overlay: true,
+        dense: true,
+        title: place.name,
+        onTap: () {
+          onLeave();
+          context.push(Routes.destination(place.id, from: HeroSource.search));
+        },
+      );
     },
   );
 }
