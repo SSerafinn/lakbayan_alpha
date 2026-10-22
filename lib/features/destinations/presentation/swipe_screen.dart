@@ -753,7 +753,7 @@ class _DeckDone extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Material(
-      color: scheme.surfaceContainerLow,
+      color: scheme.surfaceContainerLowest,
       shape: const RoundedRectangleBorder(borderRadius: AppRadii.lgAll),
       child: Padding(
         padding: const EdgeInsets.all(AppSpace.x4),

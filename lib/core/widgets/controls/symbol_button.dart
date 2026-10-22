@@ -1,14 +1,15 @@
 import "package:flutter/material.dart";
 
 import "../../theme/app_dimens.dart";
+import "../../theme/lakbayan_colors.dart";
 
-/// A symbol-only control on its own white circle, for actions with reliable
+/// A symbol-only control on its own glass circle, for actions with reliable
 /// shorthand (search, back, close) over photography: the circle is the
 /// surface between control and photo (design doc 03). An [IconButton]
 /// inside, so tooltip, semantics and the 48dp target come from the framework.
 ///
-/// [onGround] is the same control on the white page (Browse's header): the
-/// circle takes the grey step up, since white on white would be invisible.
+/// [onGround] is the same control on the paper page (Browse's header), on a
+/// white card circle.
 class SymbolButton extends StatelessWidget {
   const SymbolButton({
     required this.icon,
@@ -45,7 +46,7 @@ class SymbolButton extends StatelessWidget {
       style: IconButton.styleFrom(
         backgroundColor:
             background ??
-            (onGround ? scheme.surfaceContainerHigh : scheme.surface),
+            (onGround ? scheme.surfaceContainerLowest : context.lakbayan.glass),
         foregroundColor: color ?? scheme.onSurface,
         fixedSize: Size.square(size),
         shape: const CircleBorder(),

@@ -713,7 +713,7 @@ class _TripTitle extends StatelessWidget {
   }
 }
 
-/// "Open in Map" on a white capsule over the expanded route map: the trip,
+/// "Open in Map" on a glass capsule over the expanded route map: the trip,
 /// handed to the Map tab with its route drawn. A text label, since a map
 /// glyph over a map says nothing. A Material button, so the 48dp target is
 /// padded around the 44 capsule that matches the close circle beside it.
@@ -729,7 +729,7 @@ class _OpenInMap extends StatelessWidget {
       child: TextButton(
         onPressed: onTap,
         style: TextButton.styleFrom(
-          backgroundColor: scheme.surface,
+          backgroundColor: context.lakbayan.glass,
           foregroundColor: scheme.onSurface,
           minimumSize: const Size(0, AppSize.symbolButton),
           padding: const EdgeInsets.symmetric(horizontal: AppSpace.x4),

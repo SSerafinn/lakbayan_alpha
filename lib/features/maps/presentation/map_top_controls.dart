@@ -123,7 +123,7 @@ class _Banner extends ConsumerWidget {
         0,
       ),
       child: Material(
-        color: scheme.surface,
+        color: context.lakbayan.glass,
         shape: StadiumBorder(side: BorderSide(color: scheme.outlineVariant)),
         child: Padding(
           padding: const EdgeInsets.only(left: AppSpace.x4),

@@ -1,93 +1,73 @@
 import "package:flutter/material.dart";
 
-/// Raw colour values from `design/tokens.json`.
+/// Raw colour values from `design/tokens.json` (`app.*`, 3.0.0).
 ///
-/// Green is a signature — only on the primary action, selection, and links.
-/// Prefer `Theme.of(context).colorScheme` and [LakbayanColors] in widgets;
-/// reach for these only when building the theme (a hex here bypasses dark mode).
+/// Build the theme from these; widgets read `Theme.of(context).colorScheme`
+/// and [LakbayanColors] instead, since a hex here bypasses dark mode.
 abstract final class AppColors {
-  // Signature: Cagayan Green. One shade for actions and selection, one
-  // darker shade for text on white, one deep shade for pressed states.
-  static const green900 = Color(0xFF0B3D1F);
-  static const green700 = Color(0xFF0F6431); // green text on white, 7.4:1
-  static const green500 = Color(
-    0xFF168240,
-  ); // BASE: primary fill, selection. White on it 4.9:1
-  static const green300 = Color(0xFF5FBF82); // primary on dark surfaces
-  static const green100 = Color(
-    0xFFCFEFDB,
-  ); // primary container, dark ink on it
+  // Jade emerald: the primary action, selection, links and focus.
+  static const emerald = Color(0xFF00755A); // white on it 5.7:1
+  static const emeraldText = Color(0xFF005C45); // on paper 6.9:1
+  static const emeraldTint = Color(0xFFE2F3EB); // a quiet emerald wash
+  static const emeraldDark = Color(0xFF3ECF9E); // primary on charcoal
+  static const onEmeraldDark = Color(0xFF06261C);
+  static const emeraldTintDark = Color(0xFF1E3A30);
 
-  // Spatial: River Blue. Map pins, distances, getting there, AR, offline and
-  // download, inline "See all". Never a button fill.
-  static const blue700 = Color(0xFF0B4F8A);
-  static const blue500 = Color(0xFF0B6BCB); // BASE, 5.3:1 on white
-  static const blue300 = Color(0xFF5E9BD6);
-  static const blue100 = Color(0xFFD5E6F6);
-
-  // Accent: Cagayan Gold. The FEATURED badge and nothing else.
-  static const gold700 = Color(0xFF9A6300); // FEATURED fill, white on it 4.6:1
-  static const gold500 = Color(0xFFE9A21A); // BASE tint; never white on it
-  static const gold300 = Color(0xFFF4C765);
-  static const gold100 = Color(0xFFFBEFD2);
-
-  // Red: the CLOSED badge, Sign out, and the saved heart.
-  static const red500 = Color(0xFFE5322A);
-
-  // Earth: the Heritage category glyph on Home. A glyph colour, never a fill.
-  static const earth700 = Color(0xFFA4620D);
-
-  // Neutrals. A warm near-grey ramp: the chrome is quiet so the signature
-  // reads as a signature.
-  static const ink = Color(0xFF121212); // onSurface, badge ink
+  // Ground and ink. Paper is the page; a card is white on it.
+  static const paper = Color(0xFFF3F2EE);
+  static const white = Color(0xFFFFFFFF);
+  static const ink = Color(0xFF1B1B19); // on paper 15.5:1
   static const ink700 = Color(0xFF2B2B29);
-  static const grey600 = Color(0xFF6D6D6A); // onSurfaceVariant, 5.0:1 on white
-  static const grey400 = Color(0xFF9E9E9A); // placeholders, disabled, outline
-  static const grey200 = Color(0xFFE1E1DE); // outlineVariant, the hairline
-  static const grey100 = Color(0xFFEAE9E4); // surfaceContainerHigh
-  static const grey50 = Color(0xFFF6F6F4); // surfaceContainerLow
+  static const sub = Color(0xFF6B6A64); // second lines, 4.9:1 on paper
+  static const outline = Color(0xFF9E9C95);
+  static const line = Color(0xFFE5E3DC); // the hairline
 
-  /// The light surface ladder. White is the ground; each step up is a barely
-  /// visible grey. Elevation is the step you pick, not a shadow you add.
-  static const surface = Color(0xFFFFFFFF);
-  static const surfaceDim = Color(0xFFE5E4DF);
-  static const surfaceBright = surface;
-  static const surfaceContainerLowest = surface;
-  static const surfaceContainerLow = grey50;
-  static const surfaceContainer = Color(0xFFEFEFEC);
-  static const surfaceContainerHigh = grey100;
-  static const surfaceContainerHighest = Color(0xFFE5E4DF);
+  /// The light surface ladder. A card is one step brighter than the page,
+  /// and what sits inside a card takes the page's paper again.
+  static const surfaceContainer = Color(0xFFECEBE6);
+  static const surfaceContainerHigh = Color(0xFFE5E3DC);
+  static const surfaceContainerHighest = Color(0xFFDEDCD4);
 
-  /// The hairline. On a white system a 1dp line at this value is the honest
-  /// way to bound a chip, an outlined badge or a field; it is still not an
-  /// emphasis mechanism and never a divider between rows.
-  static const outlineVariant = grey200;
-  static const outline = grey400;
+  // Warm charcoal, not black.
+  static const charcoal = Color(0xFF262624);
+  static const charcoalCard = Color(0xFF30302E);
+  static const charcoalRaised = Color(0xFF3A3935);
+  static const charcoalHigh = Color(0xFF44433F);
+  static const charcoalHighest = Color(0xFF4E4D48);
+  static const charcoalDim = Color(0xFF1F1E1D);
+  static const charcoalInk = Color(0xFFF2F1EC); // 13.4:1
+  static const charcoalSub = Color(0xFFABA9A0); // 5.6:1 on a card
+  static const charcoalOutline = Color(0xFF7A7870);
+  static const charcoalLine = Color(0xFF46453F);
 
-  // Semantic.
-  static const warning = gold500;
+  // Pastels: a kind's surface and the brand's quiet moments. Ink sits on
+  // them; they are never a button.
+  static const mint = Color(0xFFD7F0E3);
+  static const sky = Color(0xFFDCEAF5);
+  static const butter = Color(0xFFF8EDCF);
+  static const blush = Color(0xFFF7E0D9);
+  static const mintDark = Color(0xFF22392F);
+  static const skyDark = Color(0xFF1F2F3B);
+  static const butterDark = Color(0xFF3A3222);
+  static const blushDark = Color(0xFF3B2A25);
+
+  // Red: the saved heart, and destructive words (Sign Out, Delete).
+  static const red = Color(0xFFD93A30);
+  static const redText = Color(0xFFC8352C); // on paper 4.7:1
+  static const redDark = Color(0xFFF2837A);
+
+  // Blue: the route and your own position on a map. Nothing else.
+  static const blue = Color(0xFF1F6FD1);
+  static const blueDark = Color(0xFF7FB2F0);
+
+  // Gold: the FEATURED badge, until the badge goes with the new cards.
+  static const gold700 = Color(0xFF9A6300);
+  static const gold300 = Color(0xFFF4C765);
+
+  // Errors on a field: the border and the warning glyph.
   static const error = Color(0xFFC42B1B);
   static const errorContainer = Color(0xFFFCE8E6);
   static const onErrorContainer = Color(0xFF9E2419);
-  static const info = blue500;
-
-  /// Green text on white must be /700 or darker to clear WCAG AA. Don't
-  /// substitute [green500] here (4.9:1 is fine for a button label, tight for body).
-  static const textOnLightGreen = green700;
-
-  // Dark surface ladder.
-  static const darkSurface = Color(0xFF0F1113);
-  static const darkSurfaceDim = Color(0xFF0A0B0D);
-  static const darkSurfaceBright = Color(0xFF34383D);
-  static const darkSurfaceContainerLowest = Color(0xFF0A0B0D);
-  static const darkSurfaceContainerLow = Color(0xFF17191C);
-  static const darkSurfaceContainer = Color(0xFF1C1F23);
-  static const darkSurfaceContainerHigh = Color(0xFF25292E);
-  static const darkSurfaceContainerHighest = Color(0xFF2F343A);
-  static const darkOnSurface = Color(0xFFF1F2F4);
-  static const darkOnSurfaceVariant = Color(0xFFA9B0B8);
-  static const darkOutline = Color(0xFF5C636B);
-  static const darkOutlineVariant = Color(0xFF2F353C);
 
   /// Each kind of place as a deep tone (`role.kind`), for Keep or skip only:
   /// a card's stage and its Keep and Skip buttons, until real photos carry

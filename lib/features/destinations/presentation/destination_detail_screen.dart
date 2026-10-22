@@ -12,6 +12,7 @@ import "../../../core/theme/app_dimens.dart";
 import "../../../core/theme/app_icons.dart";
 import "../../../core/theme/app_motion.dart";
 import "../../../core/theme/app_typography.dart";
+import "../../../core/theme/lakbayan_colors.dart";
 import "../../../core/widgets/chrome/app_menu.dart";
 import "../../../core/widgets/chrome/app_sheet.dart";
 import "../../../core/widgets/chrome/system_bars.dart";
@@ -278,7 +279,7 @@ class _PhotoStageState extends State<_PhotoStage> {
             else
               _Drift(scroll: widget.scroll, child: photos),
             // Light status bar icons over the photo only: once the page's
-            // white edge is under the status bar, the icons turn dark.
+            // paper edge is under the status bar, the icons turn dark.
             const Positioned(
               top: 0,
               left: 0,
@@ -492,8 +493,8 @@ class _PinnedControlsState extends ConsumerState<_PinnedControls> {
       end: _onGround ? 1 : 0,
       builder: (context, t, _) {
         final tone = Color.lerp(
-          scheme.surface,
-          scheme.surfaceContainerHigh,
+          context.lakbayan.glass,
+          scheme.surfaceContainerLowest,
           t.clamp(0.0, 1.0),
         )!;
         return Row(

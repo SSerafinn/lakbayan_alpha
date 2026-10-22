@@ -42,11 +42,8 @@ class StopNumeral extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final style = AppTypography.labelMedium.copyWith(
-      color: scheme.surface,
-      height: 1,
-    );
+    final card = Theme.of(context).colorScheme.surfaceContainerLowest;
+    final style = AppTypography.labelMedium.copyWith(color: card, height: 1);
     final side = sideOf(context, size: size, ring: ring);
 
     return ExcludeSemantics(
@@ -56,7 +53,7 @@ class StopNumeral extends StatelessWidget {
         decoration: ShapeDecoration(
           color: color ?? context.lakbayan.spatial,
           shape: CircleBorder(
-            side: BorderSide(color: scheme.surface, width: ring),
+            side: BorderSide(color: card, width: ring),
           ),
         ),
         alignment: Alignment.center,

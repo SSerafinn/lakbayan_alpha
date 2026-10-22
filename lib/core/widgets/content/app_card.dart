@@ -12,8 +12,8 @@ import "../motion/motion.dart";
 /// plate holds rows, not cards); it provides its radius downward, so media
 /// inside it derives in turn.
 ///
-/// **Surface.** `surfaceContainerLow`, no border, no shadow. A card is one
-/// tonal step up from the ground and nothing more (design doc 04).
+/// **Surface.** `surfaceContainerLowest`, white on the paper ground, no
+/// border, no shadow (design doc 04).
 ///
 /// **Behaviour.** When [onTap] is set the whole surface is the target, and
 /// it sinks under the finger ([Pressable]). Two competing targets inside one card is a design
@@ -41,7 +41,7 @@ class AppCard extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
 
     final card = Material(
-      color: color ?? scheme.surfaceContainerLow,
+      color: color ?? scheme.surfaceContainerLowest,
       shape: const RoundedRectangleBorder(borderRadius: AppRadii.mdAll),
       clipBehavior: Clip.antiAlias,
       child: InkWell(

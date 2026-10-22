@@ -226,7 +226,7 @@ class _Field extends StatelessWidget {
     final reveal = ((t - 0.5) * 2).clamp(0.0, 1.0);
 
     return Material(
-      color: scheme.surface,
+      color: scheme.surfaceContainerLowest,
       shape: StadiumBorder(
         side: BorderSide(
           color: t > 0.5 ? scheme.primary : scheme.outlineVariant,

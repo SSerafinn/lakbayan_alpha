@@ -101,7 +101,7 @@ class _TokensState extends State<_Tokens> {
         _Swatches([
           for (final category in DestinationCategory.values)
             if (category != DestinationCategory.unknown)
-              (category.label, context.lakbayan.categoryColor(category)),
+              (category.label, context.lakbayan.kindWash(category)),
         ]),
 
         const _Section("Type"),

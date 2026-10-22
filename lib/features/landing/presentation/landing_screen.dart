@@ -163,25 +163,25 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
   }
 
   List<LandingPage> _pagesFor(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
+    final brand = context.lakbayan;
 
     return [
       LandingPage(
-        wash: scheme.secondaryContainer,
+        wash: brand.sky,
         greeting: "MADDULO\nKAMU",
         body:
             "The welcome that met every traveller at the old provincial arch. "
             "Rivers, mountains and coast, and the stories that come with them.",
       ),
       LandingPage(
-        wash: scheme.primaryContainer,
+        wash: brand.mint,
         greeting: "YENA TAM\nNGAMIN",
         body:
             "Mother of us all. At Piat, the pilgrimage centre of the valley, "
             "faith and heritage have always shared the same road.",
       ),
       LandingPage(
-        wash: context.lakbayan.goldContainer,
+        wash: brand.butter,
         greeting: "TULOY PO\nKAYO",
         body:
             "Come in. Download a town before you set out and the province "

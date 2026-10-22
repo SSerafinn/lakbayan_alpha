@@ -454,7 +454,7 @@ class _Symbol extends StatelessWidget {
       dimension: _Reveal._size,
       child: DecoratedBox(
         decoration: ShapeDecoration(
-          color: scheme.surface,
+          color: scheme.surfaceContainerLowest,
           shape: const CircleBorder(),
         ),
         // Past the line the heart fills red and lands with a bump; the

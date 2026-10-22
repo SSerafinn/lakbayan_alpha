@@ -20,7 +20,7 @@ class AuthHeader extends StatelessWidget {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          BrandWash(color: context.lakbayan.goldContainer),
+          BrandWash(color: context.lakbayan.butter),
           Align(
             alignment: Alignment.bottomCenter,
             child: SizedBox(
