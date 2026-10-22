@@ -16,7 +16,6 @@ import "../../../core/theme/app_theme.dart";
 import "../../../core/theme/app_typography.dart";
 import "../../../core/theme/lakbayan_colors.dart";
 import "../../../core/widgets/chrome/system_bars.dart";
-import "../../../core/widgets/content/lakbayan_badge.dart";
 import "../../../core/widgets/content/media_tile.dart";
 import "../../../core/widgets/content/quiet_note.dart";
 import "../../../core/widgets/content/storage_image.dart";
@@ -664,7 +663,7 @@ class _DeckTile extends StatelessWidget {
               const Positioned(
                 top: AppSpace.x3,
                 left: AppSpace.x3,
-                child: LakbayanBadge.ar(),
+                child: PhotoPill.scan(),
               ),
           ],
         ),

@@ -10,7 +10,6 @@ import "../../../core/theme/app_dimens.dart";
 import "../../../core/theme/app_icons.dart";
 import "../../../core/theme/app_typography.dart";
 import "../../../core/widgets/chrome/floating_tab_bar.dart";
-import "../../../core/widgets/content/lakbayan_badge.dart";
 import "../../../core/widgets/content/media_tile.dart";
 import "../../../core/widgets/content/quiet_note.dart";
 import "../../../core/widgets/content/storage_image.dart";
@@ -209,22 +208,15 @@ class _Cell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cover = destination.coverImage;
-    final badge = destination.hasAR
-        ? const LakbayanBadge.ar()
-        : destination.featured
-        ? const LakbayanBadge.featured()
-        : null;
-
     return MediaTile(
       media: PhotoHero(
         tag: coverHeroTag(destination.id, HeroSource.browse),
-        child: CoverImage(cover),
+        child: CoverImage(destination.coverImage),
       ),
       aspectRatio: wide ? 16 / 10 : 4 / 5,
       title: destination.name,
       subtitle: destination.town,
-      badge: badge,
+      pill: destination.hasAR ? const PhotoPill.scan() : null,
       trailing: SaveHeart(destination.id, style: SaveHeartStyle.tile),
       onTap: () => context.push(
         Routes.destination(destination.id, from: HeroSource.browse),

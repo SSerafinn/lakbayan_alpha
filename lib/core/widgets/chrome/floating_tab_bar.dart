@@ -6,12 +6,13 @@ import "package:motor/motor.dart";
 
 import "../../theme/app_dimens.dart";
 import "../../theme/app_motion.dart";
+import "../../theme/app_typography.dart";
 import "../motion/motion.dart";
 
 /// The bottom navigation bar: the four sections and search in one white
-/// capsule, a green indicator sliding under the chosen section. Shrinks on
-/// a deliberate scroll down, every cell still one tap; hides fully when a
-/// surface needs the space.
+/// capsule, an emerald pill sliding to the chosen section, whose name grows
+/// out of it (D-19). Shrinks on a deliberate scroll down, every cell still
+/// one tap; hides fully when a surface needs the space.
 class FloatingTabBar extends StatelessWidget {
   const FloatingTabBar({
     required this.destinations,
@@ -138,39 +139,69 @@ class _BarState extends State<_Bar> with TickerProviderStateMixin {
     vsync: this,
     initialValue: widget.searchOpen ? 1 : 0,
   );
-  late final _index = SingleMotionController(
+
+  /// The pill's way from [_from] to the chosen section, 0 to 1.
+  late final _travel = SingleMotionController(
     motion: AppMotion.chrome,
     vsync: this,
-    initialValue: widget.selectedIndex.toDouble(),
+    initialValue: 1,
   );
+  late int _from = widget.selectedIndex;
   late final _fade = AnimationController(
     vsync: this,
     duration: AppMotion.edge,
     value: 1,
   );
 
-  /// What moves the glyphs' ink.
-  late final Listenable _inkChanges = Listenable.merge([_parting, _index]);
+  /// What moves the glyphs' ink, the names and the cells.
+  late final Listenable _moves = Listenable.merge([_parting, _travel]);
+
+  /// Each section's name, laid out once per text size and theme.
+  List<TextPainter> _names = const [];
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _layoutNames();
+  }
+
+  void _layoutNames() {
+    for (final name in _names) {
+      name.dispose();
+    }
+    final style = AppTypography.labelMedium.copyWith(
+      color: Theme.of(context).colorScheme.onPrimary,
+    );
+    _names = [
+      for (final destination in widget.destinations)
+        TextPainter(
+          text: TextSpan(text: destination.label, style: style),
+          textDirection: Directionality.of(context),
+          textScaler: MediaQuery.textScalerOf(context),
+          maxLines: 1,
+        )..layout(),
+    ];
+  }
 
   @override
   void didUpdateWidget(_Bar old) {
     super.didUpdateWidget(old);
     final reduced = MediaQuery.disableAnimationsOf(context);
     var moved = false;
-    void settle(SingleMotionController spring, double to) {
+    if (widget.searchOpen != old.searchOpen) {
       moved = true;
+      final to = widget.searchOpen ? 1.0 : 0.0;
       if (reduced) {
-        spring.value = to;
+        _parting.value = to;
       } else {
-        spring.animateTo(to);
+        _parting.animateTo(to);
       }
     }
-
-    if (widget.searchOpen != old.searchOpen) {
-      settle(_parting, widget.searchOpen ? 1 : 0);
-    }
     if (widget.selectedIndex != old.selectedIndex) {
-      settle(_index, widget.selectedIndex.toDouble());
+      moved = true;
+      _from = old.selectedIndex;
+      _travel.value = reduced ? 1 : 0;
+      if (!reduced) _travel.animateTo(1);
     }
     if (reduced && moved) _fade.forward(from: 0);
   }
@@ -178,9 +209,37 @@ class _BarState extends State<_Bar> with TickerProviderStateMixin {
   @override
   void dispose() {
     _parting.dispose();
-    _index.dispose();
+    _travel.dispose();
     _fade.dispose();
+    for (final name in _names) {
+      name.dispose();
+    }
     super.dispose();
+  }
+
+  /// The bar's rects at this frame.
+  TabBarLayout _layoutAt(double width) => TabBarLayout(
+    width: width,
+    count: widget.destinations.length,
+    parting: _parting.value.clamp(0.0, 1.0),
+    from: _from,
+    to: widget.selectedIndex,
+    travel: _travel.value,
+    needs: [
+      for (final name in _names)
+        AppSize.tabGlyph + AppSpace.near + name.width + 2 * AppSpace.x3,
+    ],
+  );
+
+  /// How far a section is chosen right now, 0 to 1: the pill's share of it,
+  /// gone as search opens.
+  double _chosen(int position) {
+    final shown = 1 - _parting.value.clamp(0.0, 1.0);
+    final travel = _travel.value.clamp(0.0, 1.0);
+    final to = widget.selectedIndex;
+    if (position == to) return (_from == to ? 1 : travel) * shown;
+    if (position == _from) return (1 - travel) * shown;
+    return 0;
   }
 
   /// Every cell answers while shrunk; the chosen one grows the bar back.
@@ -192,11 +251,10 @@ class _BarState extends State<_Bar> with TickerProviderStateMixin {
     }
   }
 
-  /// A glyph's colour at paint time: white under the indicator, grey
-  /// elsewhere, fading as search opens.
-  Color _inkOf(int position, Color rest, Color onGreen) {
-    final coverage = (1 - (_index.value - position).abs()).clamp(0.0, 1.0);
-    final colour = Color.lerp(rest, onGreen, coverage)!;
+  /// A glyph's colour at paint time: on the pill's colour as it is chosen,
+  /// grey elsewhere, fading as search opens.
+  Color _inkOf(int position, Color rest, Color onPill) {
+    final colour = Color.lerp(rest, onPill, _chosen(position))!;
     final shown = 1 - _parting.value.clamp(0.0, 1.0);
     return colour.withValues(alpha: colour.a * shown);
   }
@@ -210,15 +268,15 @@ class _BarState extends State<_Bar> with TickerProviderStateMixin {
     return FadeTransition(
       opacity: _fade,
       child: CustomMultiChildLayout(
-        delegate: _BarLayout(count: destinations.length, parting: _parting),
+        delegate: _BarLayout(layoutAt: _layoutAt, moves: _moves),
         children: [
           LayoutId(
             id: _BarPart.ground,
             child: CustomPaint(
               painter: _GroundPainter(
-                count: destinations.length,
+                layoutAt: _layoutAt,
+                moves: _moves,
                 parting: _parting,
-                index: _index,
                 fill: scheme.surfaceContainerLowest,
                 hairline: scheme.outlineVariant,
                 indicator: scheme.primary,
@@ -237,9 +295,12 @@ class _BarState extends State<_Bar> with TickerProviderStateMixin {
                   selected: i == widget.selectedIndex,
                   size: AppSize.tabGlyph,
                   ink: () => _inkOf(i, rest, scheme.onPrimary),
-                  repaint: _inkChanges,
+                  repaint: _moves,
                   cutout: scheme.primary,
                 ),
+                name: _names[i],
+                chosen: () => _chosen(i),
+                moves: _moves,
               ),
             ),
           LayoutId(
@@ -271,14 +332,14 @@ class _BarState extends State<_Bar> with TickerProviderStateMixin {
 
 enum _BarPart { ground, search }
 
-/// Places the cells from [TabBarLayout]; a frame of search opening is a
-/// layout pass, never a build.
+/// Places the cells from [TabBarLayout]; a frame of search opening or of a
+/// section being chosen is a layout pass, never a build.
 class _BarLayout extends MultiChildLayoutDelegate {
-  _BarLayout({required this.count, required this.parting})
-    : super(relayout: parting);
+  _BarLayout({required this.layoutAt, required this.moves})
+    : super(relayout: moves);
 
-  final int count;
-  final Animation<double> parting;
+  final TabBarLayout Function(double width) layoutAt;
+  final Listenable moves;
 
   @override
   Size getSize(BoxConstraints constraints) =>
@@ -286,14 +347,10 @@ class _BarLayout extends MultiChildLayoutDelegate {
 
   @override
   void performLayout(Size size) {
-    final layout = TabBarLayout(
-      width: size.width,
-      count: count,
-      parting: parting.value.clamp(0.0, 1.0),
-    );
+    final layout = layoutAt(size.width);
     layoutChild(_BarPart.ground, BoxConstraints.tight(size));
     positionChild(_BarPart.ground, Offset.zero);
-    for (var i = 0; i < count; i++) {
+    for (var i = 0; i < layout.cells.length - 1; i++) {
       final cell = layout.cells[i];
       layoutChild(i, BoxConstraints.tight(cell.size));
       positionChild(i, cell.topLeft);
@@ -303,38 +360,32 @@ class _BarLayout extends MultiChildLayoutDelegate {
   }
 
   @override
-  bool shouldRelayout(_BarLayout old) =>
-      old.count != count || old.parting != parting;
+  bool shouldRelayout(_BarLayout old) => true;
 }
 
-/// The capsule and the indicator, painted from the springs; fading by
-/// colour, not `Opacity`, so no `saveLayer`.
+/// The capsule and the pill, painted from the springs; fading by colour,
+/// not `Opacity`, so no `saveLayer`.
 class _GroundPainter extends CustomPainter {
   _GroundPainter({
-    required this.count,
+    required this.layoutAt,
+    required this.moves,
     required this.parting,
-    required this.index,
     required this.fill,
     required this.hairline,
     required this.indicator,
-  }) : super(repaint: Listenable.merge([parting, index]));
+  }) : super(repaint: moves);
 
-  final int count;
+  final TabBarLayout Function(double width) layoutAt;
+  final Listenable moves;
   final Animation<double> parting;
-  final Animation<double> index;
   final Color fill;
   final Color hairline;
   final Color indicator;
 
   @override
   void paint(Canvas canvas, Size size) {
-    final parted = parting.value.clamp(0.0, 1.0);
-    final shown = 1 - parted;
-    final layout = TabBarLayout(
-      width: size.width,
-      count: count,
-      parting: parted,
-    );
+    final shown = 1 - parting.value.clamp(0.0, 1.0);
+    final layout = layoutAt(size.width);
     canvas.drawPath(
       capsule.getOuterPath(layout.capsule),
       Paint()..color = fill.withValues(alpha: fill.a * shown),
@@ -343,19 +394,13 @@ class _GroundPainter extends CustomPainter {
       side: BorderSide(color: hairline.withValues(alpha: hairline.a * shown)),
     ).paint(canvas, layout.capsule);
     canvas.drawPath(
-      capsule.getOuterPath(layout.indicatorAt(index.value)),
+      capsule.getOuterPath(layout.indicator),
       Paint()..color = indicator.withValues(alpha: indicator.a * shown),
     );
   }
 
   @override
-  bool shouldRepaint(_GroundPainter old) =>
-      old.count != count ||
-      old.fill != fill ||
-      old.hairline != hairline ||
-      old.indicator != indicator ||
-      old.parting != parting ||
-      old.index != index;
+  bool shouldRepaint(_GroundPainter old) => true;
 }
 
 /// Shows [child] only while [parting] rests at 0; rebuilds on the flip,
@@ -405,101 +450,226 @@ class _AtRestState extends State<_AtRest> {
       Visibility.maintain(visible: _rested, child: widget.child);
 }
 
-/// Where the bar's parts sit: one full-width capsule of equal cells,
-/// `[ a  b  c  d  search ]`, and the indicator. [parting] (0 to 1) slides
-/// the capsule out past the leading edge as search opens. The shrink is a
-/// transform, so it never changes these rects.
+/// Where the bar's parts sit: one full-width capsule of cells,
+/// `[ a  b  c  d  search ]`, and the pill. The chosen section is as wide as
+/// its glyph and name need ([needs]); the pill travels [from] the last
+/// section [to] the chosen one on [travel] (0 to 1), and only those two
+/// cells change width on the way. [parting] (0 to 1) slides the capsule out
+/// past the leading edge as search opens. The shrink is a transform, so it
+/// never changes these rects.
 class TabBarLayout {
   factory TabBarLayout({
     required double width,
     required int count,
     required double parting,
+    required int from,
+    required int to,
+    required double travel,
+    required List<double> needs,
   }) {
     const height = AppSize.bottomNav;
     final push = -width * parting;
     final cells = count + 1;
-    final cellWidth = (width - 2 * inset - (cells - 1) * itemGap) / cells;
+    final room = width - 2 * inset - (cells - 1) * itemGap;
+    final even = room / cells;
+    // The extra a section takes, the others giving it back evenly, so the
+    // chosen one at rest is exactly what it needs; never so much that the
+    // others drop under a touch target.
+    double extra(int position, double share) {
+      final need = needs[position].clamp(even, room * _widest);
+      return (need - even) * cells / (cells - 1) * share;
+    }
+
+    final grow = travel.clamp(0.0, 1.0);
+    final extras = [
+      for (var i = 0; i < count; i++)
+        i == to
+            ? extra(i, from == to ? 1 : grow)
+            : i == from
+            ? extra(i, 1 - grow)
+            : 0.0,
+    ];
+    var taken = 0.0;
+    for (final value in extras) {
+      taken += value;
+    }
+    final base = (room - taken) / cells;
+
+    final rects = <Rect>[];
+    var x = push + inset;
+    for (var i = 0; i < cells; i++) {
+      final cellWidth = base + (i < count ? extras[i] : 0);
+      rects.add(Rect.fromLTWH(x, 0, cellWidth, height));
+      x += cellWidth + itemGap;
+    }
+    final between = Rect.lerp(rects[from], rects[to], travel)!;
     return TabBarLayout._(
       capsule: Rect.fromLTWH(push, 0, width, height),
-      cells: [
-        for (var i = 0; i < cells; i++)
-          Rect.fromLTWH(
-            push + inset + i * (cellWidth + itemGap),
-            0,
-            cellWidth,
-            height,
-          ),
-      ],
+      cells: rects,
+      indicator: Rect.fromLTRB(
+        between.left,
+        between.top + inset,
+        between.right,
+        between.bottom - inset,
+      ),
     );
   }
 
-  const TabBarLayout._({required this.capsule, required this.cells});
+  const TabBarLayout._({
+    required this.capsule,
+    required this.cells,
+    required this.indicator,
+  });
 
-  /// The inset between the capsule and the indicator inside it.
-  static const inset = AppSpace.x1;
+  /// The inset between the capsule and the pill inside it.
+  static const inset = AppSpace.near;
 
   /// Between two cells.
   static const itemGap = AppSpace.x1;
+
+  /// The most of the bar one chosen section may take.
+  static const _widest = 0.4;
 
   final Rect capsule;
 
   /// The sections' cells, then search's; each at least a touch target.
   final List<Rect> cells;
 
-  Rect get search => cells.last;
+  /// The pill, drawn in by [inset] top and bottom. It never reaches search.
+  final Rect indicator;
 
-  /// The indicator at the index spring's fractional value: the rect between
-  /// neighbouring section cells (so it slides), drawn in by [inset] top and
-  /// bottom. It never reaches search's cell.
-  Rect indicatorAt(double index) {
-    final at = index.clamp(0.0, cells.length - 2.0);
-    final low = at.floor();
-    final between = Rect.lerp(cells[low], cells[at.ceil()], at - low)!;
-    return Rect.fromLTRB(
-      between.left,
-      between.top + inset,
-      between.right,
-      between.bottom - inset,
-    );
-  }
+  Rect get search => cells.last;
 }
 
-/// One cell, a section or search: its glyph alone, the name in semantics
-/// and the tooltip. A section's selection shows twice: the indicator and
-/// the glyph filling in.
+/// One cell, a section or search: its glyph, and for a section its [name]
+/// growing out beside it as it is chosen. The name is also the semantics
+/// label and the tooltip. A section's selection shows three ways: the pill,
+/// the glyph filling in and the name.
 class _Cell extends StatelessWidget {
   const _Cell({
     required this.label,
     required this.onTap,
     required this.glyph,
     this.selected = false,
+    this.name,
+    this.chosen,
+    this.moves,
   });
 
   final String label;
   final VoidCallback onTap;
   final Widget glyph;
   final bool selected;
+  final TextPainter? name;
+  final ValueGetter<double>? chosen;
+  final Listenable? moves;
 
   @override
-  Widget build(BuildContext context) => Tooltip(
-    message: label,
-    excludeFromSemantics: true,
-    child: Semantics(
-      button: true,
-      selected: selected,
-      label: label,
-      excludeSemantics: true,
-      child: InkWell(
-        customBorder: capsule,
-        onTap: onTap,
-        child: Center(child: glyph),
+  Widget build(BuildContext context) {
+    final name = this.name;
+    final chosen = this.chosen;
+    return Tooltip(
+      message: label,
+      excludeFromSemantics: true,
+      child: Semantics(
+        button: true,
+        selected: selected,
+        label: label,
+        excludeSemantics: true,
+        child: InkWell(
+          customBorder: capsule,
+          onTap: onTap,
+          child: name == null || chosen == null
+              ? Center(child: glyph)
+              : ClipRect(
+                  child: CustomMultiChildLayout(
+                    delegate: _CellLayout(chosen: chosen, moves: moves),
+                    children: [
+                      LayoutId(id: _CellPart.glyph, child: glyph),
+                      LayoutId(
+                        id: _CellPart.name,
+                        child: CustomPaint(
+                          size: name.size,
+                          painter: _NamePainter(
+                            name: name,
+                            chosen: chosen,
+                            moves: moves,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+        ),
       ),
-    ),
-  );
+    );
+  }
 }
 
-/// One top-level section. Declared once and passed to [FloatingTabBar];
-/// the bar shows only the [symbol], [label] is for screen readers and tooltips.
+enum _CellPart { glyph, name }
+
+/// The glyph centred alone, sliding aside as the name comes in beside it.
+class _CellLayout extends MultiChildLayoutDelegate {
+  _CellLayout({required this.chosen, required Listenable? moves})
+    : super(relayout: moves);
+
+  final ValueGetter<double> chosen;
+
+  @override
+  void performLayout(Size size) {
+    final loose = BoxConstraints.loose(size);
+    final glyph = layoutChild(_CellPart.glyph, loose);
+    final name = layoutChild(_CellPart.name, const BoxConstraints());
+    final group = glyph.width + chosen() * (AppSpace.near + name.width);
+    final left = (size.width - group) / 2;
+    positionChild(
+      _CellPart.glyph,
+      Offset(left, (size.height - glyph.height) / 2),
+    );
+    positionChild(
+      _CellPart.name,
+      Offset(
+        left + glyph.width + AppSpace.near,
+        (size.height - name.height) / 2,
+      ),
+    );
+  }
+
+  @override
+  bool shouldRelayout(_CellLayout old) => true;
+}
+
+/// A section's name, faded in by how chosen it is. Only while it fades is
+/// it painted through a layer, and the layer is one short word.
+class _NamePainter extends CustomPainter {
+  _NamePainter({required this.name, required this.chosen, Listenable? moves})
+    : super(repaint: moves);
+
+  final TextPainter name;
+  final ValueGetter<double> chosen;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final alpha = chosen().clamp(0.0, 1.0);
+    if (alpha == 0) return;
+    if (alpha == 1) {
+      name.paint(canvas, Offset.zero);
+      return;
+    }
+    canvas.saveLayer(
+      Offset.zero & size,
+      Paint()..color = Color.fromRGBO(0, 0, 0, alpha),
+    );
+    name.paint(canvas, Offset.zero);
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(_NamePainter old) => old.name != name;
+}
+
+/// One top-level section. Declared once and passed to [FloatingTabBar]; the
+/// bar shows the [symbol], and the chosen section's [label] beside it.
 class AppDestination {
   const AppDestination({required this.symbol, required this.label});
 

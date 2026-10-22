@@ -4,8 +4,8 @@ import "../../theme/app_dimens.dart";
 import "../../theme/app_icons.dart";
 import "../../theme/app_typography.dart";
 
-/// Grouped rows on the white ground with an optional heading.
-/// No dividers between rows — grouping is the signal.
+/// Grouped rows on one white card, with an optional small heading over it.
+/// No dividers between rows: the card is the grouping (D-19).
 class GroupedSection extends StatelessWidget {
   const GroupedSection({required this.children, this.heading, super.key});
 
@@ -13,29 +13,47 @@ class GroupedSection extends StatelessWidget {
   final String? heading;
 
   @override
-  Widget build(BuildContext context) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    mainAxisSize: MainAxisSize.min,
-    children: [
-      if (heading != null)
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final card = Material(
+      color: scheme.surfaceContainerLowest,
+      shape: const RoundedRectangleBorder(borderRadius: AppRadii.mdAll),
+      clipBehavior: Clip.antiAlias,
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpace.groupInset),
+        child: ParentRadius(
+          radius: _rowRadius,
+          child: Column(mainAxisSize: MainAxisSize.min, children: children),
+        ),
+      ),
+    );
+    if (heading == null) return card;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(
             AppSpace.x1,
             0,
             AppSpace.x1,
-            AppSpace.x1,
+            AppSpace.near,
           ),
-          child: Text(heading!, style: AppTypography.groupHeading),
+          child: Text(
+            heading!,
+            style: AppTypography.groupHeading.copyWith(
+              color: scheme.onSurfaceVariant,
+            ),
+          ),
         ),
-      ParentRadius(
-        radius: _rowRadius,
-        child: Column(mainAxisSize: MainAxisSize.min, children: children),
-      ),
-    ],
-  );
+        card,
+      ],
+    );
+  }
 }
 
-/// A [GroupedSection] as a sliver: only rows on screen are built.
+/// A [GroupedSection] as a sliver: the same card, and only the rows on
+/// screen are built.
 class SliverGroupedSection extends StatelessWidget {
   const SliverGroupedSection({
     required this.itemCount,
@@ -47,20 +65,34 @@ class SliverGroupedSection extends StatelessWidget {
   final IndexedWidgetBuilder itemBuilder;
 
   @override
-  Widget build(BuildContext context) => SliverList.builder(
-    itemCount: itemCount,
-    itemBuilder: (context, index) => ParentRadius(
-      radius: _rowRadius,
-      child: Material(
-        type: MaterialType.transparency,
-        child: itemBuilder(context, index),
+  Widget build(BuildContext context) => DecoratedSliver(
+    decoration: ShapeDecoration(
+      color: Theme.of(context).colorScheme.surfaceContainerLowest,
+      shape: const RoundedRectangleBorder(borderRadius: AppRadii.mdAll),
+    ),
+    sliver: SliverPadding(
+      padding: const EdgeInsets.all(AppSpace.groupInset),
+      sliver: SliverList.builder(
+        itemCount: itemCount,
+        itemBuilder: (context, index) => ParentRadius(
+          radius: _rowRadius,
+          child: Material(
+            type: MaterialType.transparency,
+            child: itemBuilder(context, index),
+          ),
+        ),
       ),
     ),
   );
 }
 
-/// A row's pressed shape: fixed, so the photo inside derives its corner.
-const _rowRadius = AppRadii.md;
+/// A row's pressed shape, concentric with the card around it, so the photo
+/// inside derives its corner in turn.
+final _rowRadius = concentricRadius(
+  parentRadius: AppRadii.md,
+  padding: AppSpace.groupInset,
+  fallback: AppRadii.sm,
+);
 
 /// One row: an optional mark (a stop's numeral), leading media or glyph,
 /// title, second line, trailing accessory (a chevron when the row
@@ -69,7 +101,8 @@ const _rowRadius = AppRadii.md;
 /// sits centred in one slot at least 48dp wide so they share an axis.
 ///
 /// Compact by default: a [AppSize.rowMedia] photo and a one-line second
-/// label keep a row near 64dp. [dense] is smaller still, for sheet pickers.
+/// label keep a row near 60dp. [dense] is smaller still, for sheet pickers.
+/// A row with nothing leading insets its words further, as a settings row.
 class GroupedRow extends StatelessWidget {
   const GroupedRow({
     required this.title,
@@ -115,9 +148,10 @@ class GroupedRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final mediaSize = dense ? AppSize.rowMediaDense : AppSize.rowMedia;
+    final bare = mark == null && leading == null && leadingGlyph == null;
     final padding = EdgeInsets.symmetric(
-      horizontal: AppSpace.x1,
-      vertical: dense ? AppSpace.x1 : AppSpace.rowPadDense,
+      horizontal: bare ? AppSpace.x3 : AppSpace.near,
+      vertical: dense ? AppSpace.x1 : AppSpace.near,
     );
     final rowRadius = ParentRadius.maybeOf(context) ?? AppRadii.sm;
     final mediaRadius = concentricRadius(
@@ -160,8 +194,9 @@ class GroupedRow extends StatelessWidget {
               SizedBox.square(
                 dimension: mediaSize,
                 child: DecoratedBox(
+                  // Paper inside the card, never grey on grey.
                   decoration: ShapeDecoration(
-                    color: scheme.surfaceContainerHigh,
+                    color: scheme.surfaceContainerLow,
                     shape: const CircleBorder(),
                   ),
                   child: Icon(

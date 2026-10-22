@@ -6,20 +6,11 @@ import "../../theme/lakbayan_colors.dart";
 
 /// Which meaning a [LakbayanBadge] carries.
 ///
-/// Every badge is a solid, high-contrast capsule with an all-caps label, so
-/// it reads at a glance on a photo and on white alike. Colour is one of the
-/// signals, never the only one: the label says what the colour means.
-///
-/// Gold is reserved for [featured]. The design system is explicit that gold
-/// never signals status, so there is deliberately no gold "warning" case.
+/// A capsule with an all-caps label; colour is one of the signals, never
+/// the only one. On a photo a status is a `PhotoPill` glyph instead, and
+/// featured is position, not a word (D-19). These three last until their
+/// screens move.
 enum BadgeKind {
-  /// Solid ink, white text. This destination has AR content. Blue stays
-  /// spatial for text and glyphs; on a photo the ink capsule reads first.
-  ar,
-
-  /// Solid deep gold, white text. Editorially promoted.
-  featured,
-
   /// White with a hairline, green text. Open now, downloaded, available.
   neutral,
 
@@ -38,12 +29,6 @@ enum BadgeKind {
 class LakbayanBadge extends StatelessWidget {
   const LakbayanBadge(this.label, {required this.kind, super.key});
 
-  const LakbayanBadge.ar({super.key}) : label = "AR", kind = BadgeKind.ar;
-
-  const LakbayanBadge.featured({super.key})
-    : label = "Featured",
-      kind = BadgeKind.featured;
-
   final String label;
   final BadgeKind kind;
 
@@ -54,8 +39,6 @@ class LakbayanBadge extends StatelessWidget {
     final card = scheme.surfaceContainerLowest;
 
     final (Color fill, Color text, Color? side) = switch (kind) {
-      BadgeKind.ar => (scheme.onSurface, card, null),
-      BadgeKind.featured => (c.featured, c.onFeatured, null),
       BadgeKind.neutral => (card, c.textOnLightGreen, scheme.outlineVariant),
       BadgeKind.info => (card, scheme.onSurface, scheme.outlineVariant),
       BadgeKind.closed => (scheme.error, scheme.onError, null),

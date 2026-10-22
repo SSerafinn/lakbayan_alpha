@@ -8,7 +8,6 @@ import "../../../core/router/app_router.dart";
 import "../../../core/theme/app_dimens.dart";
 import "../../../core/theme/app_motion.dart";
 import "../../../core/theme/app_typography.dart";
-import "../../../core/widgets/content/lakbayan_badge.dart";
 import "../../../core/widgets/content/media_tile.dart";
 import "../../../core/widgets/content/page_dots.dart";
 import "../../../core/widgets/content/storage_image.dart";
@@ -173,8 +172,7 @@ class _Card extends StatelessWidget {
                         spacing: AppSpace.x2,
                         runSpacing: AppSpace.x2,
                         children: [
-                          if (place.featured) const LakbayanBadge.featured(),
-                          if (place.hasAR) const LakbayanBadge.ar(),
+                          if (place.hasAR) const PhotoPill.scan(),
                         ],
                       ),
                     ),

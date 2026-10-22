@@ -1,15 +1,16 @@
 import "package:flutter/material.dart";
 
 import "../../theme/app_dimens.dart";
+import "../../theme/app_icons.dart";
 import "../../theme/app_typography.dart";
+import "../../theme/lakbayan_colors.dart";
 import "../motion/motion.dart";
-import "lakbayan_badge.dart";
 
 /// A photograph with an optional caption; the tile adds no chrome of its own.
 ///
-/// Badge top leading, [trailing] control top trailing (the save heart), then
-/// a caption below the photo or, with [overlay], a title on it over the
-/// scrim (the one gradient the app draws). Concentric inside a
+/// A [PhotoPill] top leading, [trailing] control top trailing (the save
+/// heart), then a caption below the photo or, with [overlay], a title on it
+/// over the scrim (the one gradient the app draws). Concentric inside a
 /// [ParentRadius], else [radius]. With [onTap] the whole tile is the target
 /// and sinks under the finger.
 class MediaTile extends StatelessWidget {
@@ -19,7 +20,7 @@ class MediaTile extends StatelessWidget {
     this.title,
     this.subtitle,
     this.subtitleColor,
-    this.badge,
+    this.pill,
     this.trailing,
     this.overlay = false,
     this.dense = false,
@@ -41,10 +42,10 @@ class MediaTile extends StatelessWidget {
   /// Colours the caption's second line when it carries a role (a distance).
   final Color? subtitleColor;
 
-  /// Stamped at the top leading corner, on the photo, with its own fill.
-  final LakbayanBadge? badge;
+  /// At the top leading corner, on the photo, on its own glass.
+  final PhotoPill? pill;
 
-  /// A control at the top trailing corner, on its own white circle. It sits
+  /// A control at the top trailing corner, on its own glass circle. It sits
   /// above the tile's ripple so it is its own tap target.
   final Widget? trailing;
 
@@ -113,8 +114,8 @@ class MediaTile extends StatelessWidget {
                 type: MaterialType.transparency,
                 child: InkWell(onTap: onTap, borderRadius: shape),
               ),
-            if (badge != null)
-              Positioned(top: AppSpace.x3, left: AppSpace.x3, child: badge!),
+            if (pill != null)
+              Positioned(top: AppSpace.x2, left: AppSpace.x2, child: pill!),
             if (trailing != null)
               Positioned(
                 top: AppSpace.x2,
@@ -158,6 +159,52 @@ class MediaTile extends StatelessWidget {
       ),
     );
     return Pressable(enabled: onTap != null, child: captioned);
+  }
+}
+
+/// A read-only note on a photo, on its own glass: a distance, a date, or the
+/// scan glyph alone where a museum's exhibits can be scanned (D-18). A
+/// status is this glyph or a fact, never a badge word (D-19). Not a target.
+class PhotoPill extends StatelessWidget {
+  const PhotoPill(String this.label, {this.glyph, super.key});
+
+  const PhotoPill.scan({super.key}) : label = null, glyph = AppIcons.scan;
+
+  final String? label;
+  final IconData? glyph;
+
+  @override
+  Widget build(BuildContext context) {
+    final brand = context.lakbayan;
+    final text = label;
+    final pill = Container(
+      constraints: const BoxConstraints(minHeight: AppSize.badge),
+      padding: EdgeInsets.symmetric(
+        horizontal: text == null ? AppSpace.near : AppSpace.x2,
+        vertical: text == null ? AppSpace.near : 0,
+      ),
+      decoration: ShapeDecoration(
+        color: brand.glass,
+        shape: text == null ? const CircleBorder() : const StadiumBorder(),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (glyph != null)
+            Icon(glyph, size: AppSize.glyphSm, color: brand.onGlass),
+          if (glyph != null && text != null) const SizedBox(width: AppSpace.x1),
+          if (text != null)
+            Text(
+              text,
+              style: AppTypography.labelMedium.copyWith(color: brand.onGlass),
+              maxLines: 1,
+            ),
+        ],
+      ),
+    );
+    return text == null
+        ? Semantics(label: "Exhibits to scan", child: pill)
+        : pill;
   }
 }
 

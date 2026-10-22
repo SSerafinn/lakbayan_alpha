@@ -21,8 +21,8 @@ class LakbayanColors extends ThemeExtension<LakbayanColors> {
     required this.onSpatial,
     required this.closed,
     required this.save,
-    required this.featured,
-    required this.onFeatured,
+    required this.river,
+    required this.cord,
     required this.mint,
     required this.sky,
     required this.butter,
@@ -52,9 +52,9 @@ class LakbayanColors extends ThemeExtension<LakbayanColors> {
   /// The saved heart, filled.
   final Color save;
 
-  /// The FEATURED badge, until the featured cards drop it (D-19).
-  final Color featured;
-  final Color onFeatured;
+  /// Explore's towns: the river they hang from, and their cords.
+  final Color river;
+  final Color cord;
 
   /// Pastels, ink on top: nature, museums and landmarks, churches and
   /// heritage, food. Also the landing washes and empty states.
@@ -78,8 +78,8 @@ class LakbayanColors extends ThemeExtension<LakbayanColors> {
     onSpatial: AppColors.white,
     closed: AppColors.redText,
     save: AppColors.red,
-    featured: AppColors.gold700,
-    onFeatured: AppColors.white,
+    river: AppColors.river,
+    cord: AppColors.cord,
     mint: AppColors.mint,
     sky: AppColors.sky,
     butter: AppColors.butter,
@@ -97,8 +97,8 @@ class LakbayanColors extends ThemeExtension<LakbayanColors> {
     onSpatial: AppColors.charcoal,
     closed: AppColors.redDark,
     save: AppColors.redDark,
-    featured: AppColors.gold300,
-    onFeatured: AppColors.ink,
+    river: AppColors.riverDark,
+    cord: AppColors.sub,
     mint: AppColors.mintDark,
     sky: AppColors.skyDark,
     butter: AppColors.butterDark,
@@ -139,8 +139,8 @@ class LakbayanColors extends ThemeExtension<LakbayanColors> {
     Color? onSpatial,
     Color? closed,
     Color? save,
-    Color? featured,
-    Color? onFeatured,
+    Color? river,
+    Color? cord,
     Color? mint,
     Color? sky,
     Color? butter,
@@ -156,8 +156,8 @@ class LakbayanColors extends ThemeExtension<LakbayanColors> {
     onSpatial: onSpatial ?? this.onSpatial,
     closed: closed ?? this.closed,
     save: save ?? this.save,
-    featured: featured ?? this.featured,
-    onFeatured: onFeatured ?? this.onFeatured,
+    river: river ?? this.river,
+    cord: cord ?? this.cord,
     mint: mint ?? this.mint,
     sky: sky ?? this.sky,
     butter: butter ?? this.butter,
@@ -179,8 +179,8 @@ class LakbayanColors extends ThemeExtension<LakbayanColors> {
       onSpatial: mix(onSpatial, other.onSpatial),
       closed: mix(closed, other.closed),
       save: mix(save, other.save),
-      featured: mix(featured, other.featured),
-      onFeatured: mix(onFeatured, other.onFeatured),
+      river: mix(river, other.river),
+      cord: mix(cord, other.cord),
       mint: mix(mint, other.mint),
       sky: mix(sky, other.sky),
       butter: mix(butter, other.butter),
