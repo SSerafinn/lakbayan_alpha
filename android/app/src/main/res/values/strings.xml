@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The AR scan screen (ExhibitScanActivity, D-18). Everything else the
+         visitor reads is in the Flutter app. -->
+    <string name="scan_hint">Come close, so the picture fills the box</string>
+    <string name="scan_open">Open its story</string>
+    <string name="scan_close">Close</string>
+</resources>
