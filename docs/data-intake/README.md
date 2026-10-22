@@ -184,6 +184,34 @@ It refuses to import a guide without consent, a photo without a licence, a
 description over 140 characters, a category outside the six, a stop with
 neither script nor recording, and coordinates outside Cagayan.
 
+## Where the first wave stands (2026-10-21)
+
+`Lakbayan-content-intake.xlsx` holds the first researched wave: **31
+destinations in 16 towns** — 16 nature, 10 churches, 3 landmarks, a heritage
+site and the Cagayan Museum. Every row has its name, town, category, short
+description, long form, location and access notes, tags and source. It does
+**not** import yet, by design: the photos are what stop it.
+
+- **Photos (sheet 5) are research, not files.** Each row is a link to an image
+  found online, with no licence or permission recorded, and the importer
+  refuses every one. Fifteen come from the province's own sites
+  (visit.cagayan.gov.ph, endlessfuncagayan.com) — ask the tourism office for
+  the originals and written permission. Seven are on Wikimedia Commons, free
+  with credit once each file page is checked. The rest are other sites'
+  photos: replace them, or ask their owners.
+- **Coordinates are approximate, for testing.** None came with the research;
+  each was looked up on 2026-10-21 from OpenStreetMap, GCatholic plus codes or
+  Wikipedia, and its row's *information source* says which, and how close it
+  is. 21 are the place itself, 7 the centre of its barangay, and 3 —
+  Laglagto, the Sierra Madre View Deck and Pozorobo — are only their town's
+  centre. Confirm each pin in the CMS before publishing.
+- **Not yet gathered:** entry fees, opening hours, best season, contact
+  people, and anything on sheets 2–4 (audio guide stops, tours, local guides),
+  which still hold only the template's examples.
+
+To try the places without the photos, import a copy with sheet 5's rows
+emptied; the rest validates.
+
 ## What happens to it afterwards
 
 Everything imports as **draft**. Nothing becomes visible in the app until an
