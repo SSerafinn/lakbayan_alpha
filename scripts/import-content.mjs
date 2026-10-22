@@ -44,6 +44,8 @@ import { applicationDefault, cert, initializeApp } from "firebase-admin/app";
 import { FieldValue, getFirestore } from "firebase-admin/firestore";
 import { getStorage } from "firebase-admin/storage";
 
+import { planGuide } from "./lib/guide.mjs";
+
 // The slug is this importer's identity key — it is how a sheet row is matched
 // to a destination the CMS already created. Shared rather than reimplemented
 // for that reason; see the note in lib/slug.mjs.
@@ -599,7 +601,9 @@ if (!commit) {
     const pics = photosByDest.get(ref)?.length ?? 0;
     console.log(
       `  ${ref.padEnd(12)} ${text(d.name).padEnd(34)} ` +
-        `slug=${slugify(text(d.name)).padEnd(28)} ${stops} stops, ${pics} photos`,
+        `slug=${slugify(text(d.name)).padEnd(28)} ` +
+        `${stops ? `${stops} stops` : "existing stops"}, ` +
+        `${pics ? `${pics} photos` : "existing photos"}`,
     );
   }
   console.log(`  ${rows.tours.length} tours, ${rows.guides.length} guides`);
@@ -762,74 +766,76 @@ for (const [ref, r] of destsByRef) {
     }
   }
 
-  // Segments: the sheet is the whole guide, so anything left over from a
-  // previous import goes. Ids are `stop-01`, `stop-02` … rather than random,
-  // for two reasons: re-importing overwrites the same documents instead of
-  // orphaning the old ones, and the audio path stays `{segmentId}.{ext}` per
-  // docs/DATA_MODEL.md while still being stable across runs.
+  // The audio guide (lib/guide.mjs). For a place the sheet gives stops to,
+  // the sheet is the whole guide: its stops in order, anything else gone. For
+  // a place it gives none, the guide is left exactly as it is, like photos —
+  // silence is not "delete the stops", which may have been made in the CMS.
   const stops = (segmentsByDest.get(ref) ?? []).sort(
     (a, b) => num(a.stop_number) - num(b.stop_number),
   );
   const segCol = destRef.collection("segments");
   const existingSegs = await segCol.get();
-  const previousAudio = existingSegs.docs
-    .map((d) => d.data().audioUrl)
-    .filter(Boolean);
-  const audioById = new Map(
-    existingSegs.docs
-      .filter((d) => d.data().audioUrl)
-      .map((d) => [d.id, d.data().audioUrl]),
+  const plan = planGuide(
+    stops.length,
+    existingSegs.docs.map((d) => d.id),
   );
+  if (plan) {
+    const previousAudio = existingSegs.docs
+      .map((d) => d.data().audioUrl)
+      .filter(Boolean);
+    const audioById = new Map(
+      existingSegs.docs
+        .filter((d) => d.data().audioUrl)
+        .map((d) => [d.id, d.data().audioUrl]),
+    );
 
-  const batch = db.batch();
-  const keep = new Set();
-  const liveAudio = [];
+    const batch = db.batch();
+    const liveAudio = [];
 
-  for (const [i, s] of stops.entries()) {
-    const id = `stop-${String(i + 1).padStart(2, "0")}`;
-    keep.add(id);
-    const segRef = segCol.doc(id);
-    const seg = { title: text(s.stop_title), order: i + 1 };
-    if (text(s.stop_caption)) seg.description = text(s.stop_caption);
-    if (text(s.narration_script)) seg.ttsText = text(s.narration_script);
+    for (const [i, s] of stops.entries()) {
+      const id = plan.write[i];
+      const segRef = segCol.doc(id);
+      const seg = { title: text(s.stop_title), order: i + 1 };
+      if (text(s.stop_caption)) seg.description = text(s.stop_caption);
+      if (text(s.narration_script)) seg.ttsText = text(s.narration_script);
 
-    const recording = text(s.recording_filename);
-    if (bucket && recording) {
-      const ext = extname(recording).slice(1).toLowerCase();
-      seg.audioUrl = await upload(
-        media.get(recording.toLowerCase()),
-        `destinations/${destRef.id}/audio/${id}.${ext}`,
-        AUDIO_MIME[ext],
-      );
-      liveAudio.push(seg.audioUrl);
-    } else if (recording && audioById.has(id)) {
-      // The sheet still names a recording but this run has no --media, so the
-      // file already uploaded stands. Without this the full-overwrite below
-      // would quietly strip `audioUrl` and the stop would fall back to TTS —
-      // re-importing a corrected spelling would silently unpublish the audio.
-      seg.audioUrl = audioById.get(id);
-      liveAudio.push(seg.audioUrl);
+      const recording = text(s.recording_filename);
+      if (bucket && recording) {
+        const ext = extname(recording).slice(1).toLowerCase();
+        seg.audioUrl = await upload(
+          media.get(recording.toLowerCase()),
+          `destinations/${destRef.id}/audio/${id}.${ext}`,
+          AUDIO_MIME[ext],
+        );
+        liveAudio.push(seg.audioUrl);
+      } else if (recording && audioById.has(id)) {
+        // The sheet still names a recording but this run has no --media, so the
+        // file already uploaded stands. Without this the full-overwrite below
+        // would quietly strip `audioUrl` and the stop would fall back to TTS —
+        // re-importing a corrected spelling would silently unpublish the audio.
+        seg.audioUrl = audioById.get(id);
+        liveAudio.push(seg.audioUrl);
+      }
+      // A full overwrite, not a merge: a stop that loses its recording must lose
+      // `audioUrl` too, or the player keeps reaching for a file the sheet no
+      // longer claims exists.
+      batch.set(segRef, seg);
     }
-    // A full overwrite, not a merge: a stop that loses its recording must lose
-    // `audioUrl` too, or the player keeps reaching for a file the sheet no
-    // longer claims exists.
-    batch.set(segRef, seg);
-  }
 
-  for (const old of existingSegs.docs) {
-    if (!keep.has(old.id)) batch.delete(old.ref);
-  }
-  await batch.commit();
+    for (const id of plan.remove) batch.delete(segCol.doc(id));
+    await batch.commit();
 
-  if (bucket) {
-    for (const stale of previousAudio.filter((p) => !liveAudio.includes(p))) {
-      await bucket.file(stale).delete().catch(() => {});
+    if (bucket) {
+      for (const stale of previousAudio.filter((p) => !liveAudio.includes(p))) {
+        await bucket.file(stale).delete().catch(() => {});
+      }
     }
   }
 
   console.log(
     `  ${existing ? "updated" : "created"}  ${name} (${slug}) — ` +
-      `${stops.length} stops, ${doc.images?.length ?? "existing"} photos`,
+      `${plan ? `${stops.length} stops` : "existing stops"}, ` +
+      `${doc.images?.length ?? "existing"} photos`,
   );
 }
 
