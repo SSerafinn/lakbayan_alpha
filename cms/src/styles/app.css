@@ -1926,3 +1926,32 @@ table.data .tag-row {
   border: 1px solid var(--lk-outline-variant);
   border-radius: var(--lk-shape-capsule);
 }
+
+/* Lakbayan label size on an AR exhibit: A6 or A5, one chosen. Selection is
+   solid green, as everywhere (design system: colour). */
+.size-choice {
+  display: inline-flex;
+  border: 1px solid var(--lk-outline-variant);
+  border-radius: var(--lk-shape-sm);
+  overflow: hidden;
+}
+.size-choice button {
+  border: 0;
+  background: var(--lk-surface);
+  color: var(--lk-on-surface);
+  font: inherit;
+  font-weight: 650;
+  padding: 6px 14px;
+  cursor: pointer;
+}
+.size-choice button + button {
+  border-left: 1px solid var(--lk-outline-variant);
+}
+.size-choice button.on {
+  background: var(--lk-role-primary);
+  color: var(--lk-on-primary);
+}
+.size-choice button:disabled {
+  color: var(--lk-on-surface-variant);
+  cursor: default;
+}

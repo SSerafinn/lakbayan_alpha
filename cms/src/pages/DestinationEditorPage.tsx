@@ -709,6 +709,7 @@ export function DestinationEditorPage() {
               exhibits={exhibits}
               onChange={setExhibits}
               onSaveFirst={() => save("draft")}
+              printable={!isNew && !dirty}
             />
           )}
         </div>
