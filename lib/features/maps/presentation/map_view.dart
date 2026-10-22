@@ -15,6 +15,7 @@ import "../../../core/theme/app_motion.dart";
 import "../../../core/theme/app_typography.dart";
 import "../../../core/theme/lakbayan_colors.dart";
 import "../../../core/widgets/content/stop_numeral.dart";
+import "../../../core/widgets/content/storage_image.dart";
 import "../../../core/widgets/motion/motion.dart";
 import "../../destinations/domain/destination_providers.dart";
 import "../../destinations/domain/saved_destinations.dart";
@@ -350,7 +351,7 @@ class _Pins extends ConsumerWidget {
         for (final d in destinations)
           Marker(
             point: LatLng(d.coords.lat, d.coords.lng),
-            width: _Pin.labelWidth,
+            width: _Pin.width,
             height: slot * 2,
             // The dot sits in the lower slot; this puts its centre on
             // the coordinate so a label above never shifts the pin.
@@ -373,8 +374,9 @@ class _Pins extends ConsumerWidget {
   }
 }
 
-/// A place on the map. Blue circle with a white ring; green when saved; the
-/// selected one grows, gains a centre dot and its name on an ink capsule.
+/// A place on the map. An emerald dot with a white ring, red when saved;
+/// the chosen one grows, gains a centre dot and lifts its photo on an
+/// emerald ring (D-19). A route's stops are its blue numerals.
 class _Pin extends StatelessWidget {
   const _Pin({
     required this.destination,
@@ -401,24 +403,21 @@ class _Pin extends StatelessWidget {
   static const _dot = 22.0;
   static const _dotSelected = 28.0;
   static const _ring = 3.0;
-  static const labelWidth = 160.0;
+  static const _photo = AppSize.rowMedia;
+  static const width = _photo;
   static const anchor = Alignment(0, -0.5);
 
-  /// Each of the pin's two halves (the name above, the dot below): tall
-  /// enough for the selected dot, a stop's numeral and the name capsule at
-  /// the person's text size, so none of them spills out of the marker's
-  /// fixed box (STANDARDS 6.7). Equal halves keep [anchor] on the dot.
+  /// Each of the pin's two halves (the photo above, the dot below): tall
+  /// enough for the photo and for a stop's numeral at the person's text
+  /// size, so neither spills out of the marker's fixed box (STANDARDS 6.7).
+  /// Equal halves keep [anchor] on the dot.
   static double slotOf(BuildContext context) {
-    final label =
-        MediaQuery.textScalerOf(context)
-            .lineHeightOf(AppTypography.labelMedium) +
-        2 * AppSpace.x1;
     final numeral = StopNumeral.sideOf(
       context,
       size: _dotSelected,
       ring: _ring,
     );
-    return max(_dotSelected, max(numeral, label)).ceilToDouble();
+    return max(_photo, numeral).ceilToDouble();
   }
 
   @override
@@ -446,25 +445,19 @@ class _Pin extends StatelessWidget {
               height: slot,
               child: selected
                   ? Center(
-                      // The name lands on the pin with the pin's own weight.
+                      // Its photo lands on the pin with the pin's own weight.
                       child: PopIn(
                         alignment: Alignment.bottomCenter,
-                        child: Material(
-                          color: scheme.onSurface,
-                          shape: const StadiumBorder(),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: AppSpace.x2,
-                              vertical: AppSpace.x1,
-                            ),
-                            child: Text(
-                              destination.name,
-                              style: AppTypography.labelMedium.copyWith(
-                                color: scheme.surfaceContainerLowest,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
+                        child: Container(
+                          width: _photo,
+                          height: _photo,
+                          padding: const EdgeInsets.all(_ring),
+                          decoration: ShapeDecoration(
+                            color: scheme.primary,
+                            shape: const CircleBorder(),
+                          ),
+                          child: ClipOval(
+                            child: CoverImage(destination.coverImage),
                           ),
                         ),
                       ),
@@ -478,12 +471,7 @@ class _Pin extends StatelessWidget {
                 // matters", and only one of them says where it comes in the
                 // trip. The numeral is the itinerary list's too.
                 child: number != null
-                    ? StopNumeral(
-                        number,
-                        size: size,
-                        ring: _ring,
-                        color: saved ? scheme.primary : null,
-                      )
+                    ? StopNumeral(number, size: size, ring: _ring)
                     // Chosen, the dot swells a size on the arrive spring, so
                     // it pops rather than swaps.
                     : AppMotionBuilder(
@@ -497,7 +485,7 @@ class _Pin extends StatelessWidget {
                           width: _dot,
                           height: _dot,
                           decoration: ShapeDecoration(
-                            color: saved ? scheme.primary : brand.spatial,
+                            color: saved ? brand.save : scheme.primary,
                             shape: CircleBorder(
                               side: BorderSide(
                                 color: scheme.surfaceContainerLowest,

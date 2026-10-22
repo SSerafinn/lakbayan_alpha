@@ -63,28 +63,33 @@ void main() {
       expect(pins(), findsNWidgets(2));
     });
 
-    testWidgets("tapping a pin names it, tapping the basemap clears it", (
-      tester,
-    ) async {
-      // Selection is the pin growing and carrying its name; there is no card
-      // on the map itself, the places sheet does that job.
-      await pumpMap(tester, [at("callao", lat: 17.70, lng: 121.80)]);
+    testWidgets(
+      "tapping a pin lifts its photo, tapping the basemap clears it",
+      (tester) async {
+        // Selection is the pin growing and lifting its photo (D-19); there is
+        // no card on the map itself, the places sheet does that job.
+        await pumpMap(tester, [at("callao", lat: 17.70, lng: 121.80)]);
+        final photo = find.descendant(
+          of: find.byKey(const Key("pin-callao")),
+          matching: find.byType(ClipOval),
+        );
 
-      expect(find.text("callao"), findsNothing);
+        expect(photo, findsNothing);
 
-      await tester.tap(
-        find.byKey(const Key("pin-callao")),
-        warnIfMissed: false,
-      );
-      await tester.pump(const Duration(milliseconds: 50));
-      expect(find.text("callao"), findsOneWidget);
+        await tester.tap(
+          find.byKey(const Key("pin-callao")),
+          warnIfMissed: false,
+        );
+        await tester.pump(const Duration(milliseconds: 50));
+        expect(photo, findsOneWidget);
 
-      // The same gesture that dismisses a sheet: a tap on the empty map. The
-      // map waits out its double-tap window before it calls a tap a tap.
-      await tester.tapAt(const Offset(20, 700));
-      await tester.pump(const Duration(milliseconds: 400));
-      expect(find.text("callao"), findsNothing);
-    });
+        // The same gesture that dismisses a sheet: a tap on the empty map. The
+        // map waits out its double-tap window before it calls a tap a tap.
+        await tester.tapAt(const Offset(20, 700));
+        await tester.pump(const Duration(milliseconds: 400));
+        expect(photo, findsNothing);
+      },
+    );
 
     testWidgets("still draws the map when there is nothing to pin", (
       tester,
@@ -154,7 +159,7 @@ void main() {
 
       expect(find.byType(FlutterMap), findsOneWidget);
 
-      await tester.tap(find.byTooltip("Show as a grid"));
+      await tester.tap(find.byTooltip("Show as photos"));
       await tester.pump(const Duration(milliseconds: 50));
       expect(find.byType(FlutterMap), findsNothing);
       expect(find.text("Browse"), findsOneWidget);

@@ -118,7 +118,7 @@ void main() {
       await show(tester, container, "Just Callao", ["callao"]);
 
       expect(find.byType(PolylineLayer), findsNothing);
-      expect(find.text("One stop"), findsOneWidget);
+      expect(find.text("Just Callao"), findsOneWidget);
     });
 
     testWidgets("a filter cannot break the line by hiding a stop", (
@@ -155,12 +155,13 @@ void main() {
   });
 
   group("the route banner", () {
-    testWidgets("names the route and says how many stops", (tester) async {
+    testWidgets("names the route; its numbered pins say the rest", (
+      tester,
+    ) async {
       final container = await pumpTab(tester);
       await show(tester, container, "Caves in a day", ["callao", "piat"]);
 
       expect(find.text("Caves in a day"), findsOneWidget);
-      expect(find.text("2 stops, in order"), findsOneWidget);
     });
 
     testWidgets("dismissing it clears the route", (tester) async {

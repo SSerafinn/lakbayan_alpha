@@ -78,7 +78,7 @@ class MapTopControls extends ConsumerWidget {
             ),
             SymbolButton(
               icon: AppIcons.grid,
-              tooltip: "Show as a grid",
+              tooltip: "Show as photos",
               onTap: ref.read(browseShowsGridProvider.notifier).toggle,
             ),
             const SizedBox(width: AppSpace.gutter),
@@ -113,7 +113,6 @@ class _Banner extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
-    final stops = route.destinationIds.length;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(
@@ -135,29 +134,13 @@ class _Banner extends ConsumerWidget {
                 color: context.lakbayan.spatial,
               ),
               const SizedBox(width: AppSpace.x2),
+              // The route's name alone: its numbered pins say the rest.
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      route.label,
-                      style: AppTypography.labelLarge,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    Text(
-                      route.isDrawable
-                          ? "$stops stops, in order"
-                          // One stop draws no line, and saying "1 stop, in
-                          // order" over a map with nothing joined would read
-                          // as a rendering failure.
-                          : "One stop",
-                      style: AppTypography.secondLine.copyWith(
-                        color: scheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
+                child: Text(
+                  route.label,
+                  style: AppTypography.labelLarge,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
               IconButton(
