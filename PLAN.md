@@ -162,7 +162,7 @@ and `flutter test` before committing; commit with `/commit`.
 - [x] **Redesign 2a–2k (D-14)** across Home, swipe mode, Map, Place detail,
       Itineraries, Profile, on tokens 2.1.0.
 - [x] **Motion on one vocabulary.** `motor` added; `AppMotion` is two
-      `CupertinoMotion` springs (`chrome`, `arrive`) and one fade, in
+      motor springs (`chrome`, `arrive`) and one fade, in
       `lib/core/theme/app_motion.dart`. The tab bar, search capsule, swipe
       flight, thumbnail pop-in and save heart all ride them; the hand-tuned
       `SpringDescription`, the tab bar's `AnimationController` and the

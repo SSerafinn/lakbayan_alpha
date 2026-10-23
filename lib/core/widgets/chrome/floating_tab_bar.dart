@@ -1,18 +1,18 @@
-import "dart:math" show pi, sin;
 import "dart:ui" show lerpDouble;
 
 import "package:flutter/material.dart";
 import "package:motor/motor.dart";
 
 import "../../theme/app_dimens.dart";
+import "../../theme/app_icons.dart";
 import "../../theme/app_motion.dart";
-import "../../theme/app_typography.dart";
 import "../motion/motion.dart";
 
 /// The bottom navigation bar: the four sections and search in one white
-/// capsule, an emerald pill sliding to the chosen section, whose name grows
-/// out of it (D-19). Shrinks on a deliberate scroll down, every cell still
-/// one tap; hides fully when a surface needs the space.
+/// capsule, glyphs only, an emerald pill sliding to the chosen section, whose
+/// glyph fills in. The names are each cell's tooltip and semantics label.
+/// Shrinks on a deliberate scroll down, every cell still one tap; hides
+/// fully when a surface needs the space.
 class FloatingTabBar extends StatelessWidget {
   const FloatingTabBar({
     required this.destinations,
@@ -106,8 +106,8 @@ class FloatingTabBar extends StatelessWidget {
   }
 }
 
-/// The bar's parts. Two springs (search parting it, the indicator sliding)
-/// drive layout and paint; nothing rebuilds per frame.
+/// The bar's parts. Two springs (search parting it, the pill sliding) drive
+/// layout and paint; nothing rebuilds per frame.
 class _Bar extends StatefulWidget {
   const _Bar({
     required this.destinations,
@@ -153,35 +153,8 @@ class _BarState extends State<_Bar> with TickerProviderStateMixin {
     value: 1,
   );
 
-  /// What moves the glyphs' ink, the names and the cells.
+  /// What moves the glyphs' ink and the cells.
   late final Listenable _moves = Listenable.merge([_parting, _travel]);
-
-  /// Each section's name, laid out once per text size and theme.
-  List<TextPainter> _names = const [];
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _layoutNames();
-  }
-
-  void _layoutNames() {
-    for (final name in _names) {
-      name.dispose();
-    }
-    final style = AppTypography.labelMedium.copyWith(
-      color: Theme.of(context).colorScheme.onPrimary,
-    );
-    _names = [
-      for (final destination in widget.destinations)
-        TextPainter(
-          text: TextSpan(text: destination.label, style: style),
-          textDirection: Directionality.of(context),
-          textScaler: MediaQuery.textScalerOf(context),
-          maxLines: 1,
-        )..layout(),
-    ];
-  }
 
   @override
   void didUpdateWidget(_Bar old) {
@@ -211,9 +184,6 @@ class _BarState extends State<_Bar> with TickerProviderStateMixin {
     _parting.dispose();
     _travel.dispose();
     _fade.dispose();
-    for (final name in _names) {
-      name.dispose();
-    }
     super.dispose();
   }
 
@@ -225,10 +195,6 @@ class _BarState extends State<_Bar> with TickerProviderStateMixin {
     from: _from,
     to: widget.selectedIndex,
     travel: _travel.value,
-    needs: [
-      for (final name in _names)
-        AppSize.tabGlyph + AppSpace.near + name.width + 2 * AppSpace.x3,
-    ],
   );
 
   /// How far a section is chosen right now, 0 to 1: the pill's share of it,
@@ -290,17 +256,13 @@ class _BarState extends State<_Bar> with TickerProviderStateMixin {
                 label: destinations[i].label,
                 selected: i == widget.selectedIndex,
                 onTap: () => _tapped(i),
-                glyph: TabGlyph(
-                  symbol: destinations[i].symbol,
-                  selected: i == widget.selectedIndex,
-                  size: AppSize.tabGlyph,
+                glyph: _SectionGlyph(
+                  icon: destinations[i].icon,
+                  selectedIcon: destinations[i].selectedIcon,
                   ink: () => _inkOf(i, rest, scheme.onPrimary),
-                  repaint: _moves,
-                  cutout: scheme.primary,
+                  chosen: () => _chosen(i),
+                  moves: _moves,
                 ),
-                name: _names[i],
-                chosen: () => _chosen(i),
-                moves: _moves,
               ),
             ),
           LayoutId(
@@ -313,12 +275,10 @@ class _BarState extends State<_Bar> with TickerProviderStateMixin {
                 child: _Cell(
                   label: "Search",
                   onTap: widget.onSearch,
-                  glyph: TabGlyph(
-                    symbol: TabSymbol.search,
-                    selected: false,
+                  glyph: Icon(
+                    AppIcons.search,
                     size: AppSize.tabGlyph,
-                    ink: () => rest,
-                    cutout: scheme.primary,
+                    color: rest,
                   ),
                 ),
               ),
@@ -450,13 +410,11 @@ class _AtRestState extends State<_AtRest> {
       Visibility.maintain(visible: _rested, child: widget.child);
 }
 
-/// Where the bar's parts sit: one full-width capsule of cells,
-/// `[ a  b  c  d  search ]`, and the pill. The chosen section is as wide as
-/// its glyph and name need ([needs]); the pill travels [from] the last
-/// section [to] the chosen one on [travel] (0 to 1), and only those two
-/// cells change width on the way. [parting] (0 to 1) slides the capsule out
-/// past the leading edge as search opens. The shrink is a transform, so it
-/// never changes these rects.
+/// Where the bar's parts sit: one full-width capsule of equal cells,
+/// `[ a  b  c  d  search ]`, and the pill, which travels [from] the last
+/// section [to] the chosen one on [travel] (0 to 1). [parting] (0 to 1)
+/// slides the capsule out past the leading edge as search opens. The shrink
+/// is a transform, so it never changes these rects.
 class TabBarLayout {
   factory TabBarLayout({
     required double width,
@@ -465,43 +423,21 @@ class TabBarLayout {
     required int from,
     required int to,
     required double travel,
-    required List<double> needs,
   }) {
     const height = AppSize.bottomNav;
     final push = -width * parting;
     final cells = count + 1;
     final room = width - 2 * inset - (cells - 1) * itemGap;
-    final even = room / cells;
-    // The extra a section takes, the others giving it back evenly, so the
-    // chosen one at rest is exactly what it needs; never so much that the
-    // others drop under a touch target.
-    double extra(int position, double share) {
-      final need = needs[position].clamp(even, room * _widest);
-      return (need - even) * cells / (cells - 1) * share;
-    }
-
-    final grow = travel.clamp(0.0, 1.0);
-    final extras = [
-      for (var i = 0; i < count; i++)
-        i == to
-            ? extra(i, from == to ? 1 : grow)
-            : i == from
-            ? extra(i, 1 - grow)
-            : 0.0,
+    final cellWidth = room / cells;
+    final rects = [
+      for (var i = 0; i < cells; i++)
+        Rect.fromLTWH(
+          push + inset + i * (cellWidth + itemGap),
+          0,
+          cellWidth,
+          height,
+        ),
     ];
-    var taken = 0.0;
-    for (final value in extras) {
-      taken += value;
-    }
-    final base = (room - taken) / cells;
-
-    final rects = <Rect>[];
-    var x = push + inset;
-    for (var i = 0; i < cells; i++) {
-      final cellWidth = base + (i < count ? extras[i] : 0);
-      rects.add(Rect.fromLTWH(x, 0, cellWidth, height));
-      x += cellWidth + itemGap;
-    }
     final between = Rect.lerp(rects[from], rects[to], travel)!;
     return TabBarLayout._(
       capsule: Rect.fromLTWH(push, 0, width, height),
@@ -527,9 +463,6 @@ class TabBarLayout {
   /// Between two cells.
   static const itemGap = AppSpace.x1;
 
-  /// The most of the bar one chosen section may take.
-  static const _widest = 0.4;
-
   final Rect capsule;
 
   /// The sections' cells, then search's; each at least a touch target.
@@ -541,360 +474,178 @@ class TabBarLayout {
   Rect get search => cells.last;
 }
 
-/// One cell, a section or search: its glyph, and for a section its [name]
-/// growing out beside it as it is chosen. The name is also the semantics
-/// label and the tooltip. A section's selection shows three ways: the pill,
-/// the glyph filling in and the name.
+/// One cell, a section or search: its glyph alone. Its name is the
+/// semantics label and the long-press tooltip. A section's selection shows
+/// two ways: the pill, and the glyph filling in.
 class _Cell extends StatelessWidget {
   const _Cell({
     required this.label,
     required this.onTap,
     required this.glyph,
     this.selected = false,
-    this.name,
-    this.chosen,
-    this.moves,
   });
 
   final String label;
   final VoidCallback onTap;
   final Widget glyph;
   final bool selected;
-  final TextPainter? name;
-  final ValueGetter<double>? chosen;
-  final Listenable? moves;
 
   @override
-  Widget build(BuildContext context) {
-    final name = this.name;
-    final chosen = this.chosen;
-    return Tooltip(
-      message: label,
-      excludeFromSemantics: true,
-      child: Semantics(
-        button: true,
-        selected: selected,
-        label: label,
-        excludeSemantics: true,
-        child: InkWell(
-          customBorder: capsule,
-          onTap: onTap,
-          child: name == null || chosen == null
-              ? Center(child: glyph)
-              : ClipRect(
-                  child: CustomMultiChildLayout(
-                    delegate: _CellLayout(chosen: chosen, moves: moves),
-                    children: [
-                      LayoutId(id: _CellPart.glyph, child: glyph),
-                      LayoutId(
-                        id: _CellPart.name,
-                        child: CustomPaint(
-                          size: name.size,
-                          painter: _NamePainter(
-                            name: name,
-                            chosen: chosen,
-                            moves: moves,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-        ),
-      ),
-    );
-  }
-}
-
-enum _CellPart { glyph, name }
-
-/// The glyph centred alone, sliding aside as the name comes in beside it.
-class _CellLayout extends MultiChildLayoutDelegate {
-  _CellLayout({required this.chosen, required Listenable? moves})
-    : super(relayout: moves);
-
-  final ValueGetter<double> chosen;
-
-  @override
-  void performLayout(Size size) {
-    final loose = BoxConstraints.loose(size);
-    final glyph = layoutChild(_CellPart.glyph, loose);
-    final name = layoutChild(_CellPart.name, const BoxConstraints());
-    final group = glyph.width + chosen() * (AppSpace.near + name.width);
-    final left = (size.width - group) / 2;
-    positionChild(
-      _CellPart.glyph,
-      Offset(left, (size.height - glyph.height) / 2),
-    );
-    positionChild(
-      _CellPart.name,
-      Offset(
-        left + glyph.width + AppSpace.near,
-        (size.height - name.height) / 2,
-      ),
-    );
-  }
-
-  @override
-  bool shouldRelayout(_CellLayout old) => true;
-}
-
-/// A section's name, faded in by how chosen it is. Only while it fades is
-/// it painted through a layer, and the layer is one short word.
-class _NamePainter extends CustomPainter {
-  _NamePainter({required this.name, required this.chosen, Listenable? moves})
-    : super(repaint: moves);
-
-  final TextPainter name;
-  final ValueGetter<double> chosen;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final alpha = chosen().clamp(0.0, 1.0);
-    if (alpha == 0) return;
-    if (alpha == 1) {
-      name.paint(canvas, Offset.zero);
-      return;
-    }
-    canvas.saveLayer(
-      Offset.zero & size,
-      Paint()..color = Color.fromRGBO(0, 0, 0, alpha),
-    );
-    name.paint(canvas, Offset.zero);
-    canvas.restore();
-  }
-
-  @override
-  bool shouldRepaint(_NamePainter old) => old.name != name;
-}
-
-/// One top-level section. Declared once and passed to [FloatingTabBar]; the
-/// bar shows the [symbol], and the chosen section's [label] beside it.
-class AppDestination {
-  const AppDestination({required this.symbol, required this.label});
-
-  final TabSymbol symbol;
-  final String label;
-}
-
-/// The four sections and search, all drawn in one box and stroke: a font
-/// glyph beside drawn ones never lines up.
-enum TabSymbol { explore, map, trips, profile, search }
-
-/// A tab's drawn glyph: outline at rest, filled when selected, with a short
-/// animation gesture per symbol (compass swings, map unfolds, etc.).
-/// Parts that read through the fill are painted in [cutout] to avoid `saveLayer`.
-class TabGlyph extends StatelessWidget {
-  const TabGlyph({
-    required this.symbol,
-    required this.selected,
-    required this.ink,
-    required this.cutout,
-    required this.size,
-    this.repaint,
-    super.key,
-  });
-
-  final TabSymbol symbol;
-  final bool selected;
-
-  /// The glyph's colour, read at paint time, so a colour that moves with an
-  /// animation (the tab bar's part and indicator) repaints the glyph
-  /// without rebuilding it. [repaint] is what it moves with.
-  final ValueGetter<Color> ink;
-  final Listenable? repaint;
-  final Color cutout;
-  final double size;
-
-  @override
-  Widget build(BuildContext context) => AppMotionBuilder(
-    end: selected ? 1 : 0,
-    builder: (context, t, _) => SizedBox.square(
-      dimension: size,
-      child: CustomPaint(
-        painter: _GlyphPainter(
-          symbol: symbol,
-          t: t,
-          ink: ink,
-          cutout: cutout,
-          repaint: repaint,
-        ),
+  Widget build(BuildContext context) => Tooltip(
+    message: label,
+    excludeFromSemantics: true,
+    child: Semantics(
+      button: true,
+      selected: selected,
+      label: label,
+      excludeSemantics: true,
+      child: InkWell(
+        customBorder: capsule,
+        onTap: onTap,
+        child: Center(child: glyph),
       ),
     ),
   );
 }
 
-class _GlyphPainter extends CustomPainter {
-  _GlyphPainter({
-    required this.symbol,
-    required this.t,
+/// A section's glyph from `AppIcons`: the outline at rest, the filled one
+/// while chosen, the two crossing by their own colour's alpha as the pill
+/// arrives, as `SymbolSwap` does. The ink is read at paint time, so a frame
+/// of the pill sliding repaints the glyph and never rebuilds it (STANDARDS
+/// 10.10), and no layer is opened (10.4).
+class _SectionGlyph extends StatefulWidget {
+  const _SectionGlyph({
+    required this.icon,
+    required this.selectedIcon,
     required this.ink,
-    required this.cutout,
-    super.repaint,
+    required this.chosen,
+    required this.moves,
   });
 
-  final TabSymbol symbol;
-  final double t;
+  final IconData icon;
+  final IconData selectedIcon;
   final ValueGetter<Color> ink;
-  final Color cutout;
+  final ValueGetter<double> chosen;
+  final Listenable moves;
 
-  static const _box = 24.0;
-  static const _stroke = 1.7;
+  @override
+  State<_SectionGlyph> createState() => _SectionGlyphState();
+}
 
-  static Paint _stroked(Color color) => Paint()
-    ..color = color
-    ..style = PaintingStyle.stroke
-    ..strokeWidth = _stroke
-    ..strokeCap = StrokeCap.round
-    ..strokeJoin = StrokeJoin.round;
+class _SectionGlyphState extends State<_SectionGlyph> {
+  final _outline = TextPainter();
+  final _filled = TextPainter();
+
+  @override
+  void dispose() {
+    _outline.dispose();
+    _filled.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => SizedBox.square(
+    dimension: AppSize.tabGlyph,
+    child: CustomPaint(
+      painter: _GlyphPainter(
+        outline: (painter: _outline, icon: widget.icon),
+        filled: (painter: _filled, icon: widget.selectedIcon),
+        ink: widget.ink,
+        chosen: widget.chosen,
+        textDirection: Directionality.of(context),
+        moves: widget.moves,
+      ),
+    ),
+  );
+}
+
+typedef _Glyph = ({TextPainter painter, IconData icon});
+
+class _GlyphPainter extends CustomPainter {
+  _GlyphPainter({
+    required this.outline,
+    required this.filled,
+    required this.ink,
+    required this.chosen,
+    required this.textDirection,
+    required Listenable moves,
+  }) : super(repaint: moves);
+
+  final _Glyph outline;
+  final _Glyph filled;
+  final ValueGetter<Color> ink;
+  final ValueGetter<double> chosen;
+  final TextDirection textDirection;
 
   @override
   void paint(Canvas canvas, Size size) {
-    canvas.scale(size.width / _box);
+    final t = chosen().clamp(0.0, 1.0);
     final color = ink();
-    final fill = t.clamp(0.0, 1.0);
-    // The gesture: zero at rest and settled, largest mid-flight.
-    final gesture = sin(pi * fill);
-    final line = _stroked(color);
-    final solid = Paint()..color = color.withValues(alpha: color.a * fill);
-    final cut = _stroked(cutout.withValues(alpha: cutout.a * fill));
-
-    switch (symbol) {
-      case TabSymbol.explore:
-        _compass(canvas, fill, line, solid, cut);
-      case TabSymbol.map:
-        _map(canvas, gesture, line, solid, cut);
-      case TabSymbol.trips:
-        _case(canvas, gesture, line, solid, cut);
-      case TabSymbol.profile:
-        _person(canvas, fill, gesture, line);
-      case TabSymbol.search:
-        _magnifier(canvas, line);
+    if (t < 1) {
+      _draw(canvas, size, outline, color.withValues(alpha: color.a * (1 - t)));
+    }
+    if (t > 0) {
+      _draw(canvas, size, filled, color.withValues(alpha: color.a * t));
     }
   }
 
-  /// Search: a lens and its handle, the lens centred a little up and left
-  /// so the whole glyph sits on the same optical centre as the others.
-  void _magnifier(Canvas canvas, Paint line) {
-    canvas.drawCircle(const Offset(10.5, 10.5), 6.5, line);
-    canvas.drawLine(const Offset(15.2, 15.2), const Offset(20, 20), line);
-  }
-
-  void _compass(
-    Canvas canvas,
-    double fill,
-    Paint line,
-    Paint solid,
-    Paint cut,
-  ) {
-    const centre = Offset(12, 12);
-    canvas.drawCircle(centre, 9, line);
-    canvas.drawCircle(centre, 9, solid);
-    final needle = Path()
-      ..moveTo(15.5, 8.5)
-      ..lineTo(13.5, 13.5)
-      ..lineTo(8.5, 15.5)
-      ..lineTo(10.5, 10.5)
-      ..close();
-    canvas.save();
-    // A half turn lands the diamond on itself, so the settled needle is the
-    // outline's needle.
-    canvas.translate(centre.dx, centre.dy);
-    canvas.rotate(pi * fill);
-    canvas.translate(-centre.dx, -centre.dy);
-    // Outline: the needle in the glyph's colour; filled: cut out of the disc.
-    final ink = line.color;
-    canvas.drawPath(
-      needle,
-      _stroked(ink.withValues(alpha: ink.a * (1 - fill))),
+  /// One glyph, centred. Laid out again only when its colour has changed,
+  /// so a settled bar paints what it laid out last.
+  void _draw(Canvas canvas, Size size, _Glyph glyph, Color color) {
+    final (:painter, :icon) = glyph;
+    final style = (painter.text as TextSpan?)?.style;
+    if (style?.color != color || style?.fontFamily != icon.fontFamily) {
+      painter
+        ..textDirection = textDirection
+        // The glyph's own style, as `Icon` builds it: a font character, not
+        // a type step.
+        ..text = TextSpan(
+          text: String.fromCharCode(icon.codePoint),
+          style: TextStyle(
+            inherit: false,
+            color: color,
+            fontSize: size.width,
+            fontFamily: icon.fontFamily,
+            package: icon.fontPackage,
+            height: 1,
+          ),
+        )
+        ..layout();
+    }
+    final at = Offset(
+      (size.width - painter.width) / 2,
+      (size.height - painter.height) / 2,
     );
-    canvas.drawPath(needle, Paint()..color = cut.color);
-    canvas.restore();
-  }
-
-  void _map(Canvas canvas, double gesture, Paint line, Paint solid, Paint cut) {
-    // Folded in a little mid-flight, open again once settled.
-    canvas.save();
-    canvas.translate(12, 12);
-    canvas.scale(1 - 0.22 * gesture, 1);
-    canvas.translate(-12, -12);
-    final sheet = Path()
-      ..moveTo(3, 6.5)
-      ..lineTo(9, 4)
-      ..lineTo(15, 6.5)
-      ..lineTo(21, 4)
-      ..lineTo(21, 18)
-      ..lineTo(15, 20.5)
-      ..lineTo(9, 18)
-      ..lineTo(3, 20.5)
-      ..close();
-    canvas.drawPath(sheet, solid);
-    canvas.drawPath(sheet, line);
-    final folds = Path()
-      ..moveTo(9, 4)
-      ..lineTo(9, 18)
-      ..moveTo(15, 6.5)
-      ..lineTo(15, 20.5);
-    canvas.drawPath(folds, line);
-    canvas.drawPath(folds, cut);
-    canvas.restore();
-  }
-
-  void _case(
-    Canvas canvas,
-    double gesture,
-    Paint line,
-    Paint solid,
-    Paint cut,
-  ) {
-    final body = RRect.fromLTRBR(3, 7.5, 21, 19.5, const Radius.circular(3));
-    canvas.drawRRect(body, solid);
-    canvas.drawRRect(body, line);
-    canvas.drawLine(const Offset(3.5, 12.5), const Offset(20.5, 12.5), cut);
-    // The handle lifts a point and a half, like a lid opening.
-    final handle = Path()
-      ..moveTo(9, 7.5)
-      ..lineTo(9, 6)
-      ..arcToPoint(const Offset(11, 4), radius: const Radius.circular(2))
-      ..lineTo(13, 4)
-      ..arcToPoint(const Offset(15, 6), radius: const Radius.circular(2))
-      ..lineTo(15, 7.5);
-    canvas.save();
-    canvas.translate(0, -1.5 * gesture);
-    canvas.drawPath(handle, line);
-    canvas.restore();
-  }
-
-  void _person(Canvas canvas, double fill, double gesture, Paint line) {
-    // Head first, then the shoulders: the fill runs down the figure.
-    final head = (fill * 2).clamp(0.0, 1.0);
-    final body = (fill * 2 - 1).clamp(0.0, 1.0);
-    final ink = line.color;
-    canvas.save();
-    canvas.translate(0, -gesture);
-    final headCentre = const Offset(12, 8);
-    canvas.drawCircle(headCentre, 3.6, line);
-    canvas.drawCircle(
-      headCentre,
-      3.6,
-      Paint()..color = ink.withValues(alpha: ink.a * head),
-    );
-    canvas.restore();
-    final shoulders = Path()
-      ..moveTo(5, 20)
-      ..cubicTo(6.4, 16.4, 9, 14.8, 12, 14.8)
-      ..cubicTo(15, 14.8, 17.6, 16.4, 19, 20);
-    canvas.drawPath(
-      Path.from(shoulders)..close(),
-      Paint()..color = ink.withValues(alpha: ink.a * body),
-    );
-    canvas.drawPath(shoulders, line);
+    if (icon.matchTextDirection && textDirection == TextDirection.rtl) {
+      canvas
+        ..save()
+        ..translate(size.width, 0)
+        ..scale(-1, 1);
+      painter.paint(canvas, at);
+      canvas.restore();
+    } else {
+      painter.paint(canvas, at);
+    }
   }
 
   @override
   bool shouldRepaint(_GlyphPainter old) =>
-      old.t != t ||
-      old.ink != ink ||
-      old.cutout != cutout ||
-      old.symbol != symbol;
+      old.outline.icon != outline.icon ||
+      old.filled.icon != filled.icon ||
+      old.textDirection != textDirection;
+}
+
+/// One top-level section. Declared once and passed to [FloatingTabBar]: the
+/// bar shows [icon], [selectedIcon] while chosen, and [label] as the cell's
+/// tooltip and semantics label.
+class AppDestination {
+  const AppDestination({
+    required this.icon,
+    required this.selectedIcon,
+    required this.label,
+  });
+
+  final IconData icon;
+  final IconData selectedIcon;
+  final String label;
 }

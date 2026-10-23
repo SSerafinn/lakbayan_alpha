@@ -10,13 +10,15 @@ import "package:motor/motor.dart";
 /// is not added here.
 abstract final class AppMotion {
   /// The interface changing on its own: tab bar, search capsule, chrome.
-  static const chrome = CupertinoMotion.snappy(
+  /// A spring with a little bounce (0.15).
+  static const chrome = Motion.snappySpring(
     duration: Duration(milliseconds: 350),
     snapToEnd: true,
   );
 
   /// Something arriving with weight: a card landing, a thumbnail popping in.
-  static const arrive = CupertinoMotion.bouncy(
+  /// A spring with more bounce (0.3).
+  static const arrive = Motion.bouncySpring(
     duration: Duration(milliseconds: 400),
     snapToEnd: true,
   );

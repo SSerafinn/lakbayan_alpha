@@ -79,6 +79,7 @@ position, grouping, size, weight, a single tint and surface tone. Concretely:
   at rest and solid green when selected.
 - **Icons.** `CupertinoIcons`, mapped once in `AppIcons`. A deliberate
   exception to "Material icons for a Material app"; Material widgets remain.
+  *(Superseded by D-20: Phosphor, still mapped once in `AppIcons`.)*
 - **Structure.** Predictive back on, edge-to-edge content, one primary action
   per screen as a FAB, bar actions grouped on a capsule, a scroll edge under
   pinned controls, one destination list rendered as bar / rail / drawer by
@@ -183,8 +184,10 @@ rather than rewritten, since the wording is its author's:
 - **Drawn tab glyphs.** `TabGlyph` draws the four section glyphs with a
   painter, so each can animate its selection once and then settle (the
   compass needle, the map unfolding, the case lid, the person filling).
-  CupertinoIcons (D-13) stays the set for everything else. `CrossGlyph` is
-  gone with the category glyph strip.
+  `AppIcons` (D-13, now Phosphor per D-20) stays the set for everything
+  else. `CrossGlyph` is
+  gone with the category glyph strip. *(Retired 2026-10-23, D-20
+  amendment: the bar takes `AppIcons` glyphs too.)*
 - **Search.** The circle grows into a field docked above the keyboard, with
   the kinds, Recently viewed and the towns above it. Close, back and
   picking a result retrace the same spring. Explore's corner circle, the
@@ -458,13 +461,29 @@ wireframes. Barabara's licence is still unverified.
   CupertinoIcons has no fork, church or museum, so the kinds had only words
   or photos.
 - **Still D-13 and D-15 otherwise.** No Cupertino widget is used.
-  `cupertino_icons` stays in `pubspec.yaml` because go_router's dependency
-  references its font; it is tree-shaken.
+
+**Amendment (2026-10-23, `ui-less-wordy/11-polish`).** Nothing in the app
+names Cupertino any more. `cupertino_icons` is out of `pubspec.yaml` (no
+code drew a `CupertinoIcons` glyph; go_router still brings `cupertino_ui`
+in transitively, which is its own business). iOS takes our
+`PushPageTransitionsBuilder` instead of `CupertinoPageTransitionsBuilder`.
+The `AppMotion` springs are written as motor's neutral factories
+(`Motion.snappySpring`, `Motion.bouncySpring`, and `Motion.smoothSpring` for
+the map camera), the same springs with the same numbers. A release build
+should be watched once for an "Expected to find fonts for CupertinoIcons"
+warning from go_router's Cupertino pages, which the app never shows.
+
+The tab bar now takes its glyphs from `AppIcons` as well (Phosphor compass,
+map trifold, suitcase, user, magnifying glass; filled while chosen), so
+`TabGlyph` and its painter are gone and the app has one glyph family with
+no exception. The chosen section's name no longer grows out of the pill
+(D-19's add): the bar is glyphs only, five equal cells, the names in
+semantics and the tooltip.
 
 **What it reverses.** D-13's "Cupertino glyphs".
 
 **For the team.** Two font assets (about 0.9 MB before icon tree shaking) and
-no new package. `TabGlyph` is unaffected: the sections are still drawn.
+no new package. Since the amendment the tab bar uses them too.
 
 ## D-18 · AR pilot: a native scan screen, image markers, a card and narration (2026-10-21) · ACCEPTED
 
