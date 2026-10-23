@@ -1,5 +1,3 @@
-import "dart:async";
-
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
@@ -18,9 +16,8 @@ import "../../../core/widgets/content/storage_image.dart";
 import "../../../core/widgets/controls/filter_chip_row.dart";
 import "../../../core/widgets/controls/symbol_button.dart";
 import "../../../core/widgets/motion/page_transitions.dart";
-import "../../offline/domain/downloads_controller.dart";
-import "../../offline/domain/offline_bundle.dart";
 import "../../offline/domain/offline_providers.dart";
+import "../../offline/presentation/town_download_button.dart";
 import "../domain/destination_providers.dart";
 import "save_heart.dart";
 
@@ -261,10 +258,9 @@ class _Place extends StatelessWidget {
   );
 }
 
-/// Taking the town offline from its own page, on glass like back: the
-/// download glyph, the progress ring while it runs (a tap stops it), and a
-/// check once it is on the phone, which opens the downloads. Not there when
-/// the province has no download ready for the town.
+/// Taking the town offline from its own page; once it is on the phone, the
+/// check opens Offline. Not there when the province has no download ready
+/// for the town.
 class _Offline extends ConsumerWidget {
   const _Offline({required this.town});
 
@@ -280,56 +276,13 @@ class _Offline extends ConsumerWidget {
       ),
     );
     if (bundle == null) return const SizedBox.shrink();
-    final id = bundle.townId;
-    final download = ref.watch(
-      downloadsControllerProvider.select((downloads) => downloads[id]),
-    );
-    final state = ref.watch(townStatesProvider.select((states) => states[id]));
-    final downloads = ref.read(downloadsControllerProvider.notifier);
-
-    // A failed attempt says why once; the glyph is back to download.
-    ref.listen(
-      downloadsControllerProvider.select((downloads) => downloads[id]?.error),
-      (_, error) {
-        if (error != null) {
-          ScaffoldMessenger.of(context)
-              .showSnackBar(SnackBar(content: Text(error)));
-        }
-      },
-    );
-
-    if (download?.isRunning ?? false) {
-      return Stack(
-        alignment: Alignment.center,
-        children: [
-          SymbolButton(
-            icon: AppIcons.close,
-            tooltip: "Stop saving $town",
-            onTap: () => downloads.cancel(id),
-          ),
-          IgnorePointer(
-            child: SizedBox.square(
-              dimension: AppSize.symbolButton,
-              child: CircularProgressIndicator(
-                value: download!.progress.fraction,
-                strokeWidth: AppStroke.regular,
-              ),
-            ),
-          ),
-        ],
-      );
-    }
-    if (state == TownState.current) {
-      return SymbolButton(
+    return TownDownloadButton(
+      bundle: bundle,
+      done: SymbolButton(
         icon: AppIcons.check,
         tooltip: "$town is on this phone",
         onTap: () => context.push(Routes.downloads),
-      );
-    }
-    return SymbolButton(
-      icon: AppIcons.download,
-      tooltip: "Save $town offline",
-      onTap: () => unawaited(downloads.start(bundle)),
+      ),
     );
   }
 }

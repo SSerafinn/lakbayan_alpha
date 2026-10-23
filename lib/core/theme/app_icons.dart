@@ -45,7 +45,6 @@ abstract final class AppIcons {
   static const IconData check = CupertinoIcons.checkmark;
   static const IconData warning = CupertinoIcons.exclamationmark_circle;
   static const IconData offline = CupertinoIcons.wifi_slash;
-  static const IconData clock = CupertinoIcons.clock;
   static const IconData grid = CupertinoIcons.square_grid_2x2;
   static const IconData delete = CupertinoIcons.trash;
   static const IconData settings = CupertinoIcons.gear;
@@ -70,15 +69,15 @@ abstract final class AppIcons {
 
   static const IconData directions = CupertinoIcons.arrow_turn_up_right;
 
-  /// Reaching the province: Help's lines and office, and Profile's row to
-  /// them. Always beside the number or address itself.
-  static const IconData phone = CupertinoIcons.phone;
-  static const IconData mail = CupertinoIcons.mail;
-  static const IconData place = CupertinoIcons.location;
+  /// A row whose value opens a menu of choices (Settings' Theme), and the
+  /// three appearances in that menu.
+  static const IconData menu = CupertinoIcons.chevron_up_chevron_down;
+  static const IconData themeSystem = CupertinoIcons.circle_lefthalf_fill;
+  static const IconData themeLight = CupertinoIcons.sun_min;
+  static const IconData themeDark = CupertinoIcons.moon;
 
-  /// Profile's rows to the privacy policy and the terms of use.
-  static const IconData privacy = CupertinoIcons.lock_shield;
-  static const IconData document = CupertinoIcons.doc_text;
+  /// Change Profile's cover: on the photo it changes, with its tooltip.
+  static const IconData cover = CupertinoIcons.photo;
 
   /// Scan an exhibit (D-18): the camera framing something, not the camera
   /// alone, which would read as taking a photo.

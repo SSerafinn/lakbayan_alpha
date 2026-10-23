@@ -4,25 +4,22 @@ import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
 import "../../../core/models/app_settings.dart";
-import "../../../core/router/app_router.dart";
 import "../../../core/theme/app_dimens.dart";
-import "../../../core/theme/app_icons.dart";
-import "../../../core/theme/app_typography.dart";
+import "../../../core/widgets/chrome/page_title.dart";
 import "../../../core/widgets/content/grouped_section.dart";
 import "../../../core/widgets/content/quiet_note.dart";
-import "../../../core/widgets/controls/symbol_button.dart";
 import "../../../core/widgets/motion/motion.dart";
 import "../../guides/domain/guide_providers.dart";
 import "../data/settings_repository.dart";
 import "../domain/settings_providers.dart";
 
-/// Help and contact. **One job:** reach someone. **Emotion:** steady; the
-/// number is right there.
+/// Help. **One job:** reach someone. **Emotion:** steady; the number is
+/// right there.
 ///
-/// **Anatomy.** Back and the title; the emergency lines first, each a row
-/// that calls; then the tourism office as the province wrote it. Every value
-/// is shown as text as well as made tappable, so a tablet with no dialer
-/// still has the number to read out.
+/// **Anatomy.** Back and the large title; the emergency lines first, each a
+/// row that calls; then the tourism office as the province wrote it. No row
+/// glyphs (D-19). Every value is shown as text as well as made tappable, so
+/// a tablet with no dialer still has the number to read out.
 ///
 /// Works offline: the lines come from the same document Explore reads for
 /// its notice on every launch (`appSettingsProvider`), so they are cached
@@ -69,37 +66,15 @@ class HelpScreen extends ConsumerWidget {
               MediaQuery.viewPaddingOf(context).bottom + AppSpace.section,
             ),
             children: [
-              Row(
-                children: [
-                  SymbolButton(
-                    icon: AppIcons.back,
-                    tooltip: "Back",
-                    onTap: () => context.popOrHome(),
-                  ),
-                  const SizedBox(width: AppSpace.x2),
-                  Expanded(
-                    child: Semantics(
-                      header: true,
-                      child: Text(
-                        "Help and contact",
-                        style: AppTypography.titleLarge,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+              const PageTitle("Help"),
               const SizedBox(height: AppSpace.section),
               Entrance(
                 order: 1,
                 child: GroupedSection(
-                  heading: "Emergency lines",
+                  heading: "Emergency Lines",
                   children: [
                     for (final line in emergencyLines(app?.hotlines ?? []))
-                      _ReachRow(
-                        glyph: AppIcons.phone,
-                        title: line.label,
-                        value: line.number,
-                      ),
+                      _ReachRow(title: line.label, value: line.number),
                   ],
                 ),
               ),
@@ -137,14 +112,12 @@ class _Office extends StatelessWidget {
     final address = filled(contact.address);
 
     return GroupedSection(
-      heading: filled(contact.office) ?? "Tourism office",
+      heading: filled(contact.office) ?? "Tourism Office",
       children: [
-        if (phone != null) _ReachRow(glyph: AppIcons.phone, value: phone),
-        if (email != null) _ReachRow(glyph: AppIcons.mail, value: email),
-        if (hours != null)
-          GroupedRow(leadingGlyph: AppIcons.clock, title: hours, dense: true),
-        if (address != null)
-          GroupedRow(leadingGlyph: AppIcons.place, title: address, dense: true),
+        if (phone != null) _ReachRow(value: phone),
+        if (email != null) _ReachRow(value: email),
+        if (hours != null) GroupedRow(title: hours, dense: true),
+        if (address != null) GroupedRow(title: address, dense: true),
       ],
     );
   }
@@ -156,9 +129,8 @@ class _Office extends StatelessWidget {
 /// Not tappable when [value] reads as neither a number nor an address
 /// ([reachUri]); the text is still there to read.
 class _ReachRow extends ConsumerWidget {
-  const _ReachRow({required this.glyph, required this.value, this.title});
+  const _ReachRow({required this.value, this.title});
 
-  final IconData glyph;
   final String value;
   final String? title;
 
@@ -183,7 +155,6 @@ class _ReachRow extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final uri = reachUri(value);
     return GroupedRow(
-      leadingGlyph: glyph,
       title: title ?? value,
       subtitle: title == null ? null : value,
       dense: title == null,

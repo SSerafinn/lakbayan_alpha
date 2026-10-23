@@ -1,20 +1,18 @@
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
-import "../../../core/router/app_router.dart";
 import "../../../core/theme/app_dimens.dart";
-import "../../../core/theme/app_icons.dart";
 import "../../../core/theme/app_typography.dart";
+import "../../../core/widgets/chrome/page_title.dart";
 import "../../../core/widgets/content/quiet_note.dart";
-import "../../../core/widgets/controls/symbol_button.dart";
 import "../../itineraries/domain/itinerary_copy.dart";
 import "../data/settings_repository.dart";
 import "../domain/settings_providers.dart";
 
 /// Which of the province's two texts a [PolicyScreen] shows.
 enum Policy {
-  privacy("Privacy policy"),
-  terms("Terms of use");
+  privacy("Privacy Policy"),
+  terms("Terms of Use");
 
   const Policy(this.title);
 
@@ -22,8 +20,8 @@ enum Policy {
 }
 
 /// The privacy policy or the terms of use, as the province wrote them in the
-/// CMS. **One job:** read it. Back, the title, when it last changed, then the
-/// text: plain paragraphs, selectable so a passage can be quoted.
+/// CMS. **One job:** read it. Back, the large title, when it last changed,
+/// then the text: plain paragraphs, selectable so a passage can be quoted.
 ///
 /// The Play Store requires the privacy policy to be reachable in the app;
 /// this is where Profile sends it.
@@ -100,22 +98,7 @@ class PolicyScreen extends ConsumerWidget {
             MediaQuery.viewPaddingOf(context).bottom + AppSpace.section,
           ),
           children: [
-            Row(
-              children: [
-                SymbolButton(
-                  icon: AppIcons.back,
-                  tooltip: "Back",
-                  onTap: () => context.popOrHome(),
-                ),
-                const SizedBox(width: AppSpace.x2),
-                Expanded(
-                  child: Semantics(
-                    header: true,
-                    child: Text(policy.title, style: AppTypography.titleLarge),
-                  ),
-                ),
-              ],
-            ),
+            PageTitle(policy.title),
             const SizedBox(height: AppSpace.section),
             ...body(),
           ],

@@ -113,6 +113,7 @@ enum HeroSource {
   around,
   town,
   towns,
+  profile,
 }
 
 /// The `Hero` tag for [id]'s cover on [from].

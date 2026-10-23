@@ -108,6 +108,15 @@ Map<String, TownState> townStates(Ref ref) {
   };
 }
 
+/// How many towns are on this phone, current or not: the count Profile and
+/// Settings show on the way to Offline.
+@riverpod
+int townsOnPhone(Ref ref) => ref
+    .watch(townStatesProvider)
+    .values
+    .where((state) => state != TownState.absent)
+    .length;
+
 /// The pack for a town that is downloaded and current, if there is one.
 ///
 /// Returns null for a stale town on purpose. Serving last month's map because

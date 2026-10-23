@@ -3,14 +3,11 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 
 import "../../../core/errors/error_copy.dart";
 import "../../../core/errors/local_first.dart";
-import "../../../core/router/app_router.dart";
 import "../../../core/theme/app_dimens.dart";
-import "../../../core/theme/app_icons.dart";
-import "../../../core/theme/app_typography.dart";
+import "../../../core/widgets/chrome/page_title.dart";
 import "../../../core/widgets/content/grouped_section.dart";
 import "../../../core/widgets/content/quiet_note.dart";
 import "../../../core/widgets/content/stop_numeral.dart";
-import "../../../core/widgets/controls/symbol_button.dart";
 import "../../../core/widgets/motion/motion.dart";
 import "../../audio/domain/audio_providers.dart";
 import "../../destinations/domain/destination_providers.dart";
@@ -72,7 +69,7 @@ class ExhibitsScreen extends ConsumerWidget {
                   AppSpace.gutter,
                   AppSpace.section,
                 ),
-                sliver: SliverToBoxAdapter(child: _Header()),
+                sliver: SliverToBoxAdapter(child: PageTitle("Exhibits")),
               ),
               if (note != null)
                 SliverPadding(
@@ -136,27 +133,4 @@ class ExhibitsScreen extends ConsumerWidget {
       ),
     );
   }
-}
-
-/// Back on its circle, then the large title, as Settings has (D-19).
-class _Header extends StatelessWidget {
-  const _Header();
-
-  @override
-  Widget build(BuildContext context) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      SymbolButton(
-        icon: AppIcons.back,
-        tooltip: "Back",
-        onTap: () => context.popOrHome(),
-        onGround: true,
-      ),
-      const SizedBox(height: AppSpace.x2),
-      Semantics(
-        header: true,
-        child: Text("Exhibits", style: AppTypography.display),
-      ),
-    ],
-  );
 }

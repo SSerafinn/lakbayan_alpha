@@ -112,8 +112,9 @@ class _HomeChromeLayerState extends ConsumerState<HomeChromeLayer> {
       fit: StackFit.expand,
       children: [
         widget.child,
-        // Every tab's content scrolls under this, never under the clock.
-        const StatusBarGround(),
+        // Every tab's content scrolls under this, never under the clock;
+        // Profile's cover reaches the top and grounds itself as it goes.
+        if (widget.tab != HomeTab.profile) const StatusBarGround(),
         _TabBarSlot(
           tab: widget.tab,
           searchOpen: _open,

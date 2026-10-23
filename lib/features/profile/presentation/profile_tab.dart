@@ -1,264 +1,404 @@
-import "package:flutter/foundation.dart";
+import "dart:math" show min;
+
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
 
+import "../../../core/models/destination.dart";
 import "../../../core/router/app_router.dart";
 import "../../../core/theme/app_dimens.dart";
 import "../../../core/theme/app_icons.dart";
 import "../../../core/theme/app_typography.dart";
 import "../../../core/theme/lakbayan_colors.dart";
 import "../../../core/widgets/chrome/floating_tab_bar.dart";
-import "../../../core/widgets/content/grouped_section.dart";
+import "../../../core/widgets/chrome/system_bars.dart";
+import "../../../core/widgets/content/media_tile.dart";
+import "../../../core/widgets/content/section_heading.dart";
+import "../../../core/widgets/content/storage_image.dart";
+import "../../../core/widgets/controls/symbol_button.dart";
 import "../../../core/widgets/motion/motion.dart";
+import "../../../core/widgets/motion/page_transitions.dart";
 import "../../auth/domain/auth_providers.dart";
-import "../../destinations/domain/destination_providers.dart";
+import "../../destinations/domain/saved_destinations.dart";
 import "../../explore/domain/home_tab.dart";
-import "sample_photo_credits_sheet.dart";
+import "../../itineraries/domain/itinerary_providers.dart";
+import "../../offline/domain/offline_providers.dart";
 
-/// Profile (D-16).
+/// Profile (D-19). **One job:** what is mine. **Emotion:** ownership.
 ///
-/// **The screen's one job.** What is mine, and how the app behaves for me.
-///
-/// **Emotion.** Ownership.
-///
-/// **Anatomy.** The one brand moment, a solid green block: the avatar, the
-/// name as the screen's heading, and one line.
-/// Three plain rows: Saved places, Downloaded towns and Settings, the one
-/// home for future settings ([SettingsScreen]). Then what the province
-/// says to everyone: Help and emergency lines, the privacy policy and the
-/// terms, written in the CMS. Sign out last, alone.
-class ProfileTab extends ConsumerWidget {
+/// **Anatomy.** A cover from my own saved places (a tap moves to the next),
+/// the gear to Settings over it, my avatar half over its foot and my name
+/// large. Then three counts, each the label of what it opens: Saved, Trips,
+/// Offline. Then the saved places as photos, See All for the rest. A guest
+/// gets Sign In under the name.
+class ProfileTab extends ConsumerStatefulWidget {
   const ProfileTab({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ProfileTab> createState() => _ProfileTabState();
+}
+
+class _ProfileTabState extends ConsumerState<ProfileTab> {
+  final _scroll = ScrollController();
+
+  /// Which saved place's photo is the cover. In memory, as the saves are
+  /// until they sync (`my-docs/backend-requests/saved-destinations.md`).
+  int _cover = 0;
+
+  /// Saved places shown here; See All has the rest.
+  static const _shown = 6;
+
+  /// About this much of the screen goes to the cover.
+  static const _share = 0.25;
+
+  @override
+  void dispose() {
+    _scroll.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final saved = ref.watch(savedPlacesProvider).value ?? const <Destination>[];
     final isGuest = ref.watch(guestModeProvider);
+    final cover = (MediaQuery.sizeOf(context).height * _share).ceilToDouble();
+    const gutter = AppSpace.gutter;
 
     return EntranceScope(
-      child: ListView(
-        padding: EdgeInsets.fromLTRB(
-          AppSpace.gutter,
-          MediaQuery.viewPaddingOf(context).top + AppSpace.x2,
-          AppSpace.gutter,
-          FloatingTabBar.clearance(context) + AppSpace.section,
-        ),
+      child: Stack(
         children: [
-          const Entrance(child: _BrandBlock()),
-          const SizedBox(height: AppSpace.section),
-          const Entrance(order: 1, child: _Mine()),
-          const SizedBox(height: AppSpace.section),
-          const Entrance(order: 2, child: _Province()),
-          const SizedBox(height: AppSpace.section),
-          Pressable(
-            child: isGuest
-                ? FilledButton(
-                    onPressed: () =>
-                        ref.read(guestModeProvider.notifier).disable(),
-                    child: const Text("Sign in"),
-                  )
-                : OutlinedButton(
-                    onPressed: () =>
-                        ref.read(authControllerProvider.notifier).signOut(),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: context.lakbayan.closed,
-                      minimumSize: const Size.fromHeight(AppSize.primaryButton),
-                    ),
-                    child: const Text("Sign out"),
+          CustomScrollView(
+            controller: _scroll,
+            slivers: [
+              SliverToBoxAdapter(
+                child: _Header(
+                  height: cover,
+                  photo: saved.isEmpty
+                      ? null
+                      : saved[_cover % saved.length].coverImage,
+                  onNext: saved.length < 2
+                      ? null
+                      : () => setState(() => _cover++),
+                ),
+              ),
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(
+                  gutter,
+                  AppSpace.x2,
+                  gutter,
+                  0,
+                ),
+                sliver: SliverList.list(
+                  children: [
+                    const Entrance(child: _Name()),
+                    if (isGuest) ...[
+                      const SizedBox(height: AppSpace.gutter),
+                      Entrance(
+                        order: 1,
+                        child: Pressable(
+                          child: FilledButton(
+                            onPressed: () =>
+                                ref.read(guestModeProvider.notifier).disable(),
+                            child: const Text("Sign In"),
+                          ),
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: AppSpace.section),
+                    Entrance(order: 2, child: _Counts(saved: saved.length)),
+                    if (saved.isNotEmpty) ...[
+                      const SizedBox(height: AppSpace.section),
+                      SectionHeading(
+                        "Saved",
+                        onSeeAll: () => context.push(Routes.saved),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              SliverPadding(
+                padding: EdgeInsets.fromLTRB(
+                  gutter,
+                  0,
+                  gutter,
+                  FloatingTabBar.clearance(context) + AppSpace.section,
+                ),
+                sliver: SliverGrid.builder(
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 3,
+                    mainAxisSpacing: AppSpace.near,
+                    crossAxisSpacing: AppSpace.near,
                   ),
+                  itemCount: min(saved.length, _shown),
+                  itemBuilder: (context, index) => _Saved(place: saved[index]),
+                ),
+              ),
+            ],
           ),
-          // Not in release — profile builds keep the sample-data switch for perf measurement.
-          if (!kReleaseMode) ...[
-            const SizedBox(height: AppSpace.section),
-            const _DebugRows(),
-          ],
+          // The cover keeps the status bar at rest; the paper closes in
+          // under it as the name arrives there.
+          StatusBarGround.below(scroll: _scroll, contentTop: cover),
         ],
       ),
     );
   }
 }
 
-/// The sanctioned full-strength green area. Nothing else on the screen is
-/// tinted. The avatar leads, large, and the name is the screen's heading.
-class _BrandBlock extends ConsumerWidget {
-  const _BrandBlock();
+/// The cover, the gear and the change of cover on it, and the avatar half
+/// over its foot. With nothing saved, the cover is the mint wash.
+class _Header extends StatelessWidget {
+  const _Header({
+    required this.height,
+    required this.photo,
+    required this.onNext,
+  });
+
+  final double height;
+  final String? photo;
+  final VoidCallback? onNext;
 
   static const _avatar = AppSize.avatar;
 
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final scheme = Theme.of(context).colorScheme;
-    final isGuest = ref.watch(guestModeProvider);
-    final user = ref.watch(authStateProvider).value;
-    final name = isGuest
-        ? "Browsing as a guest"
-        : (user?.displayName?.trim().isNotEmpty ?? false)
-        ? user!.displayName!.trim()
-        : (user?.label ?? "Signed in");
-    final line = isGuest
-        ? "Sign in to keep your saves and plans"
-        : (user?.email ?? "");
-    final initial = Text(
-      name.isEmpty ? "?" : name.characters.first.toUpperCase(),
-      style: AppTypography.titleMedium.copyWith(color: scheme.primary),
-    );
-    final photo = isGuest ? null : user?.photoUrl;
-
-    return Material(
-      color: scheme.primary,
-      shape: const RoundedRectangleBorder(borderRadius: AppRadii.lgAll),
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpace.x3),
-        child: Row(
-          children: [
-            Container(
-              width: _avatar,
-              height: _avatar,
-              decoration: ShapeDecoration(
-                color: scheme.onPrimary,
-                shape: const CircleBorder(),
-              ),
-              clipBehavior: Clip.antiAlias,
-              alignment: Alignment.center,
-              child: photo == null
-                  ? initial
-                  : Image.network(
-                      photo,
-                      fit: BoxFit.cover,
-                      width: _avatar,
-                      height: _avatar,
-                      cacheWidth: (_avatar * 3).round(),
-                      errorBuilder: (_, _, _) => initial,
-                    ),
-            ),
-            const SizedBox(width: AppSpace.x3),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Semantics(
-                    header: true,
-                    child: Text(
-                      name,
-                      style: AppTypography.titleMedium.copyWith(
-                        color: scheme.onPrimary,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  if (line.isNotEmpty)
-                    Text(
-                      line,
-                      style: AppTypography.bodyMedium.copyWith(
-                        color: scheme.onPrimary,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// What is mine and how the app behaves, as plain rows on the white ground,
-/// each a glyph, where it goes and a chevron (coloured tiles retired
-/// 2026-09-26). The glyphs keep their meaning's colour: the red of the saved
-/// heart, the blue of downloads, ink for settings.
-class _Mine extends StatelessWidget {
-  const _Mine();
+  /// The paper ring that lifts the avatar off the cover.
+  static const _ring = AppSpace.x1;
 
   @override
   Widget build(BuildContext context) {
     final brand = context.lakbayan;
-    return GroupedSection(
-      children: [
-        GroupedRow(
-          leadingGlyph: AppIcons.favoriteFilled,
-          glyphColor: brand.save,
-          title: "Saved places",
-          onTap: () => context.push(Routes.saved),
-        ),
-        GroupedRow(
-          leadingGlyph: AppIcons.download,
-          glyphColor: brand.spatial,
-          title: "Downloaded towns",
-          onTap: () => context.push(Routes.downloads),
-        ),
-        GroupedRow(
-          leadingGlyph: AppIcons.settings,
-          title: "Settings",
-          onTap: () => context.push(Routes.settings),
-        ),
-      ],
+    final top = MediaQuery.viewPaddingOf(context).top;
+    final photo = this.photo;
+
+    return SizedBox(
+      height: height + _avatar / 2,
+      child: Stack(
+        children: [
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            height: height,
+            child: photo == null
+                ? ColoredBox(color: brand.mint)
+                : SystemBars(
+                    overPhoto: true,
+                    child: FadeSwap(id: photo, child: CoverImage(photo)),
+                  ),
+          ),
+          Positioned(
+            top: top + AppSpace.x2,
+            right: AppSpace.gutter,
+            child: SymbolButton(
+              icon: AppIcons.settings,
+              tooltip: "Settings",
+              onTap: () => context.push(Routes.settings),
+            ),
+          ),
+          if (onNext != null)
+            Positioned(
+              top: height - AppSpace.x3 - AppSize.symbolButton,
+              right: AppSpace.gutter,
+              child: SymbolButton(
+                icon: AppIcons.cover,
+                tooltip: "Change cover photo",
+                onTap: onNext,
+              ),
+            ),
+          Positioned(
+            left: AppSpace.gutter + AppSpace.x1,
+            bottom: 0,
+            child: Container(
+              width: _avatar,
+              height: _avatar,
+              decoration: ShapeDecoration(
+                color: brand.tint,
+                shape: CircleBorder(
+                  side: BorderSide(
+                    color: Theme.of(context).colorScheme.surface,
+                    width: _ring,
+                  ),
+                ),
+              ),
+              padding: const EdgeInsets.all(_ring),
+              clipBehavior: Clip.antiAlias,
+              alignment: Alignment.center,
+              child: const _Avatar(size: _avatar - 2 * _ring),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
 
-/// What the province says to everyone, signed in or not. Help leads: it is
-/// the one a visitor may need in a hurry. Ink glyphs throughout — red is
-/// CLOSED and errors, even for an emergency line.
-class _Province extends StatelessWidget {
-  const _Province();
+/// My photo, else my initial in emerald; a guest's is the account glyph.
+class _Avatar extends ConsumerWidget {
+  const _Avatar({required this.size});
 
-  @override
-  Widget build(BuildContext context) => GroupedSection(
-    children: [
-      GroupedRow(
-        leadingGlyph: AppIcons.phone,
-        title: "Help and emergency lines",
-        onTap: () => context.push(Routes.help),
-      ),
-      GroupedRow(
-        leadingGlyph: AppIcons.privacy,
-        title: "Privacy policy",
-        onTap: () => context.push(Routes.privacy),
-      ),
-      GroupedRow(
-        leadingGlyph: AppIcons.document,
-        title: "Terms of use",
-        onTap: () => context.push(Routes.terms),
-      ),
-    ],
-  );
-}
-
-/// Debug and profile only: the sample-data switch, and in debug the living
-/// specimen, whose route exists only in debug builds.
-class _DebugRows extends ConsumerWidget {
-  const _DebugRows();
+  final double size;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final sample = ref.watch(sampleDataProvider);
-    return Wrap(
-      spacing: AppSpace.x2,
-      children: [
-        if (kDebugMode)
-          TextButton(
-            onPressed: () => context.push(Routes.designSystem),
-            child: const Text("Design system"),
-          ),
-        TextButton(
-          onPressed: () {
-            ref.read(sampleDataProvider.notifier).toggle();
-            ref.read(selectedHomeTabProvider.notifier).select(HomeTab.explore);
-          },
-          child: Text(sample ? "Use live data" : "Preview with sample data"),
-        ),
-        // Beside the switch that shows them, and there whether or not the
-        // preview is on: the photographs are in the build either way.
-        TextButton(
-          onPressed: () => showSamplePhotoCredits(context),
-          child: const Text("Photo credits"),
-        ),
-      ],
+    final ink = context.lakbayan.textOnLightGreen;
+    if (ref.watch(guestModeProvider)) {
+      return Icon(AppIcons.account, size: size / 2, color: ink);
+    }
+    final user = ref.watch(authStateProvider).value;
+    final label = user?.label ?? "";
+    final initial = Text(
+      label.isEmpty ? "?" : label.characters.first.toUpperCase(),
+      style: AppTypography.display.copyWith(color: ink),
+    );
+    final photo = user?.photoUrl;
+    if (photo == null) return initial;
+    return ClipOval(
+      child: Image.network(
+        photo,
+        fit: BoxFit.cover,
+        width: size,
+        height: size,
+        cacheWidth: (size * 3).round(),
+        errorBuilder: (_, _, _) => initial,
+      ),
     );
   }
+}
+
+/// My name, the screen's heading; a guest is Guest.
+class _Name extends ConsumerWidget {
+  const _Name();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final user = ref.watch(authStateProvider).value;
+    final name = ref.watch(guestModeProvider)
+        ? "Guest"
+        : user?.label ?? "Signed In";
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpace.x1),
+      child: Semantics(
+        header: true,
+        child: Text(
+          name,
+          style: AppTypography.hero,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+        ),
+      ),
+    );
+  }
+}
+
+/// Saved, Trips and Offline on one card, each count the label of the place
+/// it opens (D-19).
+class _Counts extends ConsumerWidget {
+  const _Counts({required this.saved});
+
+  final int saved;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final trips = ref.watch(myItinerariesProvider).value?.length ?? 0;
+    final towns = ref.watch(townsOnPhoneProvider);
+    String some(int count, String noun) =>
+        "$count $noun${count == 1 ? "" : "s"}";
+
+    return Material(
+      color: Theme.of(context).colorScheme.surfaceContainerLowest,
+      shape: const RoundedRectangleBorder(borderRadius: AppRadii.mdAll),
+      clipBehavior: Clip.antiAlias,
+      child: Row(
+        children: [
+          _Count(
+            count: saved,
+            label: "Saved",
+            spoken: some(saved, "saved place"),
+            onTap: () => context.push(Routes.saved),
+          ),
+          _Count(
+            count: trips,
+            label: "Trips",
+            spoken: some(trips, "trip"),
+            onTap: () => ref
+                .read(selectedHomeTabProvider.notifier)
+                .select(HomeTab.itineraries),
+          ),
+          _Count(
+            count: towns,
+            label: "Offline",
+            spoken: "${some(towns, "town")} saved offline",
+            onTap: () => context.push(Routes.downloads),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _Count extends StatelessWidget {
+  const _Count({
+    required this.count,
+    required this.label,
+    required this.spoken,
+    required this.onTap,
+  });
+
+  final int count;
+  final String label;
+
+  /// The count and its noun read as one: "6 saved places".
+  final String spoken;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Expanded(
+    child: Semantics(
+      button: true,
+      label: spoken,
+      onTap: onTap,
+      excludeSemantics: true,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: AppSpace.x3),
+          child: Column(
+            children: [
+              Text("$count", style: AppTypography.titleLarge),
+              Text(
+                label,
+                style: AppTypography.labelMedium.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+/// One saved place as its photo, named for a screen reader; it opens the
+/// place, zooming.
+class _Saved extends StatelessWidget {
+  const _Saved({required this.place});
+
+  final Destination place;
+
+  @override
+  Widget build(BuildContext context) => MergeSemantics(
+    child: Semantics(
+      label: place.name,
+      child: MediaTile(
+        media: PhotoHero(
+          tag: coverHeroTag(place.id, HeroSource.profile),
+          child: CoverImage(place.coverImage),
+        ),
+        aspectRatio: 1,
+        radius: AppRadii.sm,
+        onTap: () => context.push(
+          Routes.destination(place.id, from: HeroSource.profile),
+        ),
+      ),
+    ),
+  );
 }
