@@ -171,9 +171,7 @@ class _Card extends StatelessWidget {
                       child: Wrap(
                         spacing: AppSpace.x2,
                         runSpacing: AppSpace.x2,
-                        children: [
-                          if (place.hasAR) const PhotoPill.scan(),
-                        ],
+                        children: [if (place.hasAR) const PhotoPill.scan()],
                       ),
                     ),
                     SaveHeart(place.id, style: SaveHeartStyle.hero),
