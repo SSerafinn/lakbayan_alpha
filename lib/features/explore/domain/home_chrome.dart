@@ -23,7 +23,7 @@ enum HomeChromeState {
 /// The floating tab bar's state. Shrinks after [collapseTravel] of downward
 /// scroll past [collapseFloor]; expands after [expandTravel] upward, at the
 /// top, on a tab switch or a tap. A change of direction restarts the count.
-/// While hidden, only [expand] or [reset] brings the bar back.
+/// Map panel travel uses the same thresholds to hide fully and return on reverse.
 ///
 /// [expandTravel] > [collapseTravel] on purpose: snapping open on the first
 /// upward wobble of a fling is worse than being a beat slow to collapse.
@@ -63,6 +63,19 @@ class HomeChrome extends _$HomeChrome {
   void hide() {
     _travel = 0;
     _set(HomeChromeState.hidden);
+  }
+
+  /// Positive travel browses deeper into the map panel. Negative travel
+  /// returns toward the map. Horizontal card swipes never reach this method.
+  void onMapTravel(double delta) {
+    if (delta == 0) return;
+    if ((delta > 0) != (_travel > 0)) _travel = 0;
+    _travel += delta;
+    if (state != HomeChromeState.hidden && _travel >= collapseTravel) {
+      hide();
+    } else if (state == HomeChromeState.hidden && _travel <= -expandTravel) {
+      expand();
+    }
   }
 
   bool onScroll(ScrollNotification notification) {
