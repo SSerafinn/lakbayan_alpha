@@ -29,12 +29,13 @@ import "swipe_deck.dart";
 /// Keep or skip. **Job:** decide on one place at a time. **Emotion:** play,
 /// the place filling the room.
 ///
-/// The stage is the front card's photo, soft and dark, with the next card's
-/// fading in over it in step with the drag. The card carries town, name and
-/// a two-line lede, and opens the place. Skip and Keep take the card's
-/// colour and grow toward the lean; the last skipped place waits as a photo
-/// disc. Always dark, in either appearance (the deliberate exception to
-/// white first); photo-less cards take their kind's tone (`role.kind`).
+/// The stage is the front card's photo, soft and dark, settling in once,
+/// with the next card's fading in over it in step with the drag. The card
+/// carries town, name and a two-line lede, and opens the place. Skip and
+/// Keep take the card's colour and grow toward the lean; the last skipped
+/// place waits as a photo disc at the leading edge, the last kept one at the
+/// trailing edge with the heart, opening Saved. Always dark, in either
+/// appearance; photo-less cards take their kind's tone (`role.kind`).
 class SwipeScreen extends ConsumerWidget {
   const SwipeScreen({super.key});
 
@@ -97,7 +98,7 @@ class _Header extends StatelessWidget {
           onTap: () => context.pop(),
         ),
         const SizedBox(width: AppSpace.x2),
-        Expanded(child: Text("Keep or skip", style: AppTypography.titleMedium)),
+        Expanded(child: Text("Keep or Skip", style: AppTypography.titleMedium)),
       ],
     ),
   );
@@ -134,6 +135,7 @@ class _DeckState extends ConsumerState<_Deck> {
   /// The front card's position in [_deck].
   int _index = 0;
   final _skipped = <Destination>[];
+  final _kept = <Destination>[];
 
   /// Only a skip (an arrival) pops the disc in, not a bring-back.
   bool _skipAdded = false;
@@ -167,6 +169,7 @@ class _DeckState extends ConsumerState<_Deck> {
     _done = _index >= _deck.length;
     if (keep) {
       ref.read(savedDestinationsProvider.notifier).save(place.id);
+      _kept.add(place);
     } else {
       _skipped.add(place);
       _skipAdded = true;
@@ -287,13 +290,19 @@ class _DeckState extends ConsumerState<_Deck> {
         if (_skipped.isNotEmpty)
           Positioned(
             left: AppSpace.gutter,
-            bottom: rowBottom + (row - _BringBack.size) / 2,
+            bottom: rowBottom + (row - _Disc.size) / 2,
             child: _BringBack(
               place: _skipped.last,
               discKey: _discKey,
               animate: _skipAdded,
               onBringBack: _bringBack,
             ),
+          ),
+        if (_kept.isNotEmpty)
+          Positioned(
+            right: AppSpace.gutter,
+            bottom: rowBottom + (row - _Disc.size) / 2,
+            child: _Kept(place: _kept.last, count: _kept.length),
           ),
         for (final flight in _flights)
           _FlightCard(
@@ -354,6 +363,9 @@ class _Backdrop extends StatelessWidget {
   /// The photo's decoded width, in pixels.
   static const _decodeWidth = 32;
 
+  /// It settles from this much larger as it fades in, once.
+  static const _settle = 1.04;
+
   @override
   Widget build(BuildContext context) {
     final cover = place.coverImage;
@@ -365,8 +377,16 @@ class _Backdrop extends StatelessWidget {
         child: cover == null
             ? ColoredBox(color: _toneOf(context, place))
             : StorageImage(path: cover, decodeWidth: _decodeWidth),
-        builder: (context, t, layer) =>
-            Opacity(opacity: t.clamp(0.0, 1.0), child: layer),
+        builder: (context, t, layer) {
+          final shown = t.clamp(0.0, 1.0);
+          return Opacity(
+            opacity: shown,
+            child: Transform.scale(
+              scale: lerpDouble(_settle, 1, shown)!,
+              child: layer,
+            ),
+          );
+        },
       ),
     );
   }
@@ -563,7 +583,7 @@ class _FlightCardState extends State<_FlightCard>
     final t = total == 0
         ? 1.0
         : ((rect.width - _from.width) / total).clamp(0.0, 1.0);
-    return lerpDouble(_BringBack.size / 2, AppRadii.lg, t)!;
+    return lerpDouble(_Disc.size / 2, AppRadii.lg, t)!;
   }
 
   @override
@@ -630,13 +650,13 @@ class _DeckTile extends StatelessWidget {
                   children: [
                     Text(
                       place.town,
-                      style: AppTypography.labelMedium.copyWith(color: white),
+                      style: AppTypography.secondLine.copyWith(color: white),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                     Text(
                       place.name,
-                      style: AppTypography.titleLarge.copyWith(color: white),
+                      style: AppTypography.hero.copyWith(color: white),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -691,15 +711,11 @@ class _BringBack extends StatelessWidget {
   final bool animate;
   final ValueChanged<Offset> onBringBack;
 
-  static const size = AppSize.minTouchTarget;
-
   /// An upward flick faster than this pulls it back, in px/s.
   static const _pullSpeed = 400.0;
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final cover = place.coverImage;
     return Tooltip(
       message: "Bring back ${place.name}",
       excludeFromSemantics: true,
@@ -716,27 +732,101 @@ class _BringBack extends StatelessWidget {
           child: PopIn(
             key: ValueKey(place.id),
             animate: animate,
-            child: DecoratedBox(
-              position: DecorationPosition.foreground,
-              decoration: ShapeDecoration(
-                shape: CircleBorder(
-                  side: BorderSide(
-                    color: scheme.onSurface,
-                    width: AppStroke.regular,
+            child: _Disc(place: place, photoKey: discKey),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The last place kept, a disc at the answers' trailing edge with the saved
+/// heart on it, mirroring the skipped one; a tap opens Saved.
+class _Kept extends StatelessWidget {
+  const _Kept({required this.place, required this.count});
+
+  final Destination place;
+  final int count;
+
+  static const _heart = AppSpace.x5;
+
+  @override
+  Widget build(BuildContext context) {
+    final label = "Kept places, $count";
+    return Tooltip(
+      message: label,
+      excludeFromSemantics: true,
+      child: Semantics(
+        button: true,
+        label: label,
+        excludeSemantics: true,
+        child: GestureDetector(
+          onTap: () => context.push(Routes.saved),
+          behavior: HitTestBehavior.opaque,
+          child: PopIn(
+            key: ValueKey(place.id),
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                _Disc(place: place),
+                Positioned(
+                  top: -AppSpace.near,
+                  right: -AppSpace.near,
+                  child: Container(
+                    width: _heart,
+                    height: _heart,
+                    decoration: ShapeDecoration(
+                      color: context.lakbayan.save,
+                      shape: const CircleBorder(),
+                    ),
+                    child: const Icon(
+                      AppIcons.favoriteFilled,
+                      size: AppSpace.x3,
+                      color: Colors.white,
+                    ),
                   ),
                 ),
-              ),
-              child: ClipOval(
-                child: SizedBox.square(
-                  key: discKey,
-                  dimension: size,
-                  child: cover == null
-                      ? ColoredBox(color: _toneOf(context, place))
-                      : CoverImage(cover),
-                ),
-              ),
+              ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A place as a ringed photo disc on the stage, its kind's tone until it
+/// has a photo: the last one skipped and the last one kept.
+class _Disc extends StatelessWidget {
+  const _Disc({required this.place, this.photoKey});
+
+  final Destination place;
+
+  /// On the photo itself, so a flight can start from it.
+  final Key? photoKey;
+
+  static const size = AppSize.minTouchTarget;
+
+  @override
+  Widget build(BuildContext context) {
+    final cover = place.coverImage;
+    return DecoratedBox(
+      position: DecorationPosition.foreground,
+      decoration: ShapeDecoration(
+        shape: CircleBorder(
+          side: BorderSide(
+            color: Theme.of(context).colorScheme.onSurface,
+            width: AppStroke.regular,
+          ),
+        ),
+      ),
+      child: ClipOval(
+        child: SizedBox.square(
+          key: photoKey,
+          dimension: size,
+          child: cover == null
+              ? ColoredBox(color: _toneOf(context, place))
+              : CoverImage(cover),
         ),
       ),
     );
@@ -760,16 +850,16 @@ class _DeckDone extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text("That is every place.", style: AppTypography.titleMedium),
+            Text("That's Every Place", style: AppTypography.titleMedium),
             const SizedBox(height: AppSpace.x2),
             Text(
-              "The ones you kept are waiting on your profile.",
+              "The ones you kept are on your profile.",
               style: AppTypography.bodyMedium.copyWith(
                 color: scheme.onSurfaceVariant,
               ),
             ),
             const SizedBox(height: AppSpace.x4),
-            TextButton(onPressed: onStartOver, child: const Text("Start over")),
+            TextButton(onPressed: onStartOver, child: const Text("Start Over")),
           ],
         ),
       ),
