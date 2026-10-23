@@ -107,7 +107,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                           ),
                           const SizedBox(height: AppSpace.x4),
 
-                          const FieldLabel("EMAIL"),
+                          const FieldLabel("Email"),
                           const SizedBox(height: AppSpace.x2),
                           TextFormField(
                             controller: _email,
@@ -131,12 +131,12 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                           const SizedBox(height: AppSpace.x3),
 
                           FieldLabel(
-                            "PASSWORD",
+                            "Password",
                             trailing: _isSignUp
                                 ? null
                                 : TextButton(
                                     onPressed: busy ? null : _resetPassword,
-                                    child: const Text("Forgot password?"),
+                                    child: const Text("Forgot Password?"),
                                   ),
                           ),
                           const SizedBox(height: AppSpace.x2),
@@ -178,7 +178,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
 
                           if (_isSignUp) ...[
                             const SizedBox(height: AppSpace.x4),
-                            const FieldLabel("CONFIRM PASSWORD"),
+                            const FieldLabel("Confirm Password"),
                             const SizedBox(height: AppSpace.x2),
                             TextFormField(
                               controller: _confirm,
@@ -200,7 +200,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
 
                           const SizedBox(height: AppSpace.x4),
                           PrimaryAction(
-                            label: _isSignUp ? "Create account" : "Log in",
+                            label: _isSignUp ? "Create Account" : "Log In",
                             busy: busy,
                             onPressed: busy ? null : _submit,
                           ),
@@ -229,7 +229,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                                   ? null
                                   : () => _continueAsGuest(context),
                               child: Text(
-                                "BROWSE AS GUEST",
+                                "Browse as Guest",
                                 style: AppTypography.labelMedium.copyWith(
                                   color: Theme.of(context)
                                       .colorScheme

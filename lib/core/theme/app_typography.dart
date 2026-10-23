@@ -93,9 +93,6 @@ abstract final class AppTypography {
     height: 1.5,
   );
 
-  /// The same as [bodyLarge]; kept until its last screen moves to About.
-  static final lede = bodyLarge;
-
   /// The default body.
   static final bodyMedium = _style(
     face: family,
@@ -134,16 +131,6 @@ abstract final class AppTypography {
     size: 12,
     weight: 550,
     height: 1.3,
-  );
-
-  /// Badges: 11, 750, wide tracking, uppercase at the call site. Goes with
-  /// the last badge (D-19).
-  static final caps = _style(
-    face: family,
-    size: 11,
-    weight: 750,
-    height: 1,
-    letterSpacing: 0.8,
   );
 
   /// The landing greetings (Barabara). Uppercase only: lowercase glyphs fall

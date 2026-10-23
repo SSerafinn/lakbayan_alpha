@@ -6,8 +6,8 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 // Core reaching into a feature, as `core/router` does: every photo is drawn
 // here, so this is the one place the offline lookup can happen.
 import "../../../features/offline/domain/local_assets.dart";
+import "../../theme/app_dimens.dart";
 import "../../theme/app_motion.dart";
-import "lakbayan_badge.dart";
 
 /// Resolves a Cloud Storage path to a download URL.
 ///
@@ -215,4 +215,30 @@ class CoverImage extends StatelessWidget {
   Widget build(BuildContext context) => path == null
       ? const ImagePlaceholder(borderRadius: BorderRadius.zero)
       : StorageImage(path: path!);
+}
+
+/// Where a photo goes before it has arrived, or when there is none: a flat,
+/// quiet surface tier, not a gradient, so the space reads as waiting rather
+/// than decorated.
+class ImagePlaceholder extends StatelessWidget {
+  const ImagePlaceholder({
+    this.height,
+    this.width,
+    this.borderRadius,
+    super.key,
+  });
+
+  final double? height;
+  final double? width;
+  final BorderRadius? borderRadius;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    height: height,
+    width: width,
+    decoration: BoxDecoration(
+      borderRadius: borderRadius ?? AppRadii.smAll,
+      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+    ),
+  );
 }

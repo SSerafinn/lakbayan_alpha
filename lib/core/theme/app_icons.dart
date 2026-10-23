@@ -44,7 +44,6 @@ abstract final class AppIcons {
   static const IconData chevron = CupertinoIcons.chevron_right;
   static const IconData check = CupertinoIcons.checkmark;
   static const IconData warning = CupertinoIcons.exclamationmark_circle;
-  static const IconData offline = CupertinoIcons.wifi_slash;
   static const IconData grid = CupertinoIcons.square_grid_2x2;
   static const IconData delete = CupertinoIcons.trash;
   static const IconData settings = CupertinoIcons.gear;
@@ -54,14 +53,7 @@ abstract final class AppIcons {
   static const IconData account = CupertinoIcons.person_crop_circle;
   static const IconData visibility = CupertinoIcons.eye;
   static const IconData visibilityOff = CupertinoIcons.eye_slash;
-  static const IconData cloud = CupertinoIcons.cloud;
-  static const IconData developer = CupertinoIcons.hammer;
   static const IconData calendar = CupertinoIcons.calendar;
-
-  /// A place's facts in Plan your visit, each beside its name and value:
-  /// the best time, the entry fee, the access notes.
-  static const IconData season = CupertinoIcons.sun_max;
-  static const IconData entry = CupertinoIcons.tickets;
   static const IconData info = CupertinoIcons.info_circle;
 
   /// Rename. Always beside its label: a pencil alone reads as draw.
