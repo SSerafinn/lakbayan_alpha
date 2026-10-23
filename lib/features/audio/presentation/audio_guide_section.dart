@@ -418,7 +418,7 @@ class _PlayerSheet extends StatelessWidget {
       shape: const RoundedRectangleBorder(borderRadius: AppRadii.sheetTop),
       clipBehavior: Clip.antiAlias,
       child: ConstrainedBox(
-        constraints: BoxConstraints(maxHeight: screen * AppSheetSize.mapMax),
+        constraints: BoxConstraints(maxHeight: screen * AppSheetSize.tall),
         child: SafeArea(
           top: false,
           child: Column(
