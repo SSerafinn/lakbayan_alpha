@@ -60,10 +60,7 @@ abstract final class AppColors {
   static const blue = Color(0xFF1F6FD1);
   static const blueDark = Color(0xFF7FB2F0);
 
-  // Explore's towns hang from a pale river on cords; the cord in dark mode
-  // is [sub].
-  static const river = Color(0xFFCFE2F0);
-  static const riverDark = Color(0xFF2A3A47);
+  // The rope Explore's towns are clipped to; in dark mode it is [sub].
   static const cord = Color(0xFFB9B7AF);
 
   // Errors on a field: the border and the warning glyph.

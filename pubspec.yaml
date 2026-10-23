@@ -124,6 +124,16 @@ flutter:
     - family: CabinetGrotesk
       fonts:
         - asset: assets/fonts/CabinetGrotesk/Fonts/TTF/CabinetGrotesk-Variable.ttf
+    # The glyphs behind `AppIcons` (D-20): Phosphor's regular and fill
+    # weights, MIT, licence beside them. Bundled as fonts rather than through
+    # `phosphor_flutter`, whose icon class extends the now-final `IconData`
+    # and no longer compiles.
+    - family: PhosphorRegular
+      fonts:
+        - asset: assets/fonts/Phosphor/Phosphor.ttf
+    - family: PhosphorFill
+      fonts:
+        - asset: assets/fonts/Phosphor/Phosphor-Fill.ttf
     # The LAKBAYAN wordmark and the landing greetings only. Static OTF, so
     # no `wght` axis to set.
     - family: Barabara

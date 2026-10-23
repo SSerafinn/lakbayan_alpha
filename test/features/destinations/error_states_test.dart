@@ -50,7 +50,7 @@ void main() {
       final repo = FlakyDestinationRepository([callao], failAll: true);
       await pump(tester, const ExploreScreen(), repo: repo);
 
-      await tester.tap(find.widgetWithText(ChoiceChip, "Nature"));
+      await tester.tap(find.text("Nature"));
       await tester.pumpAndSettle();
 
       expect(
@@ -82,7 +82,7 @@ void main() {
       );
       await pump(tester, const ExploreScreen(), repo: repo);
 
-      await tester.tap(find.widgetWithText(ChoiceChip, "Nature"));
+      await tester.tap(find.text("Nature"));
       await tester.pumpAndSettle();
 
       expect(
@@ -97,7 +97,7 @@ void main() {
       final repo = FlakyDestinationRepository([callao], holdAll: true);
       await pump(tester, const ExploreScreen(), repo: repo);
 
-      await tester.tap(find.widgetWithText(ChoiceChip, "Nature"));
+      await tester.tap(find.text("Nature"));
       // A spinner never settles, so the frames are counted by hand.
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 500));
@@ -112,7 +112,7 @@ void main() {
       final repo = FlakyDestinationRepository([callao]);
       await pump(tester, const ExploreScreen(), repo: repo);
 
-      await tester.tap(find.widgetWithText(ChoiceChip, "Churches"));
+      await tester.tap(find.text("Churches"));
       await tester.pumpAndSettle();
 
       expect(find.text("Nothing matches. Try another kind."), findsOneWidget);
@@ -126,7 +126,7 @@ void main() {
       await pump(tester, const ExploreScreen(), repo: repo, retries: true);
       live.add([callao]);
       await tester.pumpAndSettle();
-      await tester.tap(find.widgetWithText(ChoiceChip, "Nature"));
+      await tester.tap(find.text("Nature"));
       await tester.pumpAndSettle();
       expect(find.text("Callao Cave"), findsOneWidget);
 
@@ -148,7 +148,7 @@ void main() {
     testWidgets("Try again shows progress while it runs", (tester) async {
       final repo = FlakyDestinationRepository([callao], failAll: true);
       await pump(tester, const ExploreScreen(), repo: repo);
-      await tester.tap(find.widgetWithText(ChoiceChip, "Nature"));
+      await tester.tap(find.text("Nature"));
       await tester.pumpAndSettle();
       expect(find.textContaining("Couldn't load places."), findsOneWidget);
 

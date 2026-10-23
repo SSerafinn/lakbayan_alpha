@@ -21,7 +21,6 @@ class LakbayanColors extends ThemeExtension<LakbayanColors> {
     required this.onSpatial,
     required this.closed,
     required this.save,
-    required this.river,
     required this.cord,
     required this.mint,
     required this.sky,
@@ -52,8 +51,7 @@ class LakbayanColors extends ThemeExtension<LakbayanColors> {
   /// The saved heart, filled.
   final Color save;
 
-  /// Explore's towns: the river they hang from, and their cords.
-  final Color river;
+  /// Explore's towns: the rope they hang from, and their clips.
   final Color cord;
 
   /// Pastels, ink on top: nature, museums and landmarks, churches and
@@ -78,7 +76,6 @@ class LakbayanColors extends ThemeExtension<LakbayanColors> {
     onSpatial: AppColors.white,
     closed: AppColors.redText,
     save: AppColors.red,
-    river: AppColors.river,
     cord: AppColors.cord,
     mint: AppColors.mint,
     sky: AppColors.sky,
@@ -97,7 +94,6 @@ class LakbayanColors extends ThemeExtension<LakbayanColors> {
     onSpatial: AppColors.charcoal,
     closed: AppColors.redDark,
     save: AppColors.redDark,
-    river: AppColors.riverDark,
     cord: AppColors.sub,
     mint: AppColors.mintDark,
     sky: AppColors.skyDark,
@@ -139,7 +135,6 @@ class LakbayanColors extends ThemeExtension<LakbayanColors> {
     Color? onSpatial,
     Color? closed,
     Color? save,
-    Color? river,
     Color? cord,
     Color? mint,
     Color? sky,
@@ -156,7 +151,6 @@ class LakbayanColors extends ThemeExtension<LakbayanColors> {
     onSpatial: onSpatial ?? this.onSpatial,
     closed: closed ?? this.closed,
     save: save ?? this.save,
-    river: river ?? this.river,
     cord: cord ?? this.cord,
     mint: mint ?? this.mint,
     sky: sky ?? this.sky,
@@ -179,7 +173,6 @@ class LakbayanColors extends ThemeExtension<LakbayanColors> {
       onSpatial: mix(onSpatial, other.onSpatial),
       closed: mix(closed, other.closed),
       save: mix(save, other.save),
-      river: mix(river, other.river),
       cord: mix(cord, other.cord),
       mint: mix(mint, other.mint),
       sky: mix(sky, other.sky),

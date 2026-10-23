@@ -6,12 +6,13 @@ import "../../../core/errors/local_first.dart";
 import "../../../core/models/destination.dart";
 import "../../../core/router/app_router.dart";
 import "../../../core/theme/app_dimens.dart";
+import "../../../core/theme/app_icons.dart";
 import "../../../core/theme/app_typography.dart";
 import "../../../core/widgets/chrome/floating_tab_bar.dart";
 import "../../../core/widgets/content/quiet_note.dart";
 import "../../../core/widgets/content/section_heading.dart";
 import "../../../core/widgets/content/storage_image.dart";
-import "../../../core/widgets/controls/filter_chip_row.dart";
+import "../../../core/widgets/controls/kind_rail.dart";
 import "../../../core/widgets/motion/motion.dart";
 import "../domain/destination_providers.dart";
 import "explore_sections.dart";
@@ -23,7 +24,7 @@ import "province_notice.dart";
 /// province spread out in photos.
 ///
 /// The title, the province's notice while it has one ([ProvinceNotice]),
-/// the kinds as photo pills, then the featured deck and the feed in the
+/// the kinds as a glyph rail, then the featured deck and the feed in the
 /// order a visitor decides: Towns, Popular, Food, Day Tours, Guides. A kind
 /// chosen puts its places under the pills in place of the deck and feed.
 class ExploreScreen extends ConsumerWidget {
@@ -79,8 +80,8 @@ class ExploreScreen extends ConsumerWidget {
   }
 }
 
-/// The kinds of place as pills, each with a photo of one, food among them.
-/// Tapping the chosen kind again clears it.
+/// The kinds of place as glyphs over words, food among them. Tapping the
+/// chosen kind again clears it.
 class _Kinds extends ConsumerWidget {
   const _Kinds();
 
@@ -96,14 +97,14 @@ class _Kinds extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final chosen = ref.watch(homeCategoryProvider);
-    final covers = ref.watch(kindCoversProvider);
-    return FilterChipRow(
+    return KindRail(
       items: [
         for (final kind in _kinds)
-          FilterChipItem(
+          KindRailItem(
             label: kind.label,
+            glyph: AppIcons.kind(kind),
+            selectedGlyph: AppIcons.kind(kind, filled: true),
             selected: chosen == kind,
-            avatar: covers[kind] == null ? null : CoverImage(covers[kind]),
             onTap: () => ref.read(homeCategoryProvider.notifier).toggle(kind),
           ),
       ],
@@ -200,14 +201,14 @@ class _Feed extends ConsumerWidget {
         const Entrance(order: 5, child: ReadyMadeDays()),
         const Entrance(order: 6, child: LocalGuides()),
         if (covers.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(
+          const Padding(
+            padding: EdgeInsets.fromLTRB(
               AppSpace.gutter,
               AppSpace.section,
               AppSpace.gutter,
               0,
             ),
-            child: Entrance(order: 7, child: SwipeEntry(covers: covers)),
+            child: Entrance(order: 7, child: SwipeEntry()),
           ),
       ],
     );
