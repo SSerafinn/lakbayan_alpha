@@ -60,8 +60,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.ensureVisible(find.text("Add a stop"));
-    await tester.tap(find.text("Add a stop"));
+    await tester.ensureVisible(find.text("Add a Stop"));
+    await tester.tap(find.text("Add a Stop"));
     if (settle) {
       await tester.pumpAndSettle();
     } else {

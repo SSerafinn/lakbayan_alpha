@@ -118,7 +118,7 @@ class _AddToItinerarySheetState extends ConsumerState<_AddToItinerarySheet> {
           style: FilledButton.styleFrom(
             minimumSize: const Size.fromHeight(AppSize.primaryButton),
           ),
-          child: const Text("View trip"),
+          child: const Text("View Trip"),
         ),
         slivers: [
           SliverPadding(
@@ -143,7 +143,7 @@ class _AddToItinerarySheetState extends ConsumerState<_AddToItinerarySheet> {
               style: FilledButton.styleFrom(
                 minimumSize: const Size.fromHeight(AppSize.primaryButton),
               ),
-              child: const Text("Sign in"),
+              child: const Text("Sign In"),
             )
           : null,
       slivers: [
@@ -194,7 +194,7 @@ class _Trips extends ConsumerWidget {
           ),
           error: (error, _) => SliverToBoxAdapter(
             child: QuietNote(
-              errorCopy("Couldn't load your itineraries.", error),
+              errorCopy("Couldn't load your trips.", error),
               onRetry: () => ref.invalidate(myItinerariesProvider),
             ),
           ),
@@ -203,7 +203,7 @@ class _Trips extends ConsumerWidget {
             itemBuilder: (context, index) {
               if (index == items.length) {
                 return GroupedRow(
-                  title: "New itinerary with this stop",
+                  title: "New Trip with This Stop",
                   leadingGlyph: AppIcons.add,
                   glyphColor: scheme.primary,
                   trailing: failed == _newTrip
@@ -311,10 +311,10 @@ class _GuestNote extends StatelessWidget {
     mainAxisSize: MainAxisSize.min,
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      Text("Plans need an account", style: AppTypography.titleSmall),
+      Text("Plans Need an Account", style: AppTypography.titleSmall),
       const SizedBox(height: AppSpace.x2),
       Text(
-        "Itineraries are kept with your account so they follow you to "
+        "Trips are kept with your account so they follow you to "
         "another phone.",
         style: AppTypography.bodyMedium.copyWith(
           color: Theme.of(context).colorScheme.onSurfaceVariant,

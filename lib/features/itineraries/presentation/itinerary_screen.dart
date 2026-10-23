@@ -22,7 +22,9 @@ import "../../../core/widgets/chrome/app_sheet.dart";
 import "../../../core/widgets/chrome/system_bars.dart";
 import "../../../core/widgets/content/grouped_section.dart";
 import "../../../core/widgets/content/lakbayan_badge.dart";
+import "../../../core/widgets/content/media_tile.dart";
 import "../../../core/widgets/content/quiet_note.dart";
+import "../../../core/widgets/content/section_heading.dart";
 import "../../../core/widgets/content/stop_numeral.dart";
 import "../../../core/widgets/content/storage_image.dart";
 import "../../../core/widgets/controls/bar_item_group.dart";
@@ -40,9 +42,12 @@ import "stop_picker.dart";
 import "stop_strip.dart";
 import "trip_dates.dart";
 
-/// Trip detail screen. Route map header (expandable into full-screen with stop
-/// strip), stop timeline below, reorder/add/remove actions. List is shown
-/// optimistically and snaps to stored order on write failure.
+/// A trip (D-19). **Job:** shape the route. **Emotion:** the days laid out.
+/// The route map as the header (it grows into the screen with the strip of
+/// stops); the page rises over it with the name, the dates and distance as
+/// chips, the stops on one card with how far each is from the last, Add a
+/// Stop, then places near the route. Changes show at once and snap back to
+/// the stored order if the write fails.
 class ItineraryScreen extends ConsumerWidget {
   const ItineraryScreen({required this.id, this.added, super.key});
 
@@ -270,8 +275,6 @@ class _OverviewState extends ConsumerState<_Overview> {
     final bottomInset = MediaQuery.viewPaddingOf(context).bottom;
     final stripBottom = bottomInset + AppSpace.x3;
     final stops = _stops;
-    final start = itinerary.startDate;
-    final heading = start == null ? "Stops" : weekday(start);
     final screen = MediaQuery.sizeOf(context);
     final topInset = MediaQuery.viewPaddingOf(context).top;
     final restHeight = AppSize.routePreview + topInset;
@@ -378,34 +381,24 @@ class _OverviewState extends ConsumerState<_Overview> {
                         // The trip's name on the page rising over the map,
                         // the way a place's name sits on Place detail.
                         Entrance(child: _TripTitle(itinerary: itinerary)),
-                        const SizedBox(height: AppSpace.x6),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: AppSpace.x1,
-                          ),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  heading,
-                                  style: AppTypography.groupHeading,
+                        const SizedBox(height: AppSpace.x2),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _Facts(itinerary: itinerary, drawn: drawn),
+                            ),
+                            if (stops.length > 1)
+                              TextButton(
+                                onPressed: () =>
+                                    setState(() => _reordering = !_reordering),
+                                child: FadeSwap(
+                                  id: _reordering,
+                                  child: Text(_reordering ? "Done" : "Reorder"),
                                 ),
                               ),
-                              if (stops.length > 1)
-                                TextButton(
-                                  onPressed: () => setState(
-                                    () => _reordering = !_reordering,
-                                  ),
-                                  child: FadeSwap(
-                                    id: _reordering,
-                                    child: Text(
-                                      _reordering ? "Done" : "Reorder",
-                                    ),
-                                  ),
-                                ),
-                            ],
-                          ),
+                          ],
                         ),
+                        const SizedBox(height: AppSpace.x2),
                         // A trip is a handful of stops, built together so
                         // moves can slide between neighbours.
                         Entrance(
@@ -440,12 +433,21 @@ class _OverviewState extends ConsumerState<_Overview> {
                                     onRemove: () => _remove(stop),
                                   ),
                                 ),
-                              _AddStopRow(heading: heading, onTap: _addStops),
+                              _AddStopRow(onTap: _addStops),
                             ],
                           ),
                         ),
-                        const SizedBox(height: AppSpace.section),
-                        const Entrance(order: 2, child: _OfflineRow()),
+                        Entrance(
+                          order: 2,
+                          child: _NearRoute(
+                            itineraryId: itinerary.id,
+                            stops: drawn,
+                            onAdd: (id) {
+                              _arriving.add(id);
+                              _write([..._stops, id]);
+                            },
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -610,24 +612,77 @@ class _StopMotion extends StatelessWidget {
   }
 }
 
-/// Taking the trip offline, as a row on its own card like the stops above
-/// it: the download glyph in blue, what it keeps, and a chevron
-/// to the downloads. No coloured tile.
-class _OfflineRow extends StatelessWidget {
-  const _OfflineRow();
+/// Places near the trip and not on it yet, nearest to any stop first: a
+/// tap opens one, the plus puts it on the trip. Not there without stops.
+class _NearRoute extends ConsumerWidget {
+  const _NearRoute({
+    required this.itineraryId,
+    required this.stops,
+    required this.onAdd,
+  });
+
+  final String itineraryId;
+  final List<RouteStop> stops;
+  final ValueChanged<String> onAdd;
+
+  static const _shown = 6;
 
   @override
-  Widget build(BuildContext context) => GroupedSection(
-    children: [
-      GroupedRow(
-        leadingGlyph: AppIcons.download,
-        glyphColor: context.lakbayan.spatial,
-        title: "Take this trip offline",
-        subtitle: "Map, photos and audio",
-        onTap: () => context.push(Routes.downloads),
+  Widget build(BuildContext context, WidgetRef ref) {
+    final addable =
+        ref.watch(addableStopsProvider(itineraryId)).value ?? const [];
+    if (stops.isEmpty || addable.isEmpty) return const SizedBox.shrink();
+    final away = {
+      for (final place in addable)
+        place: stops
+            .map((stop) => distanceBetween(stop.place, place))
+            .reduce((a, b) => a < b ? a : b),
+    };
+    final near =
+        (addable.toList()..sort((a, b) => away[a]!.compareTo(away[b]!)))
+            .take(_shown)
+            .toList();
+
+    return Padding(
+      padding: const EdgeInsets.only(top: AppSpace.section),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const SectionHeading("Near Your Route"),
+          SizedBox(
+            height: AppSize.tourTile,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: near.length,
+              separatorBuilder: (_, _) => const SizedBox(width: AppSpace.x2),
+              itemBuilder: (context, index) {
+                final place = near[index];
+                return MediaTile(
+                  media: PhotoHero(
+                    tag: coverHeroTag(place.id, HeroSource.around),
+                    child: CoverImage(place.coverImage),
+                  ),
+                  aspectRatio: 1,
+                  overlay: true,
+                  dense: true,
+                  title: place.name,
+                  trailing: SymbolButton(
+                    icon: AppIcons.add,
+                    tooltip: "Add ${place.name} to the trip",
+                    size: AppSize.tileSave,
+                    onTap: () => onAdd(place.id),
+                  ),
+                  onTap: () => context.push(
+                    Routes.destination(place.id, from: HeroSource.around),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
       ),
-    ],
-  );
+    );
+  }
 }
 
 /// The stops as a route: a blue line runs down through their numbers, from
@@ -664,55 +719,50 @@ class _Timeline extends StatelessWidget {
 /// The page's rounded edge over the foot of the route map.
 const _pageEdge = AppSpace.x6;
 
-/// The trip's name, large, at the top of the page, and its dates as one
-/// quiet line under it; tapping the dates changes them. With no dates yet,
-/// a link to add them. The map stays a clean map above.
+/// The trip's name, large, on the page rising over the map. The map stays a
+/// clean map above.
 class _TripTitle extends StatelessWidget {
   const _TripTitle({required this.itinerary});
 
   final Itinerary itinerary;
 
   @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(top: AppSpace.x2),
+    child: Semantics(
+      header: true,
+      child: Text(itinerary.name, style: AppTypography.hero),
+    ),
+  );
+}
+
+/// The trip's dates as a chip that opens them (Add Dates with none yet),
+/// and how far it runs stop to stop in straight lines. No stop count: the
+/// stops are the list below.
+class _Facts extends StatelessWidget {
+  const _Facts({required this.itinerary, required this.drawn});
+
+  final Itinerary itinerary;
+  final List<RouteStop> drawn;
+
+  @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    // The dates, when set. The stops are the list below, so a count here
-    // would be a number with nothing to do.
-    final line = datePhrase(itinerary);
-    return Padding(
-      padding: const EdgeInsets.only(top: AppSpace.x2),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Semantics(
-            header: true,
-            child: Text(itinerary.name, style: AppTypography.hero),
-          ),
-          if (line != null)
-            Semantics(
-              button: true,
-              hint: "Change the dates",
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: () => showTripDates(context, itinerary),
-                child: Padding(
-                  padding: const EdgeInsets.only(top: AppSpace.x1),
-                  child: Text(
-                    line,
-                    style: AppTypography.bodyMedium.copyWith(
-                      color: scheme.onSurfaceVariant,
-                    ),
-                  ),
-                ),
-              ),
-            )
-          else
-            TextButton(
-              onPressed: () => showTripDates(context, itinerary),
-              style: TextButton.styleFrom(padding: EdgeInsets.zero),
-              child: const Text("Add dates"),
-            ),
-        ],
-      ),
+    final dates = datePhrase(itinerary);
+    var metres = 0.0;
+    for (var i = 1; i < drawn.length; i++) {
+      metres += distanceBetween(drawn[i - 1].place, drawn[i].place);
+    }
+    return Wrap(
+      spacing: AppSpace.near,
+      runSpacing: AppSpace.near,
+      children: [
+        ActionChip(
+          label: Text(dates ?? "Add Dates"),
+          tooltip: dates == null ? null : "Change the dates",
+          onPressed: () => showTripDates(context, itinerary),
+        ),
+        if (drawn.length > 1) Chip(label: Text(distanceLabel(metres))),
+      ],
     );
   }
 }
@@ -829,7 +879,7 @@ class _TripActions extends ConsumerWidget {
         menu: [
           [
             AppMenuItem(
-              label: "Change dates",
+              label: "Change Dates",
               icon: AppIcons.calendar,
               onSelected: () => showTripDates(context, itinerary),
             ),
@@ -873,7 +923,7 @@ class _TripActions extends ConsumerWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text("Keep it"),
+            child: const Text("Keep It"),
           ),
           FilledButton(
             onPressed: () => Navigator.of(context).pop(true),
@@ -1037,9 +1087,9 @@ class _DatesSheetState extends ConsumerState<_DatesSheet> {
 }
 
 /// One stop: the row opens the place; reordering swaps in move up, move
-/// down and remove. The second line is the town for the first stop and the
-/// straight-line distance from the one before for the rest, in blue, never
-/// a drive time the app cannot know.
+/// down and remove. Its town is the second line; above it, on the route,
+/// how far it is from the one before in a straight line, never a drive time
+/// the app cannot know.
 class _StopRow extends ConsumerWidget {
   const _StopRow({
     required this.index,
@@ -1077,8 +1127,7 @@ class _StopRow extends ConsumerWidget {
         : ref.watch(destinationByIdProvider(previousId)).value;
     final leg = place == null || previous == null
         ? null
-        : "${distanceLabel(distanceBetween(previous, place))} "
-              "from ${previous.name}";
+        : distanceLabel(distanceBetween(previous, place));
 
     final remove = IconButton(
       icon: const Icon(AppIcons.close, size: AppSize.glyphMd),
@@ -1107,29 +1156,53 @@ class _StopRow extends ConsumerWidget {
         ? remove
         : null;
 
+    final row = GroupedRow(
+      mark: StopNumeral(index + 1),
+      title: place?.name ?? _fallbackTitle(destination),
+      subtitle: place?.town,
+      leading: PhotoHero(
+        tag: coverHeroTag(destinationId, HeroSource.stop),
+        child: CoverImage(place?.coverImage),
+      ),
+      trailing: controls == null && !reordering
+          ? null
+          : FadeSwap(
+              id: reordering,
+              child: controls ?? const SizedBox.shrink(),
+            ),
+      onTap: reordering || place == null
+          ? null
+          : () => context.push(
+              Routes.destination(place.id, from: HeroSource.stop),
+            ),
+    );
     return Semantics(
       label: "Stop ${index + 1} of $total",
-      child: GroupedRow(
-        mark: StopNumeral(index + 1),
-        title: place?.name ?? _fallbackTitle(destination),
-        subtitle: leg ?? place?.town,
-        subtitleColor: leg == null ? null : context.lakbayan.spatial,
-        leading: PhotoHero(
-          tag: coverHeroTag(destinationId, HeroSource.stop),
-          child: CoverImage(place?.coverImage),
-        ),
-        trailing: controls == null && !reordering
-            ? null
-            : FadeSwap(
-                id: reordering,
-                child: controls ?? const SizedBox.shrink(),
-              ),
-        onTap: reordering || place == null
-            ? null
-            : () => context.push(
-                Routes.destination(place.id, from: HeroSource.stop),
-              ),
-      ),
+      child: leg == null
+          ? row
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Padding(
+                  // Under the photos, beside the route's line.
+                  padding: EdgeInsets.only(
+                    left:
+                        AppSpace.near +
+                        StopNumeral.sideOf(context) +
+                        AppSpace.x3,
+                    top: AppSpace.x1,
+                  ),
+                  child: Text(
+                    leg,
+                    style: AppTypography.labelMedium.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+                row,
+              ],
+            ),
     );
   }
 
@@ -1144,9 +1217,8 @@ class _StopRow extends ConsumerWidget {
 /// The last row of the list: a dashed square where the next photo will be,
 /// under the stops' photos, with no number yet.
 class _AddStopRow extends StatelessWidget {
-  const _AddStopRow({required this.heading, required this.onTap});
+  const _AddStopRow({required this.onTap});
 
-  final String heading;
   final VoidCallback onTap;
 
   @override
@@ -1156,7 +1228,7 @@ class _AddStopRow extends StatelessWidget {
       // No number yet, but the slot holds its width so the square lines up
       // under the stops' photos.
       mark: SizedBox(width: StopNumeral.sideOf(context)),
-      title: heading == "Stops" ? "Add a stop" : "Add a stop to $heading",
+      title: "Add a Stop",
       // The row gives its photo slot a derived radius; the dashes follow
       // it, so the square sits concentric with the row like a photo would.
       leading: Builder(
@@ -1232,7 +1304,7 @@ class _AddStopsSheetState extends ConsumerState<_AddStopsSheet> {
     final choices = ref.watch(addableStopsProvider(widget.itineraryId));
 
     return AppSheet(
-      title: "Add a stop",
+      title: "Add Stops",
       fill: true,
       action: FilledButton(
         onPressed: _picked.isEmpty
