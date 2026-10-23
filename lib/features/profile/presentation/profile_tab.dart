@@ -23,6 +23,7 @@ import "../../destinations/domain/saved_destinations.dart";
 import "../../explore/domain/home_tab.dart";
 import "../../itineraries/domain/itinerary_providers.dart";
 import "../../offline/domain/offline_providers.dart";
+import "user_avatar.dart";
 
 /// Profile (D-19). **One job:** what is mine. **Emotion:** ownership.
 ///
@@ -203,61 +204,12 @@ class _Header extends StatelessWidget {
                 onTap: onNext,
               ),
             ),
-          Positioned(
+          const Positioned(
             left: AppSpace.gutter + AppSpace.x1,
             bottom: 0,
-            child: Container(
-              width: _avatar,
-              height: _avatar,
-              decoration: ShapeDecoration(
-                color: brand.tint,
-                shape: CircleBorder(
-                  side: BorderSide(
-                    color: Theme.of(context).colorScheme.surface,
-                    width: _ring,
-                  ),
-                ),
-              ),
-              padding: const EdgeInsets.all(_ring),
-              clipBehavior: Clip.antiAlias,
-              alignment: Alignment.center,
-              child: const _Avatar(size: _avatar - 2 * _ring),
-            ),
+            child: UserAvatar(size: _avatar, ring: _ring),
           ),
         ],
-      ),
-    );
-  }
-}
-
-/// My photo, else my initial in emerald; a guest's is the account glyph.
-class _Avatar extends ConsumerWidget {
-  const _Avatar({required this.size});
-
-  final double size;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final ink = context.lakbayan.textOnLightGreen;
-    if (ref.watch(guestModeProvider)) {
-      return Icon(AppIcons.account, size: size / 2, color: ink);
-    }
-    final user = ref.watch(authStateProvider).value;
-    final label = user?.label ?? "";
-    final initial = Text(
-      label.isEmpty ? "?" : label.characters.first.toUpperCase(),
-      style: AppTypography.display.copyWith(color: ink),
-    );
-    final photo = user?.photoUrl;
-    if (photo == null) return initial;
-    return ClipOval(
-      child: Image.network(
-        photo,
-        fit: BoxFit.cover,
-        width: size,
-        height: size,
-        cacheWidth: (size * 3).round(),
-        errorBuilder: (_, _, _) => initial,
       ),
     );
   }

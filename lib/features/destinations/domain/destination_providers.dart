@@ -188,6 +188,29 @@ AsyncValue<List<Destination>> mapResults(Ref ref) {
 
 const _distance = Distance();
 
+/// The map's rail and grid never repeat a place. Keep the rail small and
+/// stable during swipes; a pin/grid selection outside it replaces its last card.
+@riverpod
+({List<Destination> rail, List<Destination> grid}) mapPhotoSections(Ref ref) {
+  final items = ref.watch(mapResultsProvider).value ?? const <Destination>[];
+  final selectedId = ref.watch(mapSelectedIdProvider);
+  final rail = items.take(_mapRailLimit).toList();
+  final selected = items.where((place) => place.id == selectedId).firstOrNull;
+  if (selected != null && !rail.any((place) => place.id == selected.id)) {
+    rail[rail.length - 1] = selected;
+  }
+  final railIds = {for (final place in rail) place.id};
+  return (
+    rail: rail,
+    grid: [
+      for (final place in items)
+        if (!railIds.contains(place.id)) place,
+    ],
+  );
+}
+
+const _mapRailLimit = 5;
+
 /// Metres between two places.
 double distanceBetween(Destination from, Destination to) => _distance.distance(
   LatLng(from.coords.lat, from.coords.lng),
@@ -286,7 +309,7 @@ List<String> browseSubcategories(Ref ref) {
 /// Browse's results cut into grid rows of [columns]. Derived here, not on every build.
 @riverpod
 AsyncValue<List<List<Destination>>> browseGridRows(Ref ref, int columns) =>
-    ref.watch(browseResultsProvider).deriveKeepingValue((items) {
+    ref.watch(mapResultsProvider).deriveKeepingValue((items) {
       final rows = <List<Destination>>[];
       var current = <Destination>[];
       for (final item in items) {
@@ -352,6 +375,35 @@ List<Destination> foodPlaces(Ref ref) {
   return [
     for (final place in all)
       if (place.category == DestinationCategory.food) place,
+  ].take(10).toList();
+}
+
+/// Popular Destinations under the featured deck, without the deck's own
+/// places: the CMS often marks a place both, and the same photo twice a
+/// scroll apart reads as a mistake. Async, keeping the value, so Explore can
+/// still tell loading and a failed read from nothing left to show.
+@riverpod
+AsyncValue<List<Destination>> popularBeyondFeatured(Ref ref) {
+  final featured = ref.watch(featuredDestinationsProvider).value ?? const [];
+  final inDeck = {for (final place in featured) place.id};
+  return ref
+      .watch(popularDestinationsProvider)
+      .deriveKeepingValue(
+        (popular) => [
+          for (final place in popular)
+            if (!inDeck.contains(place.id)) place,
+        ],
+      );
+}
+
+/// Places with exhibits to scan (D-18), for Explore's Scan Exhibits rail: at
+/// most ten, as every rail is.
+@riverpod
+List<Destination> scanPlaces(Ref ref) {
+  final all = ref.watch(allDestinationsProvider).value ?? const [];
+  return [
+    for (final place in all)
+      if (place.hasAR) place,
   ].take(10).toList();
 }
 

@@ -44,15 +44,15 @@ abstract final class AppSize {
   static const appBarHeight = 56.0;
 
   /// The floating tab bar at rest: the four sections and search in one
-  /// capsule, the chosen one carrying its name (D-19).
+  /// capsule, the chosen glyph filled on emerald (D-19).
   static const bottomNav = 60.0;
 
   /// The same bar shrunk on a scroll down, one touch target tall, so every
   /// cell still meets the minimum.
   static const bottomNavCollapsed = minTouchTarget;
 
-  /// A drawn tab glyph (`TabGlyph`). Full size now there is no label under
-  /// it to keep light against.
+  /// A tab bar glyph, and search's where its field grows from it. Full size:
+  /// the bar is glyphs only.
   static const tabGlyph = 24.0;
 
   /// Taller than the touch minimum so the capsule reads as the focal action.
@@ -75,9 +75,17 @@ abstract final class AppSize {
   /// A tour's tile on a rail: 3:4, so the rail reads as a row of posters.
   static const tourTile = 124.0;
 
-  /// A photo tile on a rail with its caption on the photo, 4:5: Where to
-  /// eat, Around here.
+  /// A photo tile on a rail with its caption on the photo, 4:5: Explore's
+  /// Scan Exhibits.
   static const railTile = 136.0;
+
+  /// Food's photos on a rail, 4:5 and wider than [railTile]: a place to eat
+  /// is chosen by its photo, so the photo gets the room.
+  static const foodTile = 168.0;
+
+  /// A place opened before, square on Explore's Recently Viewed: a reminder,
+  /// smaller than a pitch.
+  static const recentTile = 112.0;
 
   /// A local guide's card on Explore's rail.
   static const guideCard = 232.0;
@@ -122,7 +130,7 @@ abstract final class AppSize {
   /// pages with shorter copy do not sit lower than the rest.
   static const landingBodyBlock = 72.0;
 
-  // Glyph sizes. Material's icon default is 24; the Cupertino strokes read
+  // Glyph sizes. Material's icon default is 24; Phosphor's strokes read
   // heavier, so most in-row glyphs step down. One ladder, no inline sizes.
 
   /// A glyph inside a selection circle.
@@ -184,8 +192,8 @@ abstract final class AppSheetSize {
   /// pinned action without covering the context behind it.
   static const form = 0.62;
 
-  /// The Map's places sheet fully raised.
-  static const mapMax = 0.72;
+  /// A tall sheet that is still a sheet (the audio guide's player).
+  static const tall = 0.72;
 }
 
 /// The shoreline band, `footer.webp`, which is 1440 x 319.

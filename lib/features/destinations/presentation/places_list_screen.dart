@@ -31,7 +31,10 @@ class PlacesListScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final (String title, AsyncValue<List<Destination>> places) = switch (list) {
-      PlacesList.popular => ("Popular", ref.watch(popularDestinationsProvider)),
+      PlacesList.popular => (
+        "Popular Destinations",
+        ref.watch(popularDestinationsProvider),
+      ),
       PlacesList.saved => ("Saved", ref.watch(savedPlacesProvider)),
     };
 

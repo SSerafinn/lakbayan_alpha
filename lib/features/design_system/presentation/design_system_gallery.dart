@@ -109,7 +109,7 @@ class _TokensState extends State<_Tokens> {
             Text("Cagayan", style: AppTypography.display),
             Text("Callao Cave", style: AppTypography.hero),
             Text("Trips", style: AppTypography.titleLarge),
-            Text("Popular", style: AppTypography.titleMedium),
+            Text("Popular Destinations", style: AppTypography.titleMedium),
             Text("Saved Tours", style: AppTypography.groupHeading),
             Text("Basilica Minore de Piat", style: AppTypography.titleSmall),
             Text(
@@ -222,11 +222,11 @@ class _TokensState extends State<_Tokens> {
           runSpacing: AppSpace.x2,
           children: [
             PhotoPill.scan(),
+            PhotoPill.popular(),
             PhotoPill("1.2 km"),
             PhotoPill("Free"),
-            PhotoPill("12"),
-            PhotoPill("Popular This Season"),
-            PhotoPill("14 to 15 Nov", glyph: AppIcons.calendar),
+            PhotoPill("Popular This Season", glyph: AppIcons.popular),
+            PhotoPill("Nov 14 to 15", glyph: AppIcons.calendar),
           ],
         ),
 
@@ -234,7 +234,7 @@ class _TokensState extends State<_Tokens> {
         const TextField(decoration: InputDecoration(hintText: "Name")),
 
         const _Section("Photos"),
-        SectionHeading("Popular", onSeeAll: () {}),
+        SectionHeading("Popular Destinations", onSeeAll: () {}),
         MediaTile(
           media: photo,
           aspectRatio: 16 / 10,

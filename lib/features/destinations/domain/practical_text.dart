@@ -40,10 +40,14 @@ String capital(String text) =>
 const _priceLength = 12;
 
 /// What it costs to get in, in the editor's own words ("Free", "₱50"), when
-/// that is short enough for a photo. Null when the CMS has none: a price is
-/// shown or it is not there, never guessed.
+/// that is short enough for a photo and reads as a price: "Free", or words
+/// with a number in them. Null otherwise ("Boat hire" is how you get there,
+/// not what it costs): a price is shown or it is not there, never guessed.
 String? entryPrice(Destination place) {
   final value = tidyFact(place.practical?.entryFee)?.value;
   if (value == null || value.length > _priceLength) return null;
+  if (!_digit.hasMatch(value) && value.toLowerCase() != "free") return null;
   return value;
 }
+
+final _digit = RegExp(r"\d");

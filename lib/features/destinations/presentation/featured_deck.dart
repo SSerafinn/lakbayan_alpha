@@ -7,6 +7,7 @@ import "package:motor/motor.dart";
 import "../../../core/models/destination.dart";
 import "../../../core/router/app_router.dart";
 import "../../../core/theme/app_dimens.dart";
+import "../../../core/theme/app_icons.dart";
 import "../../../core/theme/app_motion.dart";
 import "../../../core/theme/app_typography.dart";
 import "../../../core/widgets/content/media_tile.dart";
@@ -14,6 +15,7 @@ import "../../../core/widgets/content/page_dots.dart";
 import "../../../core/widgets/content/storage_image.dart";
 import "../../../core/widgets/motion/motion.dart";
 import "../../../core/widgets/motion/page_transitions.dart";
+import "place_photo.dart";
 import "save_heart.dart";
 
 /// The featured places as a deck (D-19): the front card full size, the next
@@ -121,33 +123,47 @@ class _FeaturedDeckState extends State<FeaturedDeck>
                 onHorizontalDragStart: (_) => _position.stop(),
                 onHorizontalDragUpdate: _drag,
                 onHorizontalDragEnd: _release,
-                child: Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    // The last card first, so the front one paints on top.
-                    for (var i = places.length - 1; i >= 0; i--)
-                      _DeckCard(
-                        position: _position,
-                        index: i,
-                        width: width,
-                        child: _Face(place: places[i]),
-                      ),
-                    if (places.length > 1)
-                      Positioned(
-                        top: 0,
-                        bottom: 0,
-                        right: 0,
-                        width: FeaturedDeck.peek,
-                        child: Semantics(
-                          button: true,
-                          label: "Next featured place",
-                          child: GestureDetector(
-                            behavior: HitTestBehavior.opaque,
-                            onTap: _next,
+                // Only the cards that can show are mounted: the one dealt
+                // off, the front and the three waiting (STANDARDS 10.1). The
+                // window moves when the front card changes, not per frame;
+                // keyed, a card that stays in it keeps its element.
+                child: ValueListenableBuilder(
+                  valueListenable: _front,
+                  builder: (context, front, _) {
+                    final last = places.length - 1;
+                    final first = (front - 1).clamp(0, last);
+                    final through = (front + 3).clamp(0, last);
+                    return Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        // The last card first, so the front one paints on
+                        // top.
+                        for (var i = through; i >= first; i--)
+                          _DeckCard(
+                            key: ValueKey(places[i].id),
+                            position: _position,
+                            index: i,
+                            width: width,
+                            child: _Face(place: places[i]),
                           ),
-                        ),
-                      ),
-                  ],
+                        if (places.length > 1)
+                          Positioned(
+                            top: 0,
+                            bottom: 0,
+                            right: 0,
+                            width: FeaturedDeck.peek,
+                            child: Semantics(
+                              button: true,
+                              label: "Next featured place",
+                              child: GestureDetector(
+                                behavior: HitTestBehavior.opaque,
+                                onTap: _next,
+                              ),
+                            ),
+                          ),
+                      ],
+                    );
+                  },
                 ),
               ),
             );
@@ -175,6 +191,7 @@ class _DeckCard extends StatelessWidget {
     required this.index,
     required this.width,
     required this.child,
+    super.key,
   });
 
   final Animation<double> position;
@@ -250,7 +267,9 @@ class _DeckCard extends StatelessWidget {
   }
 }
 
-/// A featured place: its photo, its name on the scrim, the heart on glass.
+/// A featured place: its photo, with why it is here and the heart on one
+/// line at the top; at the foot, on the scrim, what it costs and whether it
+/// has exhibits to scan, then its name and its town.
 class _Face extends StatelessWidget {
   const _Face({required this.place});
 
@@ -281,11 +300,33 @@ class _Face extends StatelessWidget {
                 right: 0,
                 bottom: 0,
                 child: MediaScrim(
-                  child: Text(
-                    place.name,
-                    style: AppTypography.display.copyWith(color: Colors.white),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // The tag above says popular already.
+                      if (placeTags(place, hide: const {PlaceTag.popular})
+                          case final tags?) ...[
+                        tags,
+                        const SizedBox(height: AppSpace.x2),
+                      ],
+                      Text(
+                        place.name,
+                        style: AppTypography.display.copyWith(
+                          color: Colors.white,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        place.town,
+                        style: AppTypography.labelMedium.copyWith(
+                          color: Colors.white,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -301,7 +342,10 @@ class _Face extends StatelessWidget {
                     const Expanded(
                       child: Align(
                         alignment: AlignmentDirectional.centerStart,
-                        child: PhotoPill("Popular This Season"),
+                        child: PhotoPill(
+                          "Popular This Season",
+                          glyph: AppIcons.popular,
+                        ),
                       ),
                     ),
                     SaveHeart(place.id, style: SaveHeartStyle.hero),

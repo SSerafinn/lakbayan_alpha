@@ -58,10 +58,10 @@ void main() {
         repo: FakeDestinationRepository([]),
       );
 
-      expect(find.text("Popular"), findsOneWidget);
+      expect(find.text("Popular Destinations"), findsOneWidget);
       expect(find.text("Nothing here yet."), findsOneWidget);
       // Rows of photos hide when they have nothing to show (D-16).
-      expect(find.text("Towns"), findsNothing);
+      expect(find.text("Towns to See"), findsNothing);
       expect(find.text("Not sure where to go?"), findsNothing);
     });
   });

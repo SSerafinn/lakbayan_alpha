@@ -13,13 +13,16 @@ part "recently_viewed.g.dart";
 class RecentlyViewed extends _$RecentlyViewed {
   @override
   List<String> build() =>
-      ref.watch(appPreferencesProvider)?.recentlyViewedIds ?? const [];
+      (ref.watch(appPreferencesProvider)?.recentlyViewedIds ?? const <String>[])
+          .toSet()
+          .take(AppPreferences.recentlyViewedCap)
+          .toList();
 
   void markViewed(String destinationId) {
-    state = [
+    state = {
       destinationId,
       ...state.where((id) => id != destinationId),
-    ].take(AppPreferences.recentlyViewedCap).toList();
+    }.take(AppPreferences.recentlyViewedCap).toList();
     ref.read(appPreferencesProvider)?.markViewed(destinationId);
   }
 }

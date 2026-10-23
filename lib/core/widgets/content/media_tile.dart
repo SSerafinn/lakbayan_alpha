@@ -132,6 +132,9 @@ class MediaTile extends StatelessWidget {
                         child: pill,
                       ),
                     ),
+                    // Pills never touch the heart, however narrow the tile.
+                    if (pill != null && trailing != null)
+                      const SizedBox(width: AppSpace.x1),
                     ?trailing,
                   ],
                 ),
@@ -176,16 +179,30 @@ class MediaTile extends StatelessWidget {
   }
 }
 
-/// A read-only note on a photo, on its own glass: a distance, a date, or the
-/// scan glyph alone where a museum's exhibits can be scanned (D-18). A
-/// status is this glyph or a fact, never a badge word (D-19). Not a target.
+/// A read-only note on a photo, on its own glass: a distance, a date, a
+/// price, or a glyph alone on a circle: the scan glyph where a museum's
+/// exhibits can be scanned (D-18), the flame where the province marks a place
+/// popular. A status is a glyph or a fact, never a badge word (D-19). Not a
+/// target.
 class PhotoPill extends StatelessWidget {
-  const PhotoPill(String this.label, {this.glyph, super.key});
+  const PhotoPill(String this.label, {this.glyph, super.key})
+    : semanticLabel = null;
 
-  const PhotoPill.scan({super.key}) : label = null, glyph = AppIcons.scan;
+  const PhotoPill.scan({super.key})
+    : label = null,
+      glyph = AppIcons.scan,
+      semanticLabel = "Exhibits to scan";
+
+  const PhotoPill.popular({super.key})
+    : label = null,
+      glyph = AppIcons.popular,
+      semanticLabel = "Popular";
 
   final String? label;
   final IconData? glyph;
+
+  /// What a glyph alone says to a screen reader.
+  final String? semanticLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -220,9 +237,7 @@ class PhotoPill extends StatelessWidget {
         ],
       ),
     );
-    return text == null
-        ? Semantics(label: "Exhibits to scan", child: pill)
-        : pill;
+    return text == null ? Semantics(label: semanticLabel, child: pill) : pill;
   }
 }
 

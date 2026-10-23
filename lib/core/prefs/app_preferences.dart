@@ -33,15 +33,15 @@ abstract interface class AppPreferences {
 
   Future<void> markViewed(String destinationId);
 
-  static const recentlyViewedCap = 10;
+  static const recentlyViewedCap = 8;
 }
 
 /// [ids] with [id] moved to the front, capped. Shared by both stores so the
 /// two cannot disagree on the order.
-List<String> _pushRecent(List<String> ids, String id) => [
+List<String> _pushRecent(List<String> ids, String id) => {
   id,
   ...ids.where((other) => other != id),
-].take(AppPreferences.recentlyViewedCap).toList();
+}.take(AppPreferences.recentlyViewedCap).toList();
 
 class HivePreferences implements AppPreferences {
   const HivePreferences(this._box);
@@ -57,7 +57,15 @@ class HivePreferences implements AppPreferences {
   /// Opens the box. Call once, before `runApp`.
   static Future<HivePreferences> open() async {
     await Hive.initFlutter();
-    return HivePreferences(await Hive.openBox<dynamic>(boxName));
+    final preferences = HivePreferences(await Hive.openBox<dynamic>(boxName));
+    final stored = preferences._box.get(_recentlyViewed) as List?;
+    if (stored != null) {
+      await preferences._box.put(
+        _recentlyViewed,
+        preferences.recentlyViewedIds,
+      );
+    }
+    return preferences;
   }
 
   @override
@@ -87,7 +95,10 @@ class HivePreferences implements AppPreferences {
 
   @override
   List<String> get recentlyViewedIds =>
-      (_box.get(_recentlyViewed) as List?)?.cast<String>() ?? const [];
+      ((_box.get(_recentlyViewed) as List?)?.cast<String>() ?? const <String>[])
+          .toSet()
+          .take(AppPreferences.recentlyViewedCap)
+          .toList();
 
   @override
   Future<void> markViewed(String destinationId) =>
