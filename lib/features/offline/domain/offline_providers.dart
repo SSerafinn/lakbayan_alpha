@@ -111,11 +111,11 @@ Map<String, TownState> townStates(Ref ref) {
 /// How many towns are on this phone, current or not: the count Profile and
 /// Settings show on the way to Offline.
 @riverpod
-int townsOnPhone(Ref ref) => ref
-    .watch(townStatesProvider)
-    .values
-    .where((state) => state != TownState.absent)
-    .length;
+int townsOnPhone(Ref ref) {
+  // Manifest availability must not erase the count of files on this phone.
+  ref.watch(townStatesProvider);
+  return ref.watch(downloadStoreProvider).all.length;
+}
 
 /// The pack for a town that is downloaded and current, if there is one.
 ///

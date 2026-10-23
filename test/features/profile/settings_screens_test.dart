@@ -166,7 +166,7 @@ void main() {
       );
 
       expect(find.text("Privacy Policy"), findsOneWidget);
-      expect(find.text("Last updated 7 Oct 2026"), findsOneWidget);
+      expect(find.text("Last updated Oct 7, 2026"), findsOneWidget);
       expect(find.text("We collect what you save."), findsOneWidget);
       expect(find.text("We never sell it."), findsOneWidget);
     });
@@ -227,7 +227,10 @@ void main() {
       );
 
       expect(find.text("Callao Cave is closed for repairs."), findsOneWidget);
-      expect(find.textContaining("Until ${lastDay.day} "), findsOneWidget);
+      expect(
+        find.textContaining(RegExp("^Until \\w+ ${lastDay.day}\$")),
+        findsOneWidget,
+      );
     });
 
     testWidgets("shows nothing once it has ended", (tester) async {

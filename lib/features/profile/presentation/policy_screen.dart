@@ -66,7 +66,7 @@ class PolicyScreen extends ConsumerWidget {
       return [
         if (updated != null)
           Text(
-            "Last updated ${shortDate(updated)} ${updated.year}",
+            "Last updated ${shortDate(updated)}, ${updated.year}",
             style: AppTypography.secondLine.copyWith(
               color: scheme.onSurfaceVariant,
             ),
