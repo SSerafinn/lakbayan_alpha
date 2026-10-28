@@ -311,8 +311,12 @@ line under the field**: an error is the error border plus a trailing
   its kind's deep tone (`role.kind`) until photos carry their own.
 - **A trip's page** has one way into its map, the map itself: no pill and
   no floating button. The full-screen map carries Open in Map and each
-  stop's directions. Each stop after the first says how far it is from
-  the one before, in blue.
+  stop's directions. On the page (D-19): the name, the dates and the trip's
+  length as chips, the stops on one card with their towns and, between
+  them, how far each is from the last; Add a Stop; then places near the
+  route, each with a plus. The Trips tab is the next trip large as its
+  photo (dates on a pill, its stops as small photos), the rest as rows,
+  and the province tours kept as posters.
 - **Search is the tab bar's last cell.** It grows into a field docked above
   the keyboard while the capsule slides away, close on its own circle beside
   it. Above it, before a word is typed: the places opened last as chips,

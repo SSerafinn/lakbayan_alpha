@@ -73,7 +73,7 @@ void main() {
       // would read as an arbitrary gate.
       await pump(tester, const Scaffold(body: ItinerariesTab()), user: null);
 
-      expect(find.text("Plans need an account"), findsOneWidget);
+      expect(find.text("Plans Need an Account"), findsOneWidget);
       expect(
         find.textContaining("follow you to another phone"),
         findsOneWidget,
@@ -87,8 +87,8 @@ void main() {
       await pump(tester, const Scaffold(body: ItinerariesTab()));
 
       expect(find.textContaining("Nothing planned yet"), findsOneWidget);
-      // The action is the tinted + beside the title (2026-09-24), not a FAB.
-      expect(find.byTooltip("New itinerary"), findsOneWidget);
+      // The action is the emerald + beside the title (D-19), not a FAB.
+      expect(find.byTooltip("New trip"), findsOneWidget);
     });
 
     testWidgets("lists itineraries with their dates", (tester) async {
@@ -135,7 +135,7 @@ void main() {
       await pump(tester, const Scaffold(body: ItinerariesTab()));
 
       expect(find.text("Trips"), findsOneWidget);
-      expect(find.text("Saved tours"), findsOneWidget);
+      expect(find.text("Saved Tours"), findsOneWidget);
       expect(
         find.textContaining("Tours you save from the province's list"),
         findsOneWidget,
@@ -246,7 +246,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text("Delete Weekend?"), findsOneWidget);
 
-      await tester.tap(find.widgetWithText(TextButton, "Keep it"));
+      await tester.tap(find.widgetWithText(TextButton, "Keep It"));
       await tester.pumpAndSettle();
       expect(itineraries.forUid("ana"), hasLength(1));
     });

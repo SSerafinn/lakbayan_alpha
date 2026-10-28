@@ -82,7 +82,7 @@ class _NewItinerarySheetState extends ConsumerState<_NewItinerarySheet> {
     const inset = EdgeInsets.symmetric(horizontal: AppSpace.gutter);
 
     return AppSheet(
-      title: "New itinerary",
+      title: "New Trip",
       fill: true,
       action: FilledButton(
         onPressed: canCreate ? _create : null,
@@ -127,7 +127,7 @@ class _NewItinerarySheetState extends ConsumerState<_NewItinerarySheet> {
               AppSpace.x2,
             ),
             sliver: SliverToBoxAdapter(
-              child: Text("First stop", style: AppTypography.groupHeading),
+              child: Text("First Stop", style: AppTypography.groupHeading),
             ),
           ),
           SliverPadding(
