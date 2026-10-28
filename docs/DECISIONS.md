@@ -387,11 +387,11 @@ twice, since they read `CupertinoTheme`. Their edge swipe fights Android's
 back gesture. Their sheets and alerts also rise from a fixed edge instead of
 from their source. So the feel is built from our own tokens.
 
-## D-19 · Design system 3.0: paper and white cards, emerald, Cabinet Grotesk, fewer words (2026-10-23) · PROPOSED
+## D-19 · Design system 3.0: paper and white cards, emerald, Cabinet Grotesk, fewer words (2026-10-23) · ACCEPTED
 
-**Status.** Proposed. Built on `refactor/ui-less-wordy` in small child
-branches (`ui-less-wordy/NN-name`), each reviewed into it, and merged to
-`staging` only once the team confirms this entry.
+**Status.** Accepted 2026-10-28: the team confirmed it, and it reached
+`staging` as stack #130 (PRs #119–#129). Built on `refactor/ui-less-wordy`
+in small child branches (`ui-less-wordy/NN-name`), each reviewed into it.
 
 **Why.** People using the app found it wordy (everything had a word
 describing it), its type too large, its lists of places walls of text, and
@@ -441,9 +441,9 @@ D-16, the glyph-only bar, gold FEATURED and the kinds as text chips.
 FFL, app embedding allowed). The Town page is a structure change against the
 wireframes. Barabara's licence is still unverified.
 
-## D-20 · Phosphor glyphs in place of CupertinoIcons (2026-10-23) · PROPOSED
+## D-20 · Phosphor glyphs in place of CupertinoIcons (2026-10-23) · ACCEPTED
 
-**Status.** Proposed, with D-19. Built on `ui-less-wordy/10-fixes`.
+**Status.** Accepted 2026-10-28, with D-19. Built on `ui-less-wordy/10-fixes`.
 
 - **Decision.** `AppIcons` maps to Phosphor (MIT) instead of
   `CupertinoIcons`. It is still the one family and still reached only through
