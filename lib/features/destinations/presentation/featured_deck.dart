@@ -289,10 +289,24 @@ class _Face extends StatelessWidget {
                   ),
                 ),
               ),
+              // The CMS's `featured` flag is what puts a place here, so the
+              // card says what it is, on a line with the heart.
               Positioned(
                 top: AppSpace.x3,
+                left: AppSpace.x3,
                 right: AppSpace.x3,
-                child: SaveHeart(place.id, style: SaveHeartStyle.hero),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    const Expanded(
+                      child: Align(
+                        alignment: AlignmentDirectional.centerStart,
+                        child: PhotoPill("Popular This Season"),
+                      ),
+                    ),
+                    SaveHeart(place.id, style: SaveHeartStyle.hero),
+                  ],
+                ),
               ),
             ],
           ),

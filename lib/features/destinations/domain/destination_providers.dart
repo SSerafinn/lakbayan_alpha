@@ -49,19 +49,6 @@ Stream<List<Destination>> featuredDestinations(Ref ref) =>
 Stream<List<Destination>> allDestinations(Ref ref) =>
     ref.watch(destinationRepositoryProvider).watchAll();
 
-/// A photo for each kind of place, Explore's kind pills: its first place
-/// with one.
-@riverpod
-Map<DestinationCategory, String> kindCovers(Ref ref) {
-  final all = ref.watch(allDestinationsProvider).value ?? const [];
-  final covers = <DestinationCategory, String>{};
-  for (final place in all) {
-    final cover = place.coverImage;
-    if (cover != null) covers.putIfAbsent(place.category, () => cover);
-  }
-  return covers;
-}
-
 /// Grouped by town. Derived here so the screen does not group on every build.
 @riverpod
 List<Town> towns(Ref ref) {

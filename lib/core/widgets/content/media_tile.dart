@@ -42,8 +42,9 @@ class MediaTile extends StatelessWidget {
   /// Colours the caption's second line when it carries a role (a distance).
   final Color? subtitleColor;
 
-  /// At the top leading corner, on the photo, on its own glass.
-  final PhotoPill? pill;
+  /// At the top leading corner, on the photo: a [PhotoPill], or a row of
+  /// them, each on its own glass.
+  final Widget? pill;
 
   /// A control at the top trailing corner, on its own glass circle. It sits
   /// above the tile's ripple so it is its own tap target.
@@ -114,13 +115,26 @@ class MediaTile extends StatelessWidget {
                 type: MaterialType.transparency,
                 child: InkWell(onTap: onTap, borderRadius: shape),
               ),
-            if (pill != null)
-              Positioned(top: AppSpace.x2, left: AppSpace.x2, child: pill!),
-            if (trailing != null)
+            // One row, centred on a shared line, so a pill and the heart
+            // never sit at different heights. The heart sits above the
+            // ripple so it is its own target.
+            if (pill != null || trailing != null)
               Positioned(
                 top: AppSpace.x2,
+                left: AppSpace.x2,
                 right: AppSpace.x2,
-                child: trailing!,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Expanded(
+                      child: Align(
+                        alignment: AlignmentDirectional.centerStart,
+                        child: pill,
+                      ),
+                    ),
+                    ?trailing,
+                  ],
+                ),
               ),
           ],
         ),
@@ -194,10 +208,14 @@ class PhotoPill extends StatelessWidget {
             Icon(glyph, size: AppSize.glyphSm, color: brand.onGlass),
           if (glyph != null && text != null) const SizedBox(width: AppSpace.x1),
           if (text != null)
-            Text(
-              text,
-              style: AppTypography.labelMedium.copyWith(color: brand.onGlass),
-              maxLines: 1,
+            // Shrinks with a narrow tile rather than overflowing it.
+            Flexible(
+              child: Text(
+                text,
+                style: AppTypography.labelMedium.copyWith(color: brand.onGlass),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
         ],
       ),

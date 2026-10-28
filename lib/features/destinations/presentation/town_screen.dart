@@ -13,12 +13,13 @@ import "../../../core/widgets/chrome/system_bars.dart";
 import "../../../core/widgets/content/media_tile.dart";
 import "../../../core/widgets/content/quiet_note.dart";
 import "../../../core/widgets/content/storage_image.dart";
-import "../../../core/widgets/controls/filter_chip_row.dart";
+import "../../../core/widgets/controls/kind_rail.dart";
 import "../../../core/widgets/controls/symbol_button.dart";
 import "../../../core/widgets/motion/page_transitions.dart";
 import "../../offline/domain/offline_providers.dart";
 import "../../offline/presentation/town_download_button.dart";
 import "../domain/destination_providers.dart";
+import "place_pills.dart";
 import "save_heart.dart";
 
 /// One town. **Job:** pick a place in a town you are in or going to.
@@ -26,7 +27,7 @@ import "save_heart.dart";
 ///
 /// Its photo, zoomed from where it was tapped, with back and taking it
 /// offline pinned over it. The paper page rises over the photo's foot with
-/// the name, the kinds as chips, the first place large and the rest as a
+/// the name, the kinds as a glyph rail, the first place large and the rest as a
 /// grid of photos, each name on its photo (D-19).
 class TownScreen extends ConsumerWidget {
   const TownScreen({required this.name, this.from, super.key});
@@ -110,16 +111,20 @@ class _TownPageState extends State<_TownPage> {
                 SliverPadding(
                   padding: const EdgeInsets.only(top: AppSpace.x3),
                   sliver: SliverToBoxAdapter(
-                    child: FilterChipRow(
+                    child: KindRail(
                       items: [
-                        FilterChipItem(
+                        KindRailItem(
                           label: "All",
+                          glyph: AppIcons.grid,
+                          selectedGlyph: AppIcons.grid,
                           selected: kind == null,
                           onTap: () => setState(() => _kind = null),
                         ),
                         for (final each in town.byKind.keys)
-                          FilterChipItem(
+                          KindRailItem(
                             label: each.label,
+                            glyph: AppIcons.kind(each),
+                            selectedGlyph: AppIcons.kind(each, filled: true),
                             selected: kind == each,
                             onTap: () => setState(() => _kind = each),
                           ),
@@ -251,7 +256,7 @@ class _Place extends StatelessWidget {
     dense: !large,
     radius: AppRadii.md,
     title: place.name,
-    pill: place.hasAR ? const PhotoPill.scan() : null,
+    pill: placePills(place),
     trailing: large ? SaveHeart(place.id, style: SaveHeartStyle.tile) : null,
     onTap: () =>
         context.push(Routes.destination(place.id, from: HeroSource.town)),

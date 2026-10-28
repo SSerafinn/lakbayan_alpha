@@ -14,6 +14,7 @@ import "../../../core/widgets/content/stop_numeral.dart";
 import "../../../core/widgets/content/storage_image.dart";
 import "../../../core/widgets/controls/bar_item_group.dart";
 import "../../../core/widgets/controls/filter_chip_row.dart";
+import "../../../core/widgets/controls/kind_rail.dart";
 import "../../../core/widgets/controls/symbol_button.dart";
 import "../../../core/widgets/motion/motion.dart";
 import "../../destinations/data/sample_destinations.dart";
@@ -178,6 +179,27 @@ class _TokensState extends State<_Tokens> {
           ],
         ),
 
+        const _Section("Kinds"),
+        KindRail(
+          items: [
+            KindRailItem(
+              label: "All",
+              glyph: AppIcons.grid,
+              selectedGlyph: AppIcons.grid,
+              selected: _kind == null,
+              onTap: () => setState(() => _kind = null),
+            ),
+            for (final kind in _kinds)
+              KindRailItem(
+                label: kind.label,
+                glyph: AppIcons.kind(kind),
+                selectedGlyph: AppIcons.kind(kind, filled: true),
+                selected: _kind == kind,
+                onTap: () => setState(() => _kind = kind),
+              ),
+          ],
+        ),
+
         const _Section("Chips and Pills"),
         FilterChipRow(
           items: [
@@ -201,6 +223,9 @@ class _TokensState extends State<_Tokens> {
           children: [
             PhotoPill.scan(),
             PhotoPill("1.2 km"),
+            PhotoPill("Free"),
+            PhotoPill("12"),
+            PhotoPill("Popular This Season"),
             PhotoPill("14 to 15 Nov", glyph: AppIcons.calendar),
           ],
         ),
@@ -216,9 +241,29 @@ class _TokensState extends State<_Tokens> {
           title: _hero.name,
           subtitle: _hero.town,
           overlay: true,
-          pill: const PhotoPill.scan(),
+          pill: const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              PhotoPill("Free"),
+              SizedBox(width: AppSpace.x1),
+              PhotoPill.scan(),
+            ],
+          ),
           trailing: SaveHeart(_hero.id, style: SaveHeartStyle.tile),
           onTap: () {},
+        ),
+        const SizedBox(height: AppSpace.x3),
+        const SectionHeading("Directions"),
+        Row(
+          children: [
+            SymbolButton(
+              icon: AppIcons.directions,
+              tooltip: "Directions",
+              background: scheme.primary,
+              color: scheme.onPrimary,
+              onTap: () {},
+            ),
+          ],
         ),
 
         const _Section("Rows on a Card"),

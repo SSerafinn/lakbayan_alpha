@@ -438,6 +438,34 @@ D-16, the glyph-only bar, gold FEATURED and the kinds as text chips.
 FFL, app embedding allowed). The Town page is a structure change against the
 wireframes. Barabara's licence is still unverified.
 
+## D-20 · Phosphor glyphs in place of CupertinoIcons (2026-10-23) · PROPOSED
+
+**Status.** Proposed, with D-19. Built on `ui-less-wordy/10-fixes`.
+
+- **Decision.** `AppIcons` maps to Phosphor (MIT) instead of
+  `CupertinoIcons`. It is still the one family and still reached only through
+  `AppIcons`; call sites do not change. A filled glyph is the selected state
+  of its outline, as before.
+- **Bundled fonts, not the package.** `phosphor_flutter` 2.1.0 does not
+  compile on this Flutter: its icon class extends `IconData`, now a final
+  class. So the regular and fill fonts are app assets
+  (`assets/fonts/Phosphor/`, licence beside them) and `AppIcons` declares the
+  constant `IconData`s itself, which keeps icon tree shaking working. Adding a
+  glyph means its codepoint from Phosphor's regular and fill sets.
+- **Kinds get pictures.** `AppIcons.kind` maps Nature, Food, Churches,
+  Heritage, Museums and Landmarks to mountains, fork and knife, church,
+  castle turret, bank and flag, outline at rest and filled when chosen.
+  CupertinoIcons has no fork, church or museum, so the kinds had only words
+  or photos.
+- **Still D-13 and D-15 otherwise.** No Cupertino widget is used.
+  `cupertino_icons` stays in `pubspec.yaml` because go_router's dependency
+  references its font; it is tree-shaken.
+
+**What it reverses.** D-13's "Cupertino glyphs".
+
+**For the team.** Two font assets (about 0.9 MB before icon tree shaking) and
+no new package. `TabGlyph` is unaffected: the sections are still drawn.
+
 ## D-18 · AR pilot: a native scan screen, image markers, a card and narration (2026-10-21) · ACCEPTED
 
 Phase 4 goes ahead as a pilot: one museum, recognised exhibits, tested in a

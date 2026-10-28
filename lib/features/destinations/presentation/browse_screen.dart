@@ -18,6 +18,7 @@ import "../../../core/widgets/controls/symbol_button.dart";
 import "../../../core/widgets/motion/motion.dart";
 import "../../../core/widgets/motion/page_transitions.dart";
 import "../domain/destination_providers.dart";
+import "place_pills.dart";
 import "save_heart.dart";
 
 /// Browse, the Map tab's second view: the same results as a photo grid.
@@ -217,7 +218,7 @@ class _Cell extends StatelessWidget {
       overlay: true,
       dense: true,
       title: destination.name,
-      pill: destination.hasAR ? const PhotoPill.scan() : null,
+      pill: placePills(destination),
       trailing: SaveHeart(destination.id, style: SaveHeartStyle.tile),
       onTap: () => context.push(
         Routes.destination(destination.id, from: HeroSource.browse),

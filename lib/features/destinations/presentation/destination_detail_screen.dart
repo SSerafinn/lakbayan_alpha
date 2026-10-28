@@ -38,6 +38,7 @@ import "../../maps/presentation/map_view.dart"
     show Basemap, StillMapCredit, showDirections;
 import "../domain/destination_providers.dart";
 import "../domain/place_share.dart";
+import "../domain/practical_text.dart";
 import "../domain/recently_viewed.dart";
 import "save_heart.dart";
 
@@ -470,47 +471,12 @@ Future<void> sharePlace(
   }
 }
 
-/// A CMS free-text fact tidied for reading (D-19): times as "8 AM", a
-/// leading PHP as ₱, the part after the first comma (or a closing "daily")
-/// on its own quieter line, each line starting with a capital. Words stay
-/// the editor's; nothing is added. Null when the field is empty.
-({String value, String? note})? _tidy(String? raw) {
-  final text = raw?.trim() ?? "";
-  if (text.isEmpty) return null;
-  final tidy = text
-      .replaceAllMapped(
-        _time,
-        (time) =>
-            "${time[1]}${time[2] == null ? "" : ":${time[2]}"} "
-            "${time[3]!.toUpperCase()}",
-      )
-      .replaceFirst(_peso, "₱");
-  final cut = tidy.indexOf(",");
-  var value = cut < 0 ? tidy : tidy.substring(0, cut).trim();
-  var note = cut < 0 ? "" : tidy.substring(cut + 1).trim();
-  if (note.isEmpty && _daily.hasMatch(value)) {
-    value = value.replaceFirst(_daily, "");
-    note = "Daily";
-  }
-  return (value: _capital(value), note: note.isEmpty ? null : _capital(note));
-}
-
-final _time = RegExp(
-  r"(\d{1,2})(?::(\d{2}))?\s*(am|pm)\b",
-  caseSensitive: false,
-);
-final _peso = RegExp(r"^PHP\s*", caseSensitive: false);
-final _daily = RegExp(r"\s+daily$", caseSensitive: false);
-
-String _capital(String text) =>
-    text.isEmpty ? text : text[0].toUpperCase() + text.substring(1);
-
 /// A tag in Title Case, the small words left small: "Bats at Dusk".
 String _titleCase(String text) => [
   for (final (i, word) in text.trim().split(RegExp(r"\s+")).indexed)
     i > 0 && _smallWords.contains(word.toLowerCase())
         ? word.toLowerCase()
-        : _capital(word),
+        : capital(word),
 ].join(" ");
 
 final _smallWords = "a an and at by for in of on or the to with".split(" ");
@@ -835,6 +801,9 @@ class _Details extends StatefulWidget {
 class _DetailsState extends State<_Details> {
   bool _open = false;
 
+  /// Tenths of the row the fact's name takes; its value takes the rest.
+  static const _labelShare = 4;
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
@@ -846,7 +815,7 @@ class _DetailsState extends State<_Details> {
         ("Best Season", practical?.bestSeason),
         ("Accessibility", practical?.accessibility),
       ])
-        if (_tidy(raw) case final fact?) (label: label, fact: fact),
+        if (tidyFact(raw) case final fact?) (label: label, fact: fact),
     ];
     if (facts.isEmpty) return const SizedBox.shrink();
     final quiet = scheme.onSurfaceVariant;
@@ -897,34 +866,51 @@ class _DetailsState extends State<_Details> {
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(
                   AppSpace.x4,
-                  0,
+                  AppSpace.x1,
                   AppSpace.x4,
-                  AppSpace.x3,
+                  AppSpace.x4,
                 ),
+                // A fold loosens its child's width, so the column is told to
+                // take all of it or it shrinks to its widest line, centred.
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    for (final (:label, :fact) in facts)
+                    for (final (index, (:label, :fact)) in facts.indexed)
                       Padding(
-                        padding: const EdgeInsets.only(bottom: AppSpace.x2),
+                        padding: EdgeInsets.only(
+                          top: index == 0 ? 0 : AppSpace.x3,
+                        ),
                         child: MergeSemantics(
-                          child: Column(
+                          child: Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                label,
-                                style: AppTypography.labelMedium.copyWith(
-                                  color: quiet,
-                                ),
-                              ),
-                              Text(fact.value, style: AppTypography.titleSmall),
-                              if (fact.note case final note?)
-                                Text(
-                                  note,
-                                  style: AppTypography.secondLine.copyWith(
+                              Expanded(
+                                flex: _labelShare,
+                                child: Text(
+                                  label,
+                                  style: AppTypography.labelMedium.copyWith(
                                     color: quiet,
                                   ),
                                 ),
+                              ),
+                              Expanded(
+                                flex: 10 - _labelShare,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      fact.value,
+                                      style: AppTypography.titleSmall,
+                                    ),
+                                    if (fact.note case final note?)
+                                      Text(
+                                        note,
+                                        style: AppTypography.secondLine
+                                            .copyWith(color: quiet),
+                                      ),
+                                  ],
+                                ),
+                              ),
                             ],
                           ),
                         ),
@@ -941,8 +927,8 @@ class _DetailsState extends State<_Details> {
 }
 
 /// Where it is: a small still map with its pin (a tap shows it on the Map
-/// tab), its town, which opens the town's page, and Directions to the
-/// phone's map app.
+/// tab), its town, which opens the town's page, and Directions, the turn
+/// arrow on an emerald circle, to the phone's map app.
 class _Location extends StatelessWidget {
   const _Location({required this.destination});
 
@@ -980,14 +966,13 @@ class _Location extends StatelessWidget {
                     ),
                   ),
                   Padding(
-                    padding: const EdgeInsets.only(right: AppSpace.x2),
-                    child: TextButton(
-                      onPressed: () => showDirections(context, destination),
-                      style: TextButton.styleFrom(
-                        backgroundColor: context.lakbayan.tint,
-                        textStyle: AppTypography.labelMedium,
-                      ),
-                      child: const Text("Directions"),
+                    padding: const EdgeInsets.all(AppSpace.x2),
+                    child: SymbolButton(
+                      icon: AppIcons.directions,
+                      tooltip: "Directions",
+                      background: Theme.of(context).colorScheme.primary,
+                      color: Theme.of(context).colorScheme.onPrimary,
+                      onTap: () => showDirections(context, destination),
                     ),
                   ),
                 ],
@@ -1078,8 +1063,8 @@ class _StillMap extends ConsumerWidget {
   }
 }
 
-/// What the place is known for: the CMS's tags as quiet chips, in Title
-/// Case. Not there when it has none.
+/// What the place is known for: the CMS's tags as plain words on one white
+/// card, two to a row, in Title Case. Not there when it has none.
 class _KnownFor extends StatelessWidget {
   const _KnownFor({required this.destination});
 
@@ -1098,10 +1083,30 @@ class _KnownFor extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           const SectionHeading("Known For"),
-          Wrap(
-            spacing: AppSpace.near,
-            runSpacing: AppSpace.near,
-            children: [for (final tag in tags) Chip(label: Text(tag))],
+          Material(
+            color: Theme.of(context).colorScheme.surfaceContainerLowest,
+            shape: const RoundedRectangleBorder(borderRadius: AppRadii.mdAll),
+            clipBehavior: Clip.antiAlias,
+            child: Padding(
+              padding: const EdgeInsets.all(AppSpace.x4),
+              // Two even columns: a tag per cell, the words themselves.
+              child: LayoutBuilder(
+                builder: (context, box) {
+                  final cell = (box.maxWidth - AppSpace.x3) / 2;
+                  return Wrap(
+                    spacing: AppSpace.x3,
+                    runSpacing: AppSpace.x3,
+                    children: [
+                      for (final tag in tags)
+                        SizedBox(
+                          width: cell,
+                          child: Text(tag, style: AppTypography.bodyMedium),
+                        ),
+                    ],
+                  );
+                },
+              ),
+            ),
           ),
         ],
       ),

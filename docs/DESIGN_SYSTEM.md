@@ -36,7 +36,7 @@ Reach for the theme, not the raw constants:
 final scheme = Theme.of(context).colorScheme;   // roles: primary, surfaceContainerLowest…
 final brand  = context.lakbayan;                // pastels, glass, save
 Text("Callao Cave", style: AppTypography.titleSmall);
-Icon(AppIcons.search)                           // never CupertinoIcons.x or Icons.x directly
+Icon(AppIcons.search)                           // never an IconData or Icons.x directly
 ```
 
 `AppColors.*` is for building the theme. Using it in a widget bypasses dark
@@ -47,7 +47,8 @@ mode, the same as a hex literal.
 These are requirements, not preferences.
 
 - **A pastel is never a button** or a selection. Gold is gone with the
-  FEATURED badge (D-19); featured is the deck's position, not a colour.
+  FEATURED badge (D-19); featured is the deck's position, not a colour, and
+  the deck's card says what it is in a white tag (see Badges and chips).
 - **Green words on a light ground are the darker emerald.** Use
   `context.lakbayan.textOnLightGreen` (`#005C45`, 6.9:1 on paper), never the
   primary fill as text.
@@ -136,8 +137,8 @@ the `ColorScheme` and `context.lakbayan` in Dart):
 | pastels | mint, sky, butter, blush | their dark tones | a kind's surface (`kindWash`: nature mint, museum and landmark sky, church and heritage butter, food blush) and the brand's quiet moments: landing, sign-in, empty states |
 
 Ink sits on a pastel, and a pastel is never a button or a selection.
-Explore's hanging towns add two quiet tones of their own, `river` and
-`cord`.
+Explore's hanging towns add one quiet tone of their own, `cord`, for the
+rope and clips.
 
 The neutrals: `onSurface` ink (`#1B1B19`) for text, `onSurfaceVariant`
 (`#6B6A64`) for second lines, `outlineVariant` (`#E5E3DC`) for the hairline.
@@ -207,10 +208,12 @@ weight looks wrong, that is why.
 
 ## Icons
 
-**`CupertinoIcons` is the one icon family**, mapped in `AppIcons`. This is a
+**Phosphor is the one icon family** (D-20), mapped in `AppIcons`. This is a
 deliberate exception to the reference guidance of "Material icons for a
-Material app": the glyph set is the team's choice for its lighter stroke,
-and it carries no Cupertino *widgets* with it. Material widgets throughout,
+Material app": the glyph set is the team's choice for its lighter stroke and
+for having the kinds (fork and knife, church, bank), and it carries no
+Cupertino *widgets* with it. A kind's glyph is `AppIcons.kind(kind)`, filled
+while chosen. Material widgets throughout,
 styled after the reference platform in our own theme: the menu, the bar
 group over media and the dialog look and move like iOS, and none of them is
 a Cupertino widget (D-15). Cupertino widgets read `CupertinoTheme`, not
@@ -231,17 +234,28 @@ conventional (trash + Delete). An icon on everything is noise.
 
 **On a photo, a status is a glyph or a fact** (`PhotoPill`, D-19): the scan
 glyph alone on a glass circle where a museum's exhibits can be scanned, a
-distance or a date on a glass capsule. Featured is position (the deck), not
-a word. There are no badge words left (D-19): a town on the phone is the
-check on its control, a fact is a chip or a pill. There is no OPEN NOW:
-`openHours` is free text and cannot be computed against
-(`docs/DATA_MODEL.md`).
+distance or a date on a glass capsule. A place's **price** is its entry fee
+in the editor's own short words ("Free", "₱50", `entryPrice`), and it is
+simply not there when the CMS has none or the fee is a sentence; it shares
+the corner with the scan glyph (`placePills`) on the big Popular tile,
+Food, Browse and a town's places, never on a small bento tile. A town's
+card carries the glyphs of the kinds it holds under its name. The one badge word is the featured card's **Popular This Season**,
+a white glass tag on the deck's cards: the CMS's `featured` flag is what
+puts a place there, and the tag says why (D-19 revisited, 2026-10-23). A pill
+and the heart share one row, centred on one line (`MediaTile`), so they
+never sit at two heights. A town on the phone is the check on its control.
+There is no OPEN NOW: `openHours` is free text and cannot be computed
+against (`docs/DATA_MODEL.md`).
 
 A **chip** is interactive and 38dp: white with the hairline and an ink label
-at rest, a round photo leading where the kind is a place (Explore's kinds).
-The chosen chip's emerald pill travels from chip to chip on the chrome
-spring, painted behind the row (`FilterChipRow`), and the label turns
-white. Selection travels the same way in the tab bar.
+at rest, solid emerald with white words when chosen, filling itself on the
+chip's own animation (`FilterChipRow`: the Map's and Browse's filters).
+
+The **kinds** are a `KindRail`, not chips: a glyph over a Title Case name per
+kind (mountains, fork and knife, church, castle turret, bank, flag, from
+`AppIcons.kind`), plain on the page at rest, the chosen one a solid emerald
+cell with its filled glyph and white name. Explore has it, and a town's page
+with All first. Selection moves the same way in the tab bar.
 
 The **save heart** (`SaveHeart`) is the save control: filled red (`save`)
 when saved and it pops a beat larger on the tap, outlined when not; a 48 glass circle over a hero, a 32 circle on a
@@ -325,13 +339,21 @@ line under the field**: an error is the error border plus a trailing
   the towns as photos, then every place as a grid of photos; typing narrows
   the grid. Close, back and a picked result retrace the same `t`. No screen
   has a search field of its own.
-- **Explore (D-19)** opens on its title, the kinds as photo pills, then the
-  featured places as a deck (`FeaturedDeck`): the front card full size,
-  the next two waiting behind, their edges showing; a swipe deals one. Its
-  towns hang from a river on cords at a fixed tilt, a still picture with
-  nothing swinging. A town opens its own page (`TownScreen`), the photo
-  zooming: its kinds as chips, the first place wide, the rest as a grid,
-  and taking it offline on glass beside back.
+- **Explore (D-19)** opens on its title, the kinds as a glyph rail, then the
+  featured places as a deck (`FeaturedDeck`) straight on the page: the front
+  card full size with its Popular This Season tag and heart on one line, the
+  next two waiting behind, their edges showing; a swipe deals one. Popular
+  (a bento: the big tile carries price and heart, the two small ones only
+  the photo and name) and Food each sit on a white `SectionCard`, so a dark
+  photo meets a surface. The towns are clipped to one straight rope on the
+  page, all upright and the same size, each a framed photo with its name and
+  the glyphs of its kinds (no count, no panel). A swipe leans the photos
+  against it, up to about eight degrees, and they swing back past upright
+  once on the bouncy `arrive` spring (one number driven by the scroll,
+  nothing else moves). A town opens its own page (`TownScreen`),
+  the photo zooming: its kinds as a rail, the first place wide, the rest as
+  a grid, and taking it offline on glass beside back. The Keep or Skip
+  entry is a white card with a question and Try It.
 - **The Map (D-19)**: places are emerald pins, red when saved; the chosen
   one lifts its photo on an emerald ring. Blue is the route's numerals and
   line only. The sheet's rail is photo cards, 3:2, the next one peeking,
@@ -481,15 +503,18 @@ unless they name a feature.
 | `showAppSheet` | `chrome/app_sheet.dart` | the modal sheet, riding the keyboard |
 | `SymbolButton` | `controls/symbol_button.dart` | a symbol-only control on its own glass circle over photography, or a white one on the page (`onGround`) |
 | `BarItemGroup` | `controls/bar_item_group.dart` | two to four symbol-only actions on one capsule; `.overMedia` over a photo or map; an item may open a menu, or be a control of its own (`BarItem.control`, the save heart) |
-| `FilterChipRow` | `controls/filter_chip_row.dart` | the single-select chips, a photo leading where given, the emerald pill travelling between them (the inline date picker is private in `trip_dates.dart`) |
-| `MediaTile`, `MediaScrim`, `PhotoPill` | `content/media_tile.dart` | a photograph with a caption below, or a title on a tested scrim; a glass pill top leading (the scan glyph, a distance, a date); a trailing slot for the save heart |
+| `FilterChipRow` | `controls/filter_chip_row.dart` | the single-select chips, the chosen one filling itself emerald (the inline date picker is private in `trip_dates.dart`) |
+| `KindRail` | `controls/kind_rail.dart` | the kinds as a glyph over a name, the chosen one a solid emerald cell; Explore and a town's page |
+| `MediaTile`, `MediaScrim`, `PhotoPill` | `content/media_tile.dart` | a photograph with a caption below, or a title on a tested scrim; glass pills top leading (the scan glyph, a price, a distance, a date) on one centred line with the trailing slot for the save heart |
 | `StorageImage`, `CoverImage`, `ImagePlaceholder` | `content/storage_image.dart` | every photo, decoded at its box's size (or a fixed tiny width for a blur), and the quiet surface where one has not arrived |
 | `GroupedSection`, `GroupedRow` | `content/grouped_section.dart` | comparable rows on one white card, no dividers; a 48 photo and one second line; a row may carry a mark (a stop's numeral); a row of words alone reads in body type, as a settings row; every row at least 48 tall |
 | `StopNumeral` | `content/stop_numeral.dart` | a stop's number on a blue circle, the same on its pin and its row |
 | `PageDots` | `content/page_dots.dart` | where you are in a swipeable row; a sliding window of dots past seven pages |
 | `SectionHeading` | `content/section_heading.dart` | a one or two word Title Case heading with an optional emerald "See All" |
 | `FeaturedDeck` | `features/destinations/presentation/featured_deck.dart` | Explore's featured places as a deck: one transform per card on the chrome spring |
-| `TownPhoto` | `features/destinations/presentation/explore_sections.dart` | a town's photo with its name, opening its page; Explore's hanging towns and search's |
+| `TownPhoto` | `features/destinations/presentation/explore_sections.dart` | a town's photo with its name and the glyphs of its kinds, opening its page; Explore's hanging towns and search's |
+| `SectionCard` | `features/destinations/presentation/explore_sections.dart` | a white card round a section of photos, photos inside concentric (Popular, Food) |
+| `placePills` | `features/destinations/presentation/place_pills.dart` | a place's price and scan glyph, each on glass, or nothing |
 | `AudioGuideSection` | `features/audio/presentation/audio_guide_section.dart` | one white card on the page, the place's photo with play on it, that opens the player sheet: the stop playing, progress, transport and every stop |
 | `PhotoViewer` | `features/destinations/presentation/photo_viewer.dart` | a place's photos full screen on a dark stage, zoomed from their tile; a pull down closes it |
 | `SaveHeart` | `features/destinations/presentation/save_heart.dart` | the save control in its four sizes, `bar` inside a `BarItemGroup` |

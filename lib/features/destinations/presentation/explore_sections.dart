@@ -1,5 +1,4 @@
 import "dart:async";
-import "dart:math" show pi, sin;
 
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
@@ -26,12 +25,37 @@ import "../../guides/domain/guide_providers.dart";
 import "../../itineraries/domain/itinerary_providers.dart";
 import "../../itineraries/presentation/tour_tile.dart";
 import "../domain/destination_providers.dart";
+import "place_pills.dart";
 import "save_heart.dart";
 
 // Explore's feed under the featured cards, one widget per section, in the
 // order the screen shows them (see `ExploreScreen`). Every photo carries its
 // caption on its own scrim, so no section spends a line of white under a
 // picture.
+
+/// A section of photos on its own white card, so a dark photo meets a
+/// surface and not the page behind it, and the feed steps paper, card, paper
+/// all the way down. The photos inside take concentric corners.
+class SectionCard extends StatelessWidget {
+  const SectionCard({required this.child, super.key});
+
+  final Widget child;
+
+  /// The gap from the card's edge to its photos, which `MediaTile` also
+  /// assumes when it derives its own radius.
+  static const inset = AppSpace.x3;
+
+  @override
+  Widget build(BuildContext context) => Material(
+    color: Theme.of(context).colorScheme.surfaceContainerLowest,
+    shape: const RoundedRectangleBorder(borderRadius: AppRadii.lgAll),
+    clipBehavior: Clip.antiAlias,
+    child: Padding(
+      padding: const EdgeInsets.all(inset),
+      child: ParentRadius(radius: AppRadii.lg, child: child),
+    ),
+  );
+}
 
 /// Popular as a bento: the most visited place a tall tile, the next two
 /// stacked beside it, one block of photos to read across (doc 01: give the
@@ -47,9 +71,11 @@ class PopularSection extends ConsumerWidget {
       children: [
         SectionHeading("Popular", onSeeAll: () => context.push(Routes.popular)),
         popular.whenLocalFirst(
-          loading: () => const AspectRatio(
-            aspectRatio: 1 / _Bento.heightShare,
-            child: ImagePlaceholder(borderRadius: AppRadii.tileAll),
+          loading: () => const SectionCard(
+            child: AspectRatio(
+              aspectRatio: 1 / _Bento.heightShare,
+              child: ImagePlaceholder(borderRadius: AppRadii.smAll),
+            ),
           ),
           // Popular's own query. The featured cards above say when theirs
           // fails; the rails below hide on theirs.
@@ -59,7 +85,7 @@ class PopularSection extends ConsumerWidget {
           ),
           data: (items) => items.isEmpty
               ? const QuietNote("Nothing here yet.")
-              : _Bento(items: items.take(3).toList()),
+              : SectionCard(child: _Bento(items: items.take(3).toList())),
         ),
       ],
     );
@@ -96,7 +122,12 @@ class _Bento extends StatelessWidget {
                 children: [
                   for (final (index, place) in rest.indexed) ...[
                     if (index > 0) const SizedBox(height: _gap),
-                    _Tile(place: place, width: sideWidth, height: sideHeight),
+                    _Tile(
+                      place: place,
+                      width: sideWidth,
+                      height: sideHeight,
+                      small: true,
+                    ),
                   ],
                 ],
               ),
@@ -109,11 +140,21 @@ class _Bento extends StatelessWidget {
 }
 
 class _Tile extends StatelessWidget {
-  const _Tile({required this.place, required this.width, required this.height});
+  const _Tile({
+    required this.place,
+    required this.width,
+    required this.height,
+    this.small = false,
+  });
 
   final Destination place;
   final double width;
   final double height;
+
+  /// A tile beside the big one: just the photo and its name, with no price
+  /// and no heart. The big one carries those, and a place's page has them
+  /// all.
+  final bool small;
 
   @override
   Widget build(BuildContext context) => SizedBox(
@@ -129,8 +170,10 @@ class _Tile extends StatelessWidget {
       dense: true,
       title: place.name,
       subtitle: place.town,
-      pill: place.hasAR ? const PhotoPill.scan() : null,
-      trailing: SaveHeart(place.id, style: SaveHeartStyle.tile),
+      pill: small
+          ? (place.hasAR ? const PhotoPill.scan() : null)
+          : placePills(place),
+      trailing: small ? null : SaveHeart(place.id, style: SaveHeartStyle.tile),
       onTap: () =>
           context.push(Routes.destination(place.id, from: HeroSource.popular)),
     ),
@@ -336,47 +379,49 @@ class _GuideCard extends ConsumerWidget {
   }
 }
 
-/// For the undecided: a fan of three covers, tilted the way the deck is, and
-/// the mode's name, on a mint card, so the row looks like the thing it
-/// opens. A tap opens Keep or Skip; so does a sideways swipe, the gesture
-/// the screen behind it is built on. The fan deals itself out once as the
-/// screen opens, on `AppMotion.arrive`.
+/// For the undecided: a plain card with a question and a way in. A tap on
+/// the card or on Try It opens Keep or Skip; so does a sideways swipe, the
+/// gesture the screen behind it is built on.
 class SwipeEntry extends StatelessWidget {
-  const SwipeEntry({required this.covers, super.key});
-
-  final List<Destination> covers;
+  const SwipeEntry({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     void open() => context.push(Routes.swipe);
 
     return Pressable(
       child: GestureDetector(
         onHorizontalDragEnd: (_) => open(),
         child: Material(
-          // A brand moment, so a pastel, ink on it (D-19).
-          color: context.lakbayan.mint,
+          color: scheme.surfaceContainerLowest,
           shape: const RoundedRectangleBorder(borderRadius: AppRadii.mdAll),
           clipBehavior: Clip.antiAlias,
           child: InkWell(
             onTap: open,
             child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpace.x3,
-                vertical: AppSpace.x2,
-              ),
+              padding: const EdgeInsets.all(AppSpace.x4),
               child: Row(
                 children: [
-                  _Fan(covers: covers.take(3).toList()),
-                  const SizedBox(width: AppSpace.x3),
                   Expanded(
-                    child: Text(
-                      "Keep or Skip",
-                      style: AppTypography.titleMedium.copyWith(
-                        color: Theme.of(context).colorScheme.onSurface,
-                      ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "Haven't found one you like?",
+                          style: AppTypography.secondLine.copyWith(
+                            color: scheme.onSurfaceVariant,
+                          ),
+                        ),
+                        Text(
+                          "Try Keep or Skip",
+                          style: AppTypography.titleMedium,
+                        ),
+                      ],
                     ),
                   ),
+                  const SizedBox(width: AppSpace.x3),
+                  FilledButton(onPressed: open, child: const Text("Try It")),
                 ],
               ),
             ),
@@ -387,63 +432,12 @@ class SwipeEntry extends StatelessWidget {
   }
 }
 
-class _Fan extends StatelessWidget {
-  const _Fan({required this.covers});
-
-  final List<Destination> covers;
-
-  static const _height = 48.0;
-  static const _width = 80.0;
-  static const _cardWidth = 36.0;
-
-  /// Eight degrees between neighbours, the deck's own tilt at rest.
-  static const _tilt = 8 * pi / 180;
-
-  @override
-  Widget build(BuildContext context) {
-    final still = MediaQuery.disableAnimationsOf(context);
-    // Covers are built once and do not depend on the spread.
-    final cards = [
-      for (final place in covers)
-        ClipRRect(
-          borderRadius: AppRadii.xsAll,
-          child: CoverImage(place.coverImage),
-        ),
-    ];
-    return SizedBox(
-      width: _width,
-      height: _height,
-      child: SingleMotionBuilder(
-        motion: AppMotion.arrive,
-        from: still ? null : 0,
-        value: 1,
-        builder: (context, spread, _) => Stack(
-          clipBehavior: Clip.none,
-          children: [
-            for (final (index, card) in cards.indexed)
-              Positioned(
-                left:
-                    (_width - _cardWidth) / 2 +
-                    (index - 1) * (_width - _cardWidth) / 2 * spread,
-                top: 0,
-                bottom: 0,
-                width: _cardWidth,
-                child: Transform.rotate(
-                  angle: (index - 1) * _tilt * spread,
-                  child: card,
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// Every town hanging from one river on its own cord: a framed photo with
-/// the name on it, each at a small fixed tilt. A still picture, drawn once,
-/// nothing swinging (D-19, PERFORMANCE). A town opens its page, the photo
-/// zooming.
+/// Every town pegged to one straight rope: a framed photo with its name and
+/// the glyphs of its kinds, all the same size and hung at the same height on
+/// the page itself, no panel. The photos sway a few degrees against the swipe
+/// and swing back on the bouncy spring when it stops: one number, driven by
+/// the scroll, that only turns the photos (D-19). A town opens its page, the
+/// photo zooming.
 class TownRail extends ConsumerStatefulWidget {
   const TownRail({super.key});
 
@@ -451,14 +445,40 @@ class TownRail extends ConsumerStatefulWidget {
   ConsumerState<TownRail> createState() => _TownRailState();
 }
 
-class _TownRailState extends ConsumerState<TownRail> {
-  /// Read by the river's painter, so the river runs with the towns.
-  final _scroll = ScrollController();
+class _TownRailState extends ConsumerState<TownRail>
+    with SingleTickerProviderStateMixin {
+  /// How far the photos are swung, in radians; zero at rest. It settles on
+  /// `arrive`, the bouncy spring, so a photo swings back past upright once,
+  /// as a hanging one does, rather than only creeping home.
+  late final _sway = SingleMotionController(
+    motion: AppMotion.arrive,
+    vsync: this,
+    initialValue: 0,
+  );
+
+  /// Radians of sway per pixel moved in a frame, and the most it ever shows
+  /// (about eight degrees): a swipe leans the photos, it does not throw them.
+  static const _perPixel = 0.007;
+  static const _most = 0.14;
 
   @override
   void dispose() {
-    _scroll.dispose();
+    _sway.dispose();
     super.dispose();
+  }
+
+  bool _lean(ScrollNotification note) {
+    if (note.depth != 0 ||
+        note is! ScrollUpdateNotification ||
+        MediaQuery.disableAnimationsOf(context)) {
+      return false;
+    }
+    // Set to the speed of the swipe, then let go: the spring settles it
+    // unless the next frame's movement sets it again.
+    _sway
+      ..value = ((note.scrollDelta ?? 0) * _perPixel).clamp(-_most, _most)
+      ..animateTo(0);
+    return false;
   }
 
   @override
@@ -480,23 +500,27 @@ class _TownRailState extends ConsumerState<TownRail> {
           height: _Hanging.height,
           child: Stack(
             children: [
-              Positioned.fill(
-                child: RepaintBoundary(
-                  child: CustomPaint(
-                    painter: _River(scroll: _scroll, color: brand.river),
-                  ),
-                ),
+              // The rope: one straight line across the page, at the height
+              // each clip grips it.
+              Positioned(
+                left: 0,
+                right: 0,
+                top: _Hanging.ropeY,
+                height: AppStroke.regular,
+                child: ColoredBox(color: brand.cord),
               ),
-              ListView.builder(
-                controller: _scroll,
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpace.gutter,
+              NotificationListener<ScrollNotification>(
+                onNotification: _lean,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpace.gutter,
+                  ),
+                  itemExtent: _Hanging.extent,
+                  itemCount: towns.length,
+                  itemBuilder: (context, index) =>
+                      _Hanging(town: towns[index], sway: _sway),
                 ),
-                itemExtent: _Hanging.extent,
-                itemCount: towns.length,
-                itemBuilder: (context, index) =>
-                    _Hanging(town: towns[index], index: index),
               ),
             ],
           ),
@@ -506,122 +530,56 @@ class _TownRailState extends ConsumerState<TownRail> {
   }
 }
 
-/// The river's height at [x] along the rail's content: one gentle wave,
-/// shared by the painter and by each town's dot, so the dots sit on it.
-double _riverAt(double x) =>
-    _Hanging.riverY + _Hanging.wave * sin(x * 2 * pi / _Hanging.wavelength);
-
-class _River extends CustomPainter {
-  _River({required this.scroll, required this.color}) : super(repaint: scroll);
-
-  final ScrollController scroll;
-  final Color color;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final offset = scroll.hasClients ? scroll.offset : 0.0;
-    final path = Path()..moveTo(0, _riverAt(offset));
-    for (var x = 0.0; x <= size.width; x += AppSpace.x2) {
-      path.lineTo(x, _riverAt(x + offset));
-    }
-    canvas.drawPath(
-      path,
-      Paint()
-        ..color = color
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = _Hanging.river
-        ..strokeCap = StrokeCap.round
-        ..strokeJoin = StrokeJoin.round,
-    );
-  }
-
-  @override
-  bool shouldRepaint(_River old) => old.color != color || old.scroll != scroll;
-}
-
-/// One town on its cord: a blue dot on the river, the cord, the clip, then
-/// the photo in its white frame, turned a little on the clip.
+/// One town: its clip on the rope, then the photo in its white frame, hanging
+/// upright from the clip and leaning with the rail's sway.
 class _Hanging extends StatelessWidget {
-  const _Hanging({required this.town, required this.index});
+  const _Hanging({required this.town, required this.sway});
 
   final Town town;
-  final int index;
 
-  /// A rail tile, 5:6 like the deck's cards.
+  /// The rail's sway in radians, the same for every photo.
+  final Animation<double> sway;
+
+  /// A rail tile, 5:6 like the deck's cards, and the gap to the next.
   static const width = AppSize.tourTile;
   static const _photo = width * 6 / 5;
-  static const extent = width + AppSpace.x4;
+  static const extent = width + AppSpace.x3;
 
-  /// The river: where it runs, how far it bends, one bend per town and a
-  /// quarter.
-  static const riverY = AppSpace.x4;
-  static const wave = AppSpace.near;
-  static const wavelength = extent * 1.25;
-  static const river = AppStroke.mapRoute;
-
-  static const _dot = AppSpace.x3;
+  /// Where the rope runs, and the clip that grips it.
+  static const ropeY = AppSpace.x2;
   static const _clip = Size(AppSpace.x4, AppSpace.x2);
 
   /// The white frame round each photo, like a print's.
   static const _frame = AppSpace.x1;
 
-  /// Each town's own cord and tilt in degrees, in turn, so the row reads
-  /// hung by hand.
-  static const _cords = [
-    AppSpace.x3,
-    AppSpace.x6,
-    AppSpace.x2,
-    AppSpace.x4,
-    AppSpace.x5,
-  ];
-  static const _tilts = [-3.0, 2.5, -1.5, 3.0, -2.0];
-
-  /// The longest cord, its clip and photo, and room for the tilt.
-  static const height =
-      riverY + wave + AppSpace.x6 + AppSpace.x2 + _photo + AppSpace.x4;
+  /// The rope, the clip and photo, and room for the sway below.
+  static const height = ropeY + AppSpace.x2 + _photo + AppSpace.x4;
 
   @override
   Widget build(BuildContext context) {
-    final brand = context.lakbayan;
+    final cord = context.lakbayan.cord;
     final card = Theme.of(context).colorScheme.surfaceContainerLowest;
-    final anchor = _riverAt(AppSpace.gutter + index * extent + width / 2);
-    final cord = _cords[index % _cords.length];
-    final tilt = _tilts[index % _tilts.length] * pi / 180;
     final inner = concentricRadius(
       parentRadius: AppRadii.md,
       padding: _frame,
       fallback: AppRadii.sm,
     );
 
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        Positioned(
-          left: width / 2 - AppStroke.regular / 2,
-          top: anchor,
-          width: AppStroke.regular,
-          height: cord,
-          child: ColoredBox(color: brand.cord),
-        ),
-        Positioned(
-          left: (width - _dot) / 2,
-          top: anchor - _dot / 2,
-          width: _dot,
-          height: _dot,
-          child: DecoratedBox(
-            decoration: ShapeDecoration(
-              color: brand.spatial,
-              shape: const CircleBorder(),
+    return Align(
+      alignment: Alignment.topLeft,
+      child: SizedBox(
+        width: width,
+        child: Padding(
+          padding: const EdgeInsets.only(top: ropeY),
+          // The clip is the pivot: only the rotation follows the sway, and
+          // the photo is built once.
+          child: AnimatedBuilder(
+            animation: sway,
+            builder: (context, photo) => Transform.rotate(
+              angle: -sway.value,
+              alignment: Alignment.topCenter,
+              child: photo,
             ),
-          ),
-        ),
-        Positioned(
-          left: 0,
-          top: anchor + cord,
-          width: width,
-          child: Transform.rotate(
-            angle: tilt,
-            alignment: Alignment.topCenter,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -629,7 +587,7 @@ class _Hanging extends StatelessWidget {
                   width: _clip.width,
                   height: _clip.height,
                   decoration: BoxDecoration(
-                    color: brand.cord,
+                    color: cord,
                     borderRadius: AppRadii.xsAll,
                   ),
                 ),
@@ -650,14 +608,14 @@ class _Hanging extends StatelessWidget {
             ),
           ),
         ),
-      ],
+      ),
     );
   }
 }
 
-/// A town as its photo with its name on it, in the headings' face; a tap
-/// opens the town's page, the photo zooming. Explore's hanging towns and
-/// search's towns.
+/// A town as its photo with its name on it, in the headings' face, and the
+/// kinds of place it holds as glyphs under it; a tap opens the town's page,
+/// the photo zooming. Explore's hanging towns and search's towns.
 class TownPhoto extends StatelessWidget {
   const TownPhoto({
     required this.town,
@@ -673,6 +631,9 @@ class TownPhoto extends StatelessWidget {
 
   /// Called just before the page opens: search folds away.
   final VoidCallback? onOpen;
+
+  /// How many kinds' glyphs fit under the name.
+  static const _kinds = 4;
 
   @override
   Widget build(BuildContext context) => Pressable(
@@ -704,13 +665,39 @@ class TownPhoto extends StatelessWidget {
                   AppSpace.x2,
                   AppSpace.x2,
                 ),
-                child: Text(
-                  town.name,
-                  style: AppTypography.titleMedium.copyWith(
-                    color: Colors.white,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      town.name,
+                      style: AppTypography.titleMedium.copyWith(
+                        color: Colors.white,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    // What the town has, as pictures of the kinds it holds.
+                    const SizedBox(height: AppSpace.x1),
+                    ExcludeSemantics(
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          for (final kind in town.byKind.keys.take(_kinds))
+                            Padding(
+                              padding: const EdgeInsets.only(
+                                right: AppSpace.near,
+                              ),
+                              child: Icon(
+                                AppIcons.kind(kind, filled: true),
+                                size: AppSize.glyphMd,
+                                color: Colors.white,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -746,34 +733,46 @@ class WhereToEat extends ConsumerWidget {
                   .toggle(DestinationCategory.food),
             ),
           ),
-          SizedBox(
-            height: AppSize.railTile * 5 / 4,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: AppSpace.gutter),
-              itemCount: food.length,
-              separatorBuilder: (_, _) => const SizedBox(width: AppSpace.x2),
-              itemBuilder: (context, index) {
-                final place = food[index];
-                return SizedBox(
-                  width: AppSize.railTile,
-                  child: MediaTile(
-                    media: PhotoHero(
-                      tag: coverHeroTag(place.id, HeroSource.whereToEat),
-                      child: CoverImage(place.coverImage),
-                    ),
-                    aspectRatio: 4 / 5,
-                    overlay: true,
-                    dense: true,
-                    title: place.name,
-                    subtitle: place.town,
-                    trailing: SaveHeart(place.id, style: SaveHeartStyle.tile),
-                    onTap: () => context.push(
-                      Routes.destination(place.id, from: HeroSource.whereToEat),
-                    ),
-                  ),
-                );
-              },
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppSpace.gutter),
+            child: SectionCard(
+              child: SizedBox(
+                height: AppSize.railTile * 5 / 4,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: food.length,
+                  separatorBuilder: (_, _) =>
+                      const SizedBox(width: AppSpace.x2),
+                  itemBuilder: (context, index) {
+                    final place = food[index];
+                    return SizedBox(
+                      width: AppSize.railTile,
+                      child: MediaTile(
+                        media: PhotoHero(
+                          tag: coverHeroTag(place.id, HeroSource.whereToEat),
+                          child: CoverImage(place.coverImage),
+                        ),
+                        aspectRatio: 4 / 5,
+                        overlay: true,
+                        dense: true,
+                        title: place.name,
+                        subtitle: place.town,
+                        pill: placePills(place),
+                        trailing: SaveHeart(
+                          place.id,
+                          style: SaveHeartStyle.tile,
+                        ),
+                        onTap: () => context.push(
+                          Routes.destination(
+                            place.id,
+                            from: HeroSource.whereToEat,
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
             ),
           ),
         ],
