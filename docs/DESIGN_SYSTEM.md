@@ -108,7 +108,7 @@ Every rounded element is one of three types (`app_shape.dart`):
 
 **Rule.** Never hard-code an inner radius. `inner = outer - padding`. A card
 inside a card, a photo inside a row, a highlight inside a section all derive
-from their parent. `AppCard`, `GroupedSection` and `MediaTile` do this for you.
+from their parent. `GroupedSection` and `MediaTile` do this for you.
 
 **Rule.** Large controls are capsules; dense controls (form fields, small
 segmented controls) are rounded rectangles at `AppRadii.sm`. This reverses the
@@ -190,8 +190,7 @@ idea:
 | `secondLine` | Satoshi | 13 / 550 | a row's second line |
 | `labelSmall` | Satoshi | 12 / 550 | captions |
 
-`caps` (11/750, wide tracking) stays for badges and the swipe stamp until
-the last badge goes. **Headings, labels, buttons and chips are Title Case**
+**Headings, labels, buttons and chips are Title Case**
 (Day Tours, See All, Sign Out; D-19); reading text, tooltips and messages
 are sentence case. There are no all-caps eyebrows. Each step is
 distinguishable from its neighbour at arm's length; that is the whole point
@@ -233,11 +232,10 @@ conventional (trash + Delete). An icon on everything is noise.
 **On a photo, a status is a glyph or a fact** (`PhotoPill`, D-19): the scan
 glyph alone on a glass circle where a museum's exhibits can be scanned, a
 distance or a date on a glass capsule. Featured is position (the deck), not
-a word. A **badge** (`LakbayanBadge`), a read-only 24dp capsule in caps,
-remains only off the photo while its screens move: neutral ("On this
-phone"), white with a hairline and green text; factual (`₱100 ENTRY`), ink
-text; CLOSED, solid red. There is no OPEN NOW: `openHours` is free text and
-cannot be computed against (`docs/DATA_MODEL.md`).
+a word. There are no badge words left (D-19): a town on the phone is the
+check on its control, a fact is a chip or a pill. There is no OPEN NOW:
+`openHours` is free text and cannot be computed against
+(`docs/DATA_MODEL.md`).
 
 A **chip** is interactive and 38dp: white with the hairline and an ink label
 at rest, a round photo leading where the kind is a place (Explore's kinds).
@@ -485,10 +483,8 @@ unless they name a feature.
 | `BarItemGroup` | `controls/bar_item_group.dart` | two to four symbol-only actions on one capsule; `.overMedia` over a photo or map; an item may open a menu, or be a control of its own (`BarItem.control`, the save heart) |
 | `FilterChipRow` | `controls/filter_chip_row.dart` | the single-select chips, a photo leading where given, the emerald pill travelling between them (the inline date picker is private in `trip_dates.dart`) |
 | `MediaTile`, `MediaScrim`, `PhotoPill` | `content/media_tile.dart` | a photograph with a caption below, or a title on a tested scrim; a glass pill top leading (the scan glyph, a distance, a date); a trailing slot for the save heart |
-| `StorageImage`, `CoverImage` | `content/storage_image.dart` | every photo, decoded at its box's size (or a fixed tiny width for a blur) |
+| `StorageImage`, `CoverImage`, `ImagePlaceholder` | `content/storage_image.dart` | every photo, decoded at its box's size (or a fixed tiny width for a blur), and the quiet surface where one has not arrived |
 | `GroupedSection`, `GroupedRow` | `content/grouped_section.dart` | comparable rows on one white card, no dividers; a 48 photo and one second line; a row may carry a mark (a stop's numeral); a row of words alone reads in body type, as a settings row; every row at least 48 tall |
-| `AppCard` | `content/app_card.dart` | a white card on the page; only the specimen still uses it |
-| `LakbayanBadge` | `content/lakbayan_badge.dart` | read-only annotation off the photo, until its last screens move |
 | `StopNumeral` | `content/stop_numeral.dart` | a stop's number on a blue circle, the same on its pin and its row |
 | `PageDots` | `content/page_dots.dart` | where you are in a swipeable row; a sliding window of dots past seven pages |
 | `SectionHeading` | `content/section_heading.dart` | a one or two word Title Case heading with an optional emerald "See All" |

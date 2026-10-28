@@ -7,27 +7,25 @@ import "../../../core/models/destination.dart";
 import "../../../core/theme/lakbayan_colors.dart";
 import "../../../core/widgets/chrome/app_menu.dart";
 import "../../../core/widgets/chrome/system_bars.dart";
-import "../../../core/widgets/content/app_card.dart";
 import "../../../core/widgets/content/grouped_section.dart";
-import "../../../core/widgets/content/lakbayan_badge.dart";
 import "../../../core/widgets/content/media_tile.dart";
 import "../../../core/widgets/content/section_heading.dart";
 import "../../../core/widgets/content/stop_numeral.dart";
 import "../../../core/widgets/content/storage_image.dart";
 import "../../../core/widgets/controls/bar_item_group.dart";
+import "../../../core/widgets/controls/filter_chip_row.dart";
 import "../../../core/widgets/controls/symbol_button.dart";
 import "../../../core/widgets/motion/motion.dart";
 import "../../destinations/data/sample_destinations.dart";
 import "../../destinations/presentation/save_heart.dart";
 import "../../itineraries/presentation/stop_picker.dart";
 
-/// A living specimen of the design system, rendered with the real theme and
-/// the real widgets.
+/// A living specimen of the design system (3.0, D-19), rendered with the
+/// real theme and the real widgets.
 ///
-/// Reachable at `/design-system` in debug builds so a change can be eyeballed
-/// without wiring it into a feature first. If this and `docs/DESIGN_SYSTEM.md`
-/// ever disagree, one of them is wrong. The two home designs it once switched
-/// between now *are* Explore and Browse.
+/// Reachable at `/design-system` in debug builds (Settings, Developer) so a
+/// change can be eyeballed without wiring it into a feature first. If this
+/// and `docs/DESIGN_SYSTEM.md` ever disagree, one of them is wrong.
 class DesignSystemGallery extends StatelessWidget {
   const DesignSystemGallery({super.key});
 
@@ -46,261 +44,186 @@ class _Tokens extends StatefulWidget {
 /// The specimen draws from the same `sampleDestinations` the debug preview
 /// feeds the real screens, so the two can never show different content.
 final _hero = sampleDestinations.firstWhere((d) => d.featured);
-final _categories = [
-  "All",
+final _kinds = [
   for (final category in DestinationCategory.values)
-    if (category != DestinationCategory.unknown) category.label,
+    if (category != DestinationCategory.unknown) category,
 ];
 
 class _TokensState extends State<_Tokens> {
-  String _category = "Nature";
+  DestinationCategory? _kind = DestinationCategory.nature;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final topInset = MediaQuery.viewPaddingOf(context).top;
+    final brand = context.lakbayan;
+    final photo = _hero.coverImage == null
+        ? const ImagePlaceholder()
+        : StorageImage(path: _hero.coverImage!);
 
     return ListView(
       padding: EdgeInsets.fromLTRB(
-        AppSpace.x4,
-        topInset + AppSpace.x6,
-        AppSpace.x4,
+        AppSpace.gutter,
+        MediaQuery.viewPaddingOf(context).top + AppSpace.x2,
+        AppSpace.gutter,
         AppSpace.x12,
       ),
       children: [
-        Text("Design system", style: AppTypography.titleLarge),
-        const SizedBox(height: AppSpace.x2),
-        Text(
-          "Tokens 3.0.0. Emerald, ink, paper and pastels; Cabinet Grotesk "
-          "over Satoshi. Emerald is the action and the selection, blue the "
-          "route, red closed and saved.",
-          style: AppTypography.bodyMedium.copyWith(
-            color: scheme.onSurfaceVariant,
-          ),
+        SymbolButton(
+          icon: AppIcons.back,
+          tooltip: "Back",
+          onTap: () => Navigator.of(context).maybePop(),
+          onGround: true,
         ),
+        const SizedBox(height: AppSpace.x2),
+        Text("Design System", style: AppTypography.display),
 
         const _Section("Surfaces"),
         _Swatches([
-          ("surface", scheme.surface),
-          ("lowest", scheme.surfaceContainerLowest),
-          ("low", scheme.surfaceContainerLow),
-          ("container", scheme.surfaceContainer),
+          ("paper", scheme.surface),
+          ("card", scheme.surfaceContainerLowest),
+          ("in card", scheme.surfaceContainerLow),
           ("high", scheme.surfaceContainerHigh),
-          ("highest", scheme.surfaceContainerHighest),
+          ("glass", brand.glass),
         ]),
         const _Section("Roles"),
         _Swatches([
           ("primary", scheme.primary),
-          ("green text", context.lakbayan.textOnLightGreen),
-          ("spatial", context.lakbayan.spatial),
-          ("closed", context.lakbayan.closed),
-          ("save", context.lakbayan.save),
-          ("error", scheme.error),
-          ("river", context.lakbayan.river),
+          ("green text", brand.textOnLightGreen),
+          ("tint", brand.tint),
+          ("spatial", brand.spatial),
+          ("save", brand.save),
+          ("closed", brand.closed),
         ]),
         const SizedBox(height: AppSpace.x3),
         _Swatches([
-          for (final category in DestinationCategory.values)
-            if (category != DestinationCategory.unknown)
-              (category.label, context.lakbayan.kindWash(category)),
+          ("mint", brand.mint),
+          ("sky", brand.sky),
+          ("butter", brand.butter),
+          ("blush", brand.blush),
         ]),
 
         const _Section("Type"),
-        AppCard(
-          padding: const EdgeInsets.all(AppSpace.x5),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text("Cagayan", style: AppTypography.display),
-              const SizedBox(height: AppSpace.x3),
-              Text("Callao Cave", style: AppTypography.hero),
-              const SizedBox(height: AppSpace.x3),
-              Text("Itineraries", style: AppTypography.titleLarge),
-              const SizedBox(height: AppSpace.x3),
-              Text("Popular this week", style: AppTypography.titleMedium),
-              const SizedBox(height: AppSpace.x3),
-              Text("Saved tours", style: AppTypography.groupHeading),
-              const SizedBox(height: AppSpace.x3),
-              Text("Basilica Minore de Piat", style: AppTypography.titleSmall),
-              const SizedBox(height: AppSpace.x3),
-              Text(
-                "The Pinacanauan River threads through limestone cliffs on "
-                "its way to the Cagayan.",
-                style: AppTypography.bodyLarge,
+        _Panel(
+          children: [
+            Text("Cagayan", style: AppTypography.display),
+            Text("Callao Cave", style: AppTypography.hero),
+            Text("Trips", style: AppTypography.titleLarge),
+            Text("Popular", style: AppTypography.titleMedium),
+            Text("Saved Tours", style: AppTypography.groupHeading),
+            Text("Basilica Minore de Piat", style: AppTypography.titleSmall),
+            Text(
+              "The Pinacanauan River threads through limestone cliffs on its "
+              "way to the Cagayan.",
+              style: AppTypography.bodyLarge,
+            ),
+            Text(
+              "Guides meet visitors at the barangay hall.",
+              style: AppTypography.bodyMedium,
+            ),
+            Text("Add to Trip", style: AppTypography.labelLarge),
+            Text("See All", style: AppTypography.labelMedium),
+            Text(
+              "Peñablanca",
+              style: AppTypography.secondLine.copyWith(
+                color: scheme.onSurfaceVariant,
               ),
-              const SizedBox(height: AppSpace.x3),
-              Text(
-                "Guides meet visitors at the barangay hall. Tricycles run to "
-                "the jump-off for a fixed fare.",
-                style: AppTypography.bodyMedium,
+            ),
+            Text(
+              "Photo: Provincial Tourism Office",
+              style: AppTypography.labelSmall.copyWith(
+                color: scheme.onSurfaceVariant,
               ),
-              const SizedBox(height: AppSpace.x3),
-              Text("Start the walking tour", style: AppTypography.labelLarge),
-              const SizedBox(height: AppSpace.x3),
-              Text(
-                "Peñablanca, 24 km out",
-                style: AppTypography.secondLine.copyWith(
-                  color: scheme.onSurfaceVariant,
-                ),
-              ),
-              const SizedBox(height: AppSpace.x3),
-              Text(
-                "Photo: Provincial Tourism Office",
-                style: AppTypography.labelSmall.copyWith(
-                  color: scheme.onSurfaceVariant,
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
 
         const _Section("Buttons"),
-        AppCard(
-          padding: const EdgeInsets.all(AppSpace.x5),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Wrap(
-                spacing: AppSpace.x3,
-                runSpacing: AppSpace.x3,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  FilledButton(
-                    onPressed: () {},
-                    child: const Text("Start tour"),
-                  ),
-                  FilledButton.tonal(
-                    onPressed: () {},
-                    child: const Text("Open map"),
-                  ),
-                  OutlinedButton(onPressed: () {}, child: const Text("Remove")),
-                  TextButton(onPressed: () {}, child: const Text("Skip")),
-                  const FilledButton(onPressed: null, child: Text("Disabled")),
-                ],
-              ),
-              const SizedBox(height: AppSpace.x4),
-              Wrap(
-                spacing: AppSpace.x3,
-                runSpacing: AppSpace.x3,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  SymbolButton(
-                    icon: AppIcons.search,
-                    tooltip: "Search",
-                    onTap: () {},
-                  ),
-                  SymbolButton(
-                    icon: AppIcons.back,
-                    tooltip: "Back",
-                    onTap: () {},
-                  ),
-                  SaveHeart(_hero.id, style: SaveHeartStyle.hero),
-                  SaveHeart(_hero.id, style: SaveHeartStyle.tile),
-                  const SelectionCircle(selected: true),
-                  const SelectionCircle(selected: false),
-                ],
-              ),
-              const SizedBox(height: AppSpace.x4),
-              Row(
-                children: [
-                  BarItemGroup(
-                    items: [
-                      BarItem(
-                        icon: AppIcons.search,
-                        tooltip: "Search",
-                        onPressed: () {},
-                      ),
-                      BarItem(
-                        icon: AppIcons.share,
-                        tooltip: "Share",
-                        onPressed: () {},
-                      ),
-                      BarItem(
-                        icon: AppIcons.favorite,
-                        tooltip: "Save",
-                        onPressed: () {},
-                      ),
-                    ],
-                  ),
-                  const SizedBox(width: AppSpace.x4),
-                  FloatingActionButton.extended(
-                    onPressed: () {},
-                    icon: const Icon(AppIcons.add),
-                    label: const Text("Plan a tour"),
-                  ),
-                ],
-              ),
-            ],
-          ),
+        _Panel(
+          children: [
+            Wrap(
+              spacing: AppSpace.x2,
+              runSpacing: AppSpace.x2,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                FilledButton(onPressed: () {}, child: const Text("Sign In")),
+                OutlinedButton(onPressed: () {}, child: const Text("Remove")),
+                TextButton(onPressed: () {}, child: const Text("Reorder")),
+                const FilledButton(onPressed: null, child: Text("Disabled")),
+              ],
+            ),
+            Wrap(
+              spacing: AppSpace.x2,
+              runSpacing: AppSpace.x2,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                SymbolButton(
+                  icon: AppIcons.back,
+                  tooltip: "Back",
+                  onTap: () {},
+                  onGround: true,
+                ),
+                SymbolButton(
+                  icon: AppIcons.add,
+                  tooltip: "New trip",
+                  onTap: () {},
+                  background: scheme.primary,
+                  color: scheme.onPrimary,
+                ),
+                SaveHeart(_hero.id, style: SaveHeartStyle.hero),
+                SaveHeart(_hero.id, style: SaveHeartStyle.tile),
+                const SelectionCircle(selected: true),
+                const SelectionCircle(selected: false),
+              ],
+            ),
+          ],
         ),
 
-        const _Section("Chips and badges"),
-        AppCard(
-          padding: const EdgeInsets.all(AppSpace.x5),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Wrap(
-                spacing: AppSpace.x2,
-                runSpacing: AppSpace.x2,
-                children: [
-                  for (final label in _categories)
-                    ChoiceChip(
-                      label: Text(label),
-                      selected: _category == label,
-                      onSelected: (_) => setState(() => _category = label),
-                    ),
-                ],
+        const _Section("Chips and Pills"),
+        FilterChipRow(
+          items: [
+            FilterChipItem(
+              label: "All",
+              selected: _kind == null,
+              onTap: () => setState(() => _kind = null),
+            ),
+            for (final kind in _kinds)
+              FilterChipItem(
+                label: kind.label,
+                selected: _kind == kind,
+                onTap: () => setState(() => _kind = kind),
               ),
-              const SizedBox(height: AppSpace.x5),
-              const Wrap(
-                spacing: AppSpace.x2,
-                runSpacing: AppSpace.x2,
-                children: [
-                  PhotoPill.scan(),
-                  PhotoPill("1 km"),
-                  LakbayanBadge("On this phone", kind: BadgeKind.neutral),
-                  LakbayanBadge("₱100 entry", kind: BadgeKind.info),
-                  LakbayanBadge("Closed", kind: BadgeKind.closed),
-                ],
-              ),
-            ],
-          ),
+          ],
+        ),
+        const SizedBox(height: AppSpace.x3),
+        const Wrap(
+          spacing: AppSpace.x2,
+          runSpacing: AppSpace.x2,
+          children: [
+            PhotoPill.scan(),
+            PhotoPill("1.2 km"),
+            PhotoPill("14 to 15 Nov", glyph: AppIcons.calendar),
+          ],
         ),
 
         const _Section("Field"),
-        const TextField(decoration: InputDecoration(hintText: "Your name")),
+        const TextField(decoration: InputDecoration(hintText: "Name")),
 
-        const _Section("Media tile"),
+        const _Section("Photos"),
         SectionHeading("Popular", onSeeAll: () {}),
-        const SizedBox(height: AppSpace.x2),
         MediaTile(
-          media: _hero.coverImage == null
-              ? const ImagePlaceholder()
-              : StorageImage(path: _hero.coverImage!),
-          aspectRatio: 16 / 10,
-          title: _hero.name,
-          subtitle: "2.4 km away",
-          pill: const PhotoPill.scan(),
-          trailing: SaveHeart(_hero.id, style: SaveHeartStyle.tile),
-          onTap: () {},
-        ),
-        const SizedBox(height: AppSpace.x4),
-        MediaTile(
-          media: _hero.coverImage == null
-              ? const ImagePlaceholder()
-              : StorageImage(path: _hero.coverImage!),
+          media: photo,
           aspectRatio: 16 / 10,
           title: _hero.name,
           subtitle: _hero.town,
           overlay: true,
+          pill: const PhotoPill.scan(),
+          trailing: SaveHeart(_hero.id, style: SaveHeartStyle.tile),
           onTap: () {},
         ),
 
-        const _Section("Photo list"),
-        // Places sit on the white ground; the photos are the colour. A
-        // mark slot carries a stop's number, the same one its pin shows.
+        const _Section("Rows on a Card"),
         GroupedSection(
+          heading: "Stops",
           children: [
             for (final (index, place) in sampleDestinations.take(3).indexed)
               GroupedRow(
@@ -312,44 +235,26 @@ class _TokensState extends State<_Tokens> {
               ),
           ],
         ),
-
-        const _Section("Facts and settings"),
-        // A glyph or text leads, so the rows share one grey plate; the
-        // dense row is the compact one for settings and pickers.
+        const SizedBox(height: AppSpace.section),
         GroupedSection(
+          heading: "Settings",
           children: [
+            GroupedRow(title: "Downloaded Towns", onTap: () {}),
             GroupedRow(
-              title: "Getting there",
-              subtitle: "24 km from Tuguegarao",
-              subtitleColor: context.lakbayan.spatial,
-              leadingGlyph: AppIcons.directions,
-              glyphColor: context.lakbayan.spatial,
-              onTap: () {},
-            ),
-            GroupedRow(
-              title: "Saved places",
-              leadingGlyph: AppIcons.favoriteFilled,
-              glyphColor: context.lakbayan.save,
-              dense: true,
+              title: "Reduce Motion",
+              trailing: Switch(value: true, onChanged: (_) {}),
               onTap: () {},
             ),
           ],
         ),
 
-        const _Section("Group over media, and its menu"),
-        // A route map or a photo stands behind the controls in the app; the
-        // white capsule is their surface. More opens the menu from its glyph.
+        const _Section("Controls over a Photo, and a Menu"),
         SizedBox(
           height: AppSize.routePreview,
           child: Stack(
             fit: StackFit.expand,
             children: [
-              ClipRRect(
-                borderRadius: AppRadii.lgAll,
-                child: _hero.coverImage == null
-                    ? const ImagePlaceholder()
-                    : StorageImage(path: _hero.coverImage!),
-              ),
+              ClipRRect(borderRadius: AppRadii.lgAll, child: photo),
               Positioned(
                 top: AppSpace.x2,
                 left: AppSpace.x2,
@@ -375,7 +280,7 @@ class _TokensState extends State<_Tokens> {
                       menu: [
                         [
                           AppMenuItem(
-                            label: "Change dates",
+                            label: "Change Dates",
                             icon: AppIcons.calendar,
                             onSelected: () {},
                           ),
@@ -416,7 +321,7 @@ class _TokensState extends State<_Tokens> {
                 actions: [
                   TextButton(
                     onPressed: () => Navigator.of(context).pop(),
-                    child: const Text("Keep it"),
+                    child: const Text("Keep It"),
                   ),
                   FilledButton(
                     onPressed: () => Navigator.of(context).pop(),
@@ -425,7 +330,7 @@ class _TokensState extends State<_Tokens> {
                 ],
               ),
             ),
-            child: const Text("Open a dialog"),
+            child: const Text("Open a Dialog"),
           ),
         ),
       ],
@@ -440,8 +345,33 @@ class _Section extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(top: AppSpace.x8, bottom: AppSpace.x3),
+    padding: const EdgeInsets.only(top: AppSpace.x8, bottom: AppSpace.near),
     child: Text(title, style: AppTypography.titleMedium),
+  );
+}
+
+/// A white card holding a specimen's pieces a short step apart.
+class _Panel extends StatelessWidget {
+  const _Panel({required this.children});
+
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) => Material(
+    color: Theme.of(context).colorScheme.surfaceContainerLowest,
+    shape: const RoundedRectangleBorder(borderRadius: AppRadii.mdAll),
+    child: Padding(
+      padding: const EdgeInsets.all(AppSpace.gutter),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          for (final (index, child) in children.indexed) ...[
+            if (index > 0) const SizedBox(height: AppSpace.x2),
+            child,
+          ],
+        ],
+      ),
+    ),
   );
 }
 

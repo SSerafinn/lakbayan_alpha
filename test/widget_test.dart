@@ -113,7 +113,7 @@ void main() {
     await leaveLanding(tester);
     expect(find.byType(SignInScreen), findsOneWidget);
 
-    await tester.tap(find.text("BROWSE AS GUEST"));
+    await tester.tap(find.text("Browse as Guest"));
     await settle(tester);
 
     expect(find.byType(HomeShell), findsOneWidget);
@@ -125,7 +125,7 @@ void main() {
   ) async {
     await pumpApp(tester);
     await leaveLanding(tester);
-    await tester.tap(find.text("BROWSE AS GUEST"));
+    await tester.tap(find.text("Browse as Guest"));
     await settle(tester);
 
     // The tabs are drawn glyphs; each carries its name as a tooltip (D-16).

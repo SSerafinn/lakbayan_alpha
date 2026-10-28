@@ -35,29 +35,19 @@ class FieldLabel extends StatelessWidget {
   }
 }
 
-/// Separates the form from the provider beneath it.
+/// Separates the form from the provider beneath it: the one word, no rules.
 class OrDivider extends StatelessWidget {
   const OrDivider({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Row(
-      children: [
-        Expanded(child: Divider(color: scheme.outlineVariant)),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppSpace.x3),
-          child: Text(
-            "OR",
-            style: AppTypography.labelMedium.copyWith(
-              color: scheme.onSurfaceVariant,
-            ),
-          ),
-        ),
-        Expanded(child: Divider(color: scheme.outlineVariant)),
-      ],
-    );
-  }
+  Widget build(BuildContext context) => Center(
+    child: Text(
+      "or",
+      style: AppTypography.labelSmall.copyWith(
+        color: Theme.of(context).colorScheme.onSurfaceVariant,
+      ),
+    ),
+  );
 }
 
 class PrimaryAction extends StatelessWidget {
@@ -132,7 +122,7 @@ class ModeSwitch extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: AppSpace.x2),
           ),
           onPressed: onTap,
-          child: Text(isSignUp ? "Log in" : "Sign up"),
+          child: Text(isSignUp ? "Log In" : "Sign Up"),
         ),
       ],
     );

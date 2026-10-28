@@ -8,7 +8,6 @@ import "../../../core/router/app_router.dart";
 import "../../../core/theme/app_dimens.dart";
 import "../../../core/theme/app_typography.dart";
 import "../../../core/widgets/chrome/floating_tab_bar.dart";
-import "../../../core/widgets/content/lakbayan_badge.dart";
 import "../../../core/widgets/content/quiet_note.dart";
 import "../../../core/widgets/content/section_heading.dart";
 import "../../../core/widgets/content/storage_image.dart";
