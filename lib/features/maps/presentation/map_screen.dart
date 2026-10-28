@@ -12,7 +12,6 @@ import "../../../core/theme/app_typography.dart";
 import "../../../core/theme/lakbayan_colors.dart";
 import "../../../core/widgets/chrome/floating_tab_bar.dart";
 import "../../../core/widgets/content/grouped_section.dart";
-import "../../../core/widgets/content/lakbayan_badge.dart";
 import "../../../core/widgets/content/media_tile.dart";
 import "../../../core/widgets/content/page_dots.dart";
 import "../../../core/widgets/content/quiet_note.dart";
@@ -482,7 +481,7 @@ class _Card extends StatelessWidget {
     dense: true,
     title: place.name,
     subtitle: place.town,
-    badge: place.hasAR ? const LakbayanBadge.ar() : null,
+    pill: place.hasAR ? const PhotoPill.scan() : null,
     trailing: SaveHeart(place.id, style: SaveHeartStyle.tile),
     onTap: () =>
         context.push(Routes.destination(place.id, from: HeroSource.mapCard)),

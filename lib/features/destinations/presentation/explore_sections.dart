@@ -134,7 +134,7 @@ class _Tile extends StatelessWidget {
       dense: true,
       title: place.name,
       subtitle: place.town,
-      badge: place.hasAR ? const LakbayanBadge.ar() : null,
+      pill: place.hasAR ? const PhotoPill.scan() : null,
       trailing: SaveHeart(place.id, style: SaveHeartStyle.tile),
       onTap: () =>
           context.push(Routes.destination(place.id, from: HeroSource.popular)),

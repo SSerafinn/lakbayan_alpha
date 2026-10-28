@@ -610,8 +610,8 @@ class _StopMotion extends StatelessWidget {
   }
 }
 
-/// Taking the trip offline, as a plain row on the white ground like the
-/// stops above it: the download glyph in blue, what it keeps, and a chevron
+/// Taking the trip offline, as a row on its own card like the stops above
+/// it: the download glyph in blue, what it keeps, and a chevron
 /// to the downloads. No coloured tile.
 class _OfflineRow extends StatelessWidget {
   const _OfflineRow();
@@ -632,8 +632,8 @@ class _OfflineRow extends StatelessWidget {
 
 /// The stops as a route: a blue line runs down through their numbers, from
 /// the first to "Add a stop", so the list reads as one journey rather than
-/// a pile of rows. The line is drawn behind the rows, under the numerals'
-/// centres; the rows themselves are unchanged.
+/// a pile of rows. The line is drawn on the card behind the rows, under the
+/// numerals' centres; the rows themselves are unchanged.
 class _Timeline extends StatelessWidget {
   const _Timeline({required this.children});
 
@@ -642,16 +642,20 @@ class _Timeline extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final side = StopNumeral.sideOf(context);
-    return Stack(
+    return GroupedSection(
       children: [
-        Positioned(
-          left: AppSpace.x1 + side / 2 - AppStroke.bold / 2,
-          top: AppSpace.x6,
-          bottom: AppSpace.x6,
-          width: AppStroke.bold,
-          child: ColoredBox(color: context.lakbayan.spatial),
+        Stack(
+          children: [
+            Positioned(
+              left: AppSpace.near + side / 2 - AppStroke.bold / 2,
+              top: AppSpace.x6,
+              bottom: AppSpace.x6,
+              width: AppStroke.bold,
+              child: ColoredBox(color: context.lakbayan.spatial),
+            ),
+            Column(mainAxisSize: MainAxisSize.min, children: children),
+          ],
         ),
-        GroupedSection(children: children),
       ],
     );
   }
@@ -902,7 +906,7 @@ class _TripFlight extends StatelessWidget {
       padding: AppSpace.groupInset,
       fallback: AppRadii.sm,
     ),
-    padding: AppSpace.rowPad,
+    padding: AppSpace.near,
     fallback: AppRadii.xs,
   );
 

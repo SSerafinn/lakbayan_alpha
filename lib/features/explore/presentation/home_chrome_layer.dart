@@ -188,6 +188,6 @@ class _TabBarSlot extends ConsumerWidget {
 const _tabs = [
   AppDestination(symbol: TabSymbol.explore, label: "Explore"),
   AppDestination(symbol: TabSymbol.map, label: "Map"),
-  AppDestination(symbol: TabSymbol.trips, label: "Itineraries"),
+  AppDestination(symbol: TabSymbol.trips, label: "Trips"),
   AppDestination(symbol: TabSymbol.profile, label: "Profile"),
 ];

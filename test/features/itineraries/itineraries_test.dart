@@ -134,7 +134,7 @@ void main() {
       // admin-written, so a visitor's plan could never live there.
       await pump(tester, const Scaffold(body: ItinerariesTab()));
 
-      expect(find.text("Itineraries"), findsOneWidget);
+      expect(find.text("Trips"), findsOneWidget);
       expect(find.text("Saved tours"), findsOneWidget);
       expect(
         find.textContaining("Tours you save from the province's list"),

@@ -60,9 +60,11 @@ abstract final class AppColors {
   static const blue = Color(0xFF1F6FD1);
   static const blueDark = Color(0xFF7FB2F0);
 
-  // Gold: the FEATURED badge, until the badge goes with the new cards.
-  static const gold700 = Color(0xFF9A6300);
-  static const gold300 = Color(0xFFF4C765);
+  // Explore's towns hang from a pale river on cords; the cord in dark mode
+  // is [sub].
+  static const river = Color(0xFFCFE2F0);
+  static const riverDark = Color(0xFF2A3A47);
+  static const cord = Color(0xFFB9B7AF);
 
   // Errors on a field: the border and the warning glyph.
   static const error = Color(0xFFC42B1B);

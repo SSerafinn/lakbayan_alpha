@@ -32,7 +32,7 @@ class StopStrip extends StatelessWidget {
   static const viewportFraction = 0.86;
 
   /// The strip's height at the user's text size: a row's photo, or its two
-  /// lines if those are taller, inside the row's padding and the plate's.
+  /// lines if those are taller, inside the row's padding and the card's.
   static double heightOf(BuildContext context) {
     final scaler = MediaQuery.textScalerOf(context);
     // Each style on its own: Android scales large text less than small.
@@ -40,7 +40,7 @@ class StopStrip extends StatelessWidget {
         scaler.lineHeightOf(AppTypography.titleSmall) +
         scaler.lineHeightOf(AppTypography.secondLine);
     final content = lines > AppSize.rowMedia ? lines : AppSize.rowMedia;
-    return content + (AppSpace.rowPad + AppSpace.groupInset) * 2;
+    return content + (AppSpace.near + AppSpace.groupInset) * 2;
   }
 
   @override
@@ -60,37 +60,32 @@ class StopStrip extends StatelessWidget {
           ),
           child: Semantics(
             label: "Stop $number",
-            // The list's own row on a white card, so it reads over the map.
-            child: Material(
-              color: Theme.of(context).colorScheme.surfaceContainerLowest,
-              shape: const RoundedRectangleBorder(borderRadius: AppRadii.mdAll),
-              clipBehavior: Clip.antiAlias,
-              child: GroupedSection(
-                children: [
-                  GroupedRow(
-                    mark: StopNumeral(number),
-                    title: place.name,
-                    subtitle: place.town,
-                    leading: PhotoHero(
-                      tag: coverHeroTag(place.id, HeroSource.stopCard),
-                      child: CoverImage(place.coverImage),
-                    ),
-                    // Going there is what a stop card on the map is for;
-                    // the turn arrow is the maps' own shorthand for it.
-                    trailing: IconButton(
-                      icon: const Icon(
-                        AppIcons.directions,
-                        size: AppSize.glyphMd,
-                      ),
-                      tooltip: "Directions to ${place.name}",
-                      onPressed: () => showDirections(context, place),
-                    ),
-                    onTap: () => context.push(
-                      Routes.destination(place.id, from: HeroSource.stopCard),
-                    ),
+            // The list's own row on its card, so it reads over the map.
+            child: GroupedSection(
+              children: [
+                GroupedRow(
+                  mark: StopNumeral(number),
+                  title: place.name,
+                  subtitle: place.town,
+                  leading: PhotoHero(
+                    tag: coverHeroTag(place.id, HeroSource.stopCard),
+                    child: CoverImage(place.coverImage),
                   ),
-                ],
-              ),
+                  // Going there is what a stop card on the map is for; the
+                  // turn arrow is the maps' own shorthand for it.
+                  trailing: IconButton(
+                    icon: const Icon(
+                      AppIcons.directions,
+                      size: AppSize.glyphMd,
+                    ),
+                    tooltip: "Directions to ${place.name}",
+                    onPressed: () => showDirections(context, place),
+                  ),
+                  onTap: () => context.push(
+                    Routes.destination(place.id, from: HeroSource.stopCard),
+                  ),
+                ),
+              ],
             ),
           ),
         );

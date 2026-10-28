@@ -172,7 +172,7 @@ void main() {
     ) async {
       await pump(tester);
 
-      await tapButton(tester, "See all");
+      await tapButton(tester, "See All");
 
       expect(find.byType(ExhibitsScreen), findsOneWidget);
       expect(find.text("The founding stone"), findsOneWidget);

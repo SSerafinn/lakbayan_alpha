@@ -75,7 +75,7 @@ class _Title extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     return Row(
       children: [
-        Expanded(child: Text("Itineraries", style: AppTypography.titleLarge)),
+        Expanded(child: Text("Trips", style: AppTypography.titleLarge)),
         IconButton(
           onPressed: () => showNewItinerary(context),
           tooltip: "New itinerary",

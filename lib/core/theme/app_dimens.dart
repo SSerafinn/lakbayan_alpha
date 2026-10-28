@@ -17,6 +17,11 @@ abstract final class AppSpace {
   static const x10 = 40.0;
   static const x12 = 48.0;
 
+  /// Between things that belong together: a heading and its content, chips
+  /// in a row, photos in a grid, a row's own padding, the tab bar's inset
+  /// (D-19).
+  static const near = 6.0;
+
   /// The screen's side margin.
   static const gutter = 12.0;
 
@@ -24,12 +29,8 @@ abstract final class AppSpace {
   /// page stays close (D-19).
   static const section = 16.0;
 
-  /// Grouped section edge to row edge, and a row's own padding.
+  /// A grouped card's edge to its rows' edge.
   static const groupInset = 4.0;
-  static const rowPad = 8.0;
-
-  /// A dense row's padding: settings and sheet pickers.
-  static const rowPadDense = 6.0;
 
   /// Between the grouped surfaces of one menu.
   static const menuGroupGap = 8.0;
@@ -43,8 +44,8 @@ abstract final class AppSize {
   static const appBarHeight = 56.0;
 
   /// The floating tab bar at rest: the four sections and search in one
-  /// capsule.
-  static const bottomNav = 56.0;
+  /// capsule, the chosen one carrying its name (D-19).
+  static const bottomNav = 60.0;
 
   /// The same bar shrunk on a scroll down, one touch target tall, so every
   /// cell still meets the minimum.

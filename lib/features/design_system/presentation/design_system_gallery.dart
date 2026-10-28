@@ -71,8 +71,9 @@ class _TokensState extends State<_Tokens> {
         Text("Design system", style: AppTypography.titleLarge),
         const SizedBox(height: AppSpace.x2),
         Text(
-          "Tokens 2.2.0. Satoshi half a step lighter, white first; green is the action and the "
-          "selection, blue is spatial, red is closed and saved, gold is featured.",
+          "Tokens 3.0.0. Emerald, ink, paper and pastels; Cabinet Grotesk "
+          "over Satoshi. Emerald is the action and the selection, blue the "
+          "route, red closed and saved.",
           style: AppTypography.bodyMedium.copyWith(
             color: scheme.onSurfaceVariant,
           ),
@@ -95,7 +96,7 @@ class _TokensState extends State<_Tokens> {
           ("closed", context.lakbayan.closed),
           ("save", context.lakbayan.save),
           ("error", scheme.error),
-          ("featured", context.lakbayan.featured),
+          ("river", context.lakbayan.river),
         ]),
         const SizedBox(height: AppSpace.x3),
         _Swatches([
@@ -256,8 +257,8 @@ class _TokensState extends State<_Tokens> {
                 spacing: AppSpace.x2,
                 runSpacing: AppSpace.x2,
                 children: [
-                  LakbayanBadge.featured(),
-                  LakbayanBadge.ar(),
+                  PhotoPill.scan(),
+                  PhotoPill("1 km"),
                   LakbayanBadge("On this phone", kind: BadgeKind.neutral),
                   LakbayanBadge("₱100 entry", kind: BadgeKind.info),
                   LakbayanBadge("Closed", kind: BadgeKind.closed),
@@ -271,7 +272,7 @@ class _TokensState extends State<_Tokens> {
         const TextField(decoration: InputDecoration(hintText: "Your name")),
 
         const _Section("Media tile"),
-        SectionHeading("Popular this week", onSeeAll: () {}),
+        SectionHeading("Popular", onSeeAll: () {}),
         const SizedBox(height: AppSpace.x2),
         MediaTile(
           media: _hero.coverImage == null
@@ -280,8 +281,7 @@ class _TokensState extends State<_Tokens> {
           aspectRatio: 16 / 10,
           title: _hero.name,
           subtitle: "2.4 km away",
-          subtitleColor: context.lakbayan.spatial,
-          badge: const LakbayanBadge.ar(),
+          pill: const PhotoPill.scan(),
           trailing: SaveHeart(_hero.id, style: SaveHeartStyle.tile),
           onTap: () {},
         ),
