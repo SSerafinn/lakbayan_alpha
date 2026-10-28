@@ -67,8 +67,14 @@ class ItinerariesTab extends ConsumerWidget {
 
 /// The large title, and beside it the one primary action, New trip, on its
 /// emerald circle: beside what it creates, not floating over empty space.
+///
+/// Signed out, the title stands alone. A guest's one action is Sign In; a
+/// New trip they could fill in but never save would end in an error that no
+/// retry fixes.
 class _Title extends StatelessWidget {
-  const _Title();
+  const _Title({this.canCreate = true});
+
+  final bool canCreate;
 
   @override
   Widget build(BuildContext context) {
@@ -84,13 +90,14 @@ class _Title extends StatelessWidget {
             ),
           ),
         ),
-        SymbolButton(
-          icon: AppIcons.add,
-          tooltip: "New trip",
-          onTap: () => showNewItinerary(context),
-          background: scheme.primary,
-          color: scheme.onPrimary,
-        ),
+        if (canCreate)
+          SymbolButton(
+            icon: AppIcons.add,
+            tooltip: "New trip",
+            onTap: () => showNewItinerary(context),
+            background: scheme.primary,
+            color: scheme.onPrimary,
+          ),
       ],
     );
   }
@@ -264,7 +271,7 @@ class _GuestPrompt extends ConsumerWidget {
         FloatingTabBar.clearance(context),
       ),
       children: [
-        const _Title(),
+        const _Title(canCreate: false),
         const SizedBox(height: AppSpace.section),
         Text("Plans Need an Account", style: AppTypography.titleMedium),
         const SizedBox(height: AppSpace.x2),

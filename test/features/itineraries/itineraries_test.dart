@@ -79,6 +79,10 @@ void main() {
         findsOneWidget,
       );
       expect(find.textContaining("without signing in"), findsOneWidget);
+      // Signing in is the one way forward: no New trip to fill in and then
+      // fail to save.
+      expect(find.byTooltip("New trip"), findsNothing);
+      expect(find.text("Sign In"), findsOneWidget);
     });
 
     testWidgets("shows an empty state that says how to fill it", (
