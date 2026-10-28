@@ -9,20 +9,15 @@ import "../../../core/router/app_router.dart";
 import "../../../core/theme/app_dimens.dart";
 import "../../../core/theme/app_motion.dart";
 import "../../../core/theme/app_typography.dart";
-import "../../../core/theme/lakbayan_colors.dart";
 import "../../../core/widgets/chrome/floating_tab_bar.dart";
-import "../../../core/widgets/content/grouped_section.dart";
 import "../../../core/widgets/content/media_tile.dart";
 import "../../../core/widgets/content/page_dots.dart";
 import "../../../core/widgets/content/quiet_note.dart";
-import "../../../core/widgets/content/section_heading.dart";
 import "../../../core/widgets/content/storage_image.dart";
 import "../../../core/widgets/motion/motion.dart";
 import "../../../core/widgets/motion/page_transitions.dart";
 import "../../destinations/domain/destination_providers.dart";
-import "../../destinations/domain/saved_destinations.dart";
 import "../../destinations/presentation/browse_screen.dart";
-import "../../destinations/presentation/save_heart.dart";
 import "../../explore/domain/home_chrome.dart";
 import "map_top_controls.dart";
 import "map_view.dart";
@@ -32,9 +27,9 @@ import "map_view.dart";
 ///
 /// A real map under the filters, grid toggle and route ([MapTopControls]).
 /// At its foot a parallel sheet, no scrim: at rest the area's name and a row
-/// of place cards that is one selection with the pins; pulled up, the full
-/// list with each place's distance from the chosen pin. Browse is the same
-/// results as photos, one toggle away.
+/// of photo cards that is one selection with the pins; pulled up, every
+/// place as a photo, nearest the chosen pin first, each with how far (D-19).
+/// Browse is the same results as photos, one toggle away.
 class MapScreen extends ConsumerWidget {
   const MapScreen({super.key});
 
@@ -200,26 +195,29 @@ class _PlacesSheetState extends ConsumerState<_PlacesSheet> {
                       ),
                     )
                   else ...[
-                    SliverToBoxAdapter(child: _PlacePeekRail(items: items)),
-                    const SliverPadding(
-                      padding: EdgeInsets.fromLTRB(
+                    SliverToBoxAdapter(
+                      child: _PlacePeekRail(items: items, from: selected),
+                    ),
+                    SliverPadding(
+                      padding: const EdgeInsets.fromLTRB(
                         AppSpace.gutter,
                         AppSpace.section,
                         AppSpace.gutter,
-                        AppSpace.x1,
+                        0,
                       ),
-                      sliver: SliverToBoxAdapter(
-                        child: SectionHeading("Everything on the map"),
-                      ),
-                    ),
-                    SliverPadding(
-                      padding: gutter,
-                      sliver: SliverGroupedSection(
+                      sliver: SliverGrid.builder(
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 2,
+                              mainAxisSpacing: AppSpace.x2,
+                              crossAxisSpacing: AppSpace.x2,
+                              childAspectRatio: 5 / 6,
+                            ),
                         itemCount: rows.length,
-                        itemBuilder: (context, index) => _PlaceRow(
+                        itemBuilder: (context, index) => _Card(
                           place: rows[index],
                           from: selected,
-                          distanceColor: context.lakbayan.spatial,
+                          source: HeroSource.map,
                         ),
                       ),
                     ),
@@ -237,46 +235,6 @@ class _PlacesSheetState extends ConsumerState<_PlacesSheet> {
           ),
         );
       },
-    );
-  }
-}
-
-/// One place in the full list. The second line is the distance from the
-/// chosen pin, in blue, or the town when nothing is chosen. Saved places
-/// carry the heart; the rest a chevron.
-class _PlaceRow extends ConsumerWidget {
-  const _PlaceRow({
-    required this.place,
-    required this.from,
-    required this.distanceColor,
-  });
-
-  final Destination place;
-  final Destination? from;
-  final Color distanceColor;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final saved = ref.watch(
-      savedDestinationsProvider.select((ids) => ids.contains(place.id)),
-    );
-    final origin = from;
-    final measured = origin != null && origin.id != place.id;
-    final subtitle = measured
-        ? "${distanceLabel(distanceBetween(origin, place))} from the pin"
-        : place.town;
-
-    return GroupedRow(
-      title: place.name,
-      subtitle: subtitle,
-      subtitleColor: measured ? distanceColor : null,
-      leading: PhotoHero(
-        tag: coverHeroTag(place.id, HeroSource.map),
-        child: CoverImage(place.coverImage),
-      ),
-      trailing: saved ? SaveHeart(place.id, style: SaveHeartStyle.row) : null,
-      onTap: () =>
-          context.push(Routes.destination(place.id, from: HeroSource.map)),
     );
   }
 }
@@ -300,7 +258,7 @@ class _SheetHeader extends SliverPersistentHeaderDelegate {
   /// its nominal line height, and a pinned header has no room to give.
   static double heightOf(BuildContext context) {
     final title = MediaQuery.textScalerOf(context)
-        .lineHeightOf(AppTypography.titleMedium)
+        .lineHeightOf(AppTypography.titleLarge)
         .ceilToDouble();
     return AppSpace.x2 +
         AppSize.dragHandleHeight +
@@ -345,7 +303,7 @@ class _SheetHeader extends SliverPersistentHeaderDelegate {
               const SizedBox(height: AppSpace.x2),
               Text(
                 title,
-                style: AppTypography.titleMedium,
+                style: AppTypography.titleLarge,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -368,16 +326,24 @@ class _SheetHeader extends SliverPersistentHeaderDelegate {
 /// swiping a card to the middle selects its pin, and the camera glides
 /// there; tapping a pin brings its card to the middle.
 ///
-/// A card is the place's photo, wide, with its name and town on it.
+/// A card is the place's photo, 3:2, its name on it and how far from the
+/// chosen pin; the next card peeks in at the trailing edge (D-19).
 class _PlacePeekRail extends ConsumerStatefulWidget {
-  const _PlacePeekRail({required this.items});
+  const _PlacePeekRail({required this.items, required this.from});
 
   final List<Destination> items;
+  final Destination? from;
 
-  /// A wide photo card and the dots under it. Fixed: the caption is on the
-  /// photo, so text size does not change the card's height.
+  /// How much of the row one card takes, so the next shows.
+  static const _fraction = 0.7;
+
+  /// A card's height at this screen's width, and the dots under it. The
+  /// caption is on the photo, so text size does not change it.
   static double heightOf(BuildContext context) =>
-      AppSize.mapCard + _dotsGap + AppSize.pageDot;
+      _cardHeight(context) + _dotsGap + AppSize.pageDot;
+
+  static double _cardHeight(BuildContext context) =>
+      (MediaQuery.sizeOf(context).width - AppSpace.gutter) * _fraction * 2 / 3;
 
   static const _dotsGap = AppSpace.x2;
 
@@ -386,7 +352,7 @@ class _PlacePeekRail extends ConsumerStatefulWidget {
 }
 
 class _PlacePeekRailState extends ConsumerState<_PlacePeekRail> {
-  final _pages = PageController();
+  final _pages = PageController(viewportFraction: _PlacePeekRail._fraction);
   int _page = 0;
 
   static const _turn = Duration(milliseconds: 450);
@@ -432,6 +398,7 @@ class _PlacePeekRailState extends ConsumerState<_PlacePeekRail> {
           Expanded(
             child: PageView.builder(
               controller: _pages,
+              padEnds: false,
               itemCount: items.length,
               // A card settling on the page is a choice, the same as its pin.
               onPageChanged: (index) {
@@ -442,14 +409,14 @@ class _PlacePeekRailState extends ConsumerState<_PlacePeekRail> {
                     .select(items[index].id);
               },
               itemBuilder: (context, index) => Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpace.gutter,
+                padding: EdgeInsets.only(
+                  left: index == 0 ? AppSpace.gutter : AppSpace.x1,
+                  right: AppSpace.x1,
                 ),
-                child: Center(
-                  child: SizedBox(
-                    height: AppSize.mapCard,
-                    child: _Card(place: items[index]),
-                  ),
+                child: _Card(
+                  place: items[index],
+                  from: widget.from,
+                  source: HeroSource.mapCard,
                 ),
               ),
             ),
@@ -462,28 +429,36 @@ class _PlacePeekRailState extends ConsumerState<_PlacePeekRail> {
   }
 }
 
-/// The place as a wide photo, its name and town on the photo's scrim, the
-/// heart on its corner: the map's card is the place itself, not a row about
-/// it.
+/// The place as its photo, its name on the scrim and how far it is from the
+/// chosen pin on glass (the scan glyph instead for the chosen one, when it
+/// has exhibits): the map's card is the place itself, not a row about it.
 class _Card extends StatelessWidget {
-  const _Card({required this.place});
+  const _Card({required this.place, required this.from, required this.source});
 
   final Destination place;
+  final Destination? from;
+  final HeroSource source;
 
   @override
-  Widget build(BuildContext context) => MediaTile(
-    media: PhotoHero(
-      tag: coverHeroTag(place.id, HeroSource.mapCard),
-      child: CoverImage(place.coverImage),
-    ),
-    aspectRatio: 2.4,
-    overlay: true,
-    dense: true,
-    title: place.name,
-    subtitle: place.town,
-    pill: place.hasAR ? const PhotoPill.scan() : null,
-    trailing: SaveHeart(place.id, style: SaveHeartStyle.tile),
-    onTap: () =>
-        context.push(Routes.destination(place.id, from: HeroSource.mapCard)),
-  );
+  Widget build(BuildContext context) {
+    final origin = from;
+    final measured = origin != null && origin.id != place.id;
+    return MediaTile(
+      media: PhotoHero(
+        tag: coverHeroTag(place.id, source),
+        child: CoverImage(place.coverImage),
+      ),
+      aspectRatio: source == HeroSource.mapCard ? 3 / 2 : 5 / 6,
+      overlay: true,
+      dense: true,
+      radius: AppRadii.md,
+      title: place.name,
+      pill: measured
+          ? PhotoPill(distanceLabel(distanceBetween(origin, place)))
+          : place.hasAR
+          ? const PhotoPill.scan()
+          : null,
+      onTap: () => context.push(Routes.destination(place.id, from: source)),
+    );
+  }
 }

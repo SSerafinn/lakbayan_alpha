@@ -161,8 +161,8 @@ void main() {
       await tester.pump(const Duration(milliseconds: 400));
       await tester.pumpAndSettle();
 
-      expect(find.text("No matches"), findsOneWidget);
-      expect(find.text("Clear filters"), findsOneWidget);
+      expect(find.text("No Matches"), findsOneWidget);
+      expect(find.text("Clear Filters"), findsOneWidget);
     });
   });
 

@@ -31,8 +31,8 @@ import "save_heart.dart";
 /// scroll: the title with the map symbol beside it, then the chips, led by
 /// the town when one was picked elsewhere. No search field: search is the
 /// bar's last cell (D-16). Under the header, the grid: featured places span
-/// the row at 16:10, the rest sit in columns at 4:5, captions below the
-/// photo, no card chrome. The map symbol returns to the map, which is the
+/// the row at 16:10, the rest sit in columns at 4:5, each name on its photo
+/// (D-19), no card chrome. The map symbol returns to the map, which is the
 /// tab's landing.
 ///
 /// The town filters in memory (see `browseResultsProvider`); category chips
@@ -71,7 +71,7 @@ class BrowseScreen extends ConsumerWidget {
           ),
           child: Row(
             children: [
-              Expanded(child: Text("Browse", style: AppTypography.titleLarge)),
+              Expanded(child: Text("Browse", style: AppTypography.display)),
               // A lone symbol action gets its own container; it switches the
               // whole view, so it does not live inside the search field.
               SymbolButton(
@@ -179,7 +179,7 @@ class _PhotoGrid extends StatelessWidget {
       FloatingTabBar.clearance(context) + AppSpace.x6,
     ),
     itemCount: rows.length,
-    separatorBuilder: (_, _) => const SizedBox(height: AppSpace.x5),
+    separatorBuilder: (_, _) => const SizedBox(height: AppSpace.x2),
     itemBuilder: (context, index) {
       final row = rows[index];
       final spansRow = row.length == 1 && row.single.featured;
@@ -187,7 +187,7 @@ class _PhotoGrid extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           for (var i = 0; i < (spansRow ? 1 : columns); i++) ...[
-            if (i > 0) const SizedBox(width: AppSpace.x3),
+            if (i > 0) const SizedBox(width: AppSpace.x2),
             Expanded(
               child: i < row.length
                   ? _Cell(destination: row[i], wide: spansRow)
@@ -214,8 +214,9 @@ class _Cell extends StatelessWidget {
         child: CoverImage(destination.coverImage),
       ),
       aspectRatio: wide ? 16 / 10 : 4 / 5,
+      overlay: true,
+      dense: true,
       title: destination.name,
-      subtitle: destination.town,
       pill: destination.hasAR ? const PhotoPill.scan() : null,
       trailing: SaveHeart(destination.id, style: SaveHeartStyle.tile),
       onTap: () => context.push(
@@ -241,7 +242,7 @@ class _NoResults extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              hasFilters ? "No matches" : "No destinations yet",
+              hasFilters ? "No Matches" : "No Places Yet",
               style: AppTypography.titleMedium,
             ),
             const SizedBox(height: AppSpace.x2),
@@ -259,7 +260,7 @@ class _NoResults extends StatelessWidget {
               Pressable(
                 child: OutlinedButton(
                   onPressed: onClear,
-                  child: const Text("Clear filters"),
+                  child: const Text("Clear Filters"),
                 ),
               ),
             ],

@@ -326,6 +326,12 @@ line under the field**: an error is the error border plus a trailing
   nothing swinging. A town opens its own page (`TownScreen`), the photo
   zooming: its kinds as chips, the first place wide, the rest as a grid,
   and taking it offline on glass beside back.
+- **The Map (D-19)**: places are emerald pins, red when saved; the chosen
+  one lifts its photo on an emerald ring. Blue is the route's numerals and
+  line only. The sheet's rail is photo cards, 3:2, the next one peeking,
+  each with how far it is from the chosen pin; raised, every place as a
+  photo, nearest first. Browse is the same results as a grid of photos,
+  names on them.
 - **Place detail (D-19)** keeps its photo stage, a third of the screen with
   the dots on the photo, then the name and the place one part at a time:
   Overview (the description and history cut at three lines with Read
