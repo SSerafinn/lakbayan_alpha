@@ -490,6 +490,29 @@ class SpringCurve extends Curve {
       : _simulation.x(t * span.inMicroseconds / Duration.microsecondsPerSecond);
 }
 
+/// The selection pill travelling to the chosen item (chips, a page's
+/// parts): a capsule painted wherever [at] puts it as [moves] ticks, so the
+/// row never rebuilds per frame (D-19). Nothing while [at] is null.
+class TravellingPill extends CustomPainter {
+  TravellingPill({required this.moves, required this.at, required this.color})
+    : super(repaint: moves);
+
+  final Listenable moves;
+  final Rect? Function(Size size) at;
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rect = at(size);
+    if (rect == null) return;
+    canvas.drawPath(capsule.getOuterPath(rect), Paint()..color = color);
+  }
+
+  @override
+  bool shouldRepaint(TravellingPill old) =>
+      old.color != color || old.moves != moves || old.at != at;
+}
+
 /// Shows a dialog that settles in from a beat larger while fading up, and
 /// leaves by fading alone. Every dialog in the app opens this way.
 Future<T?> showAppDialog<T>(

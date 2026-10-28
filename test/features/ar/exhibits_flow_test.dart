@@ -105,6 +105,12 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+    // The exhibits are a part of the page of their own (D-19).
+    final part = find.text("Exhibits");
+    if (part.evaluate().isNotEmpty) {
+      await tester.tap(part);
+      await tester.pumpAndSettle();
+    }
   }
 
   Future<void> tapButton(WidgetTester tester, String label) async {
@@ -120,7 +126,7 @@ void main() {
 
     expect(find.text("Cagayan Museum"), findsWidgets);
     expect(find.text("Exhibits"), findsNothing);
-    expect(find.text("Scan an exhibit"), findsNothing);
+    expect(find.text("Scan an Exhibit"), findsNothing);
   });
 
   testWidgets("a museum with no exhibits yet shows none", (tester) async {
@@ -136,7 +142,7 @@ void main() {
       scanner.outcome = const ExhibitRecognised("e1");
       await pump(tester);
 
-      await tapButton(tester, "Scan an exhibit");
+      await tapButton(tester, "Scan an Exhibit");
 
       // The scan screen was given the museum and both markers, as files.
       expect(scanner.lastPlaceName, "Cagayan Museum");
@@ -146,8 +152,9 @@ void main() {
       ]);
       expect(scanner.scans.single.first.title, "The bell");
 
-      // The sheet: its line and both paragraphs of the story.
-      expect(find.text("The bell"), findsOneWidget);
+      // The sheet: its title (the part's photo of it is named too) and both
+      // paragraphs of the story.
+      expect(find.text("The bell"), findsNWidgets(2));
       expect(find.text("Cast in Manila in 1890."), findsOneWidget);
       expect(find.text("It rang for the town's founding."), findsOneWidget);
 
@@ -160,21 +167,18 @@ void main() {
     testWidgets("closing the camera stays on the page", (tester) async {
       await pump(tester);
 
-      await tapButton(tester, "Scan an exhibit");
+      await tapButton(tester, "Scan an Exhibit");
 
       expect(scanner.scans, hasLength(1));
       expect(find.byType(ExhibitsScreen), findsNothing);
-      expect(find.text("Scan an exhibit"), findsOneWidget);
+      expect(find.text("Scan an Exhibit"), findsOneWidget);
     });
 
-    testWidgets("See all lists every exhibit, and a row opens it", (
+    testWidgets("the part shows every exhibit, and a photo opens it", (
       tester,
     ) async {
       await pump(tester);
 
-      await tapButton(tester, "See All");
-
-      expect(find.byType(ExhibitsScreen), findsOneWidget);
       expect(find.text("The founding stone"), findsOneWidget);
       await tester.tap(find.byKey(const ValueKey("exhibit-e1")));
       await tester.pumpAndSettle();
@@ -187,7 +191,7 @@ void main() {
       scanner.outcome = const ScanUnavailable(ScanProblem.cameraDenied);
       await pump(tester);
 
-      await tapButton(tester, "Scan an exhibit");
+      await tapButton(tester, "Scan an Exhibit");
 
       expect(find.byType(ExhibitsScreen), findsOneWidget);
       expect(find.textContaining("can't use the camera"), findsOneWidget);
@@ -199,7 +203,7 @@ void main() {
     ) async {
       await pump(tester, markers: (_) async => null);
 
-      await tapButton(tester, "Scan an exhibit");
+      await tapButton(tester, "Scan an Exhibit");
 
       expect(scanner.scans, isEmpty);
       expect(find.byType(ExhibitsScreen), findsOneWidget);
@@ -212,26 +216,21 @@ void main() {
         markers: (path) async => path.contains("e2") ? "/cache/$path" : null,
       );
 
-      await tapButton(tester, "Scan an exhibit");
+      await tapButton(tester, "Scan an Exhibit");
 
       expect(scanner.scans.single.map((m) => m.exhibitId), ["e2"]);
     });
   });
 
-  testWidgets("a phone that cannot scan gets the exhibits as a list", (
+  testWidgets("a phone that cannot scan gets the exhibits, no camera", (
     tester,
   ) async {
     scanner.supports = ArSupport.unsupported;
     await pump(tester);
 
-    expect(find.text("Scan an exhibit"), findsNothing);
-    expect(find.text("2 exhibits, each with its story."), findsOneWidget);
-
-    await tapButton(tester, "See the exhibits");
-
-    expect(find.byType(ExhibitsScreen), findsOneWidget);
-    // Chosen, not a failure: no note above the list.
-    expect(find.textContaining("as a list"), findsNothing);
+    expect(find.text("Scan an Exhibit"), findsNothing);
+    expect(find.text("The bell"), findsOneWidget);
+    expect(find.text("The founding stone"), findsOneWidget);
     expect(scanner.scans, isEmpty);
   });
 }

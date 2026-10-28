@@ -189,7 +189,7 @@ void main() {
         find.text("Couldn't load the audio guide. $genericErrorHint"),
         findsOneWidget,
       );
-      expect(find.text("Audio guide"), findsNothing);
+      expect(find.text("Audio Guide"), findsNothing);
 
       final reads = repo.segmentReads;
       repo.failSegments = false;
@@ -198,7 +198,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(repo.segmentReads, greaterThan(reads));
-      expect(find.text("Audio guide"), findsOneWidget);
+      expect(find.text("Audio Guide"), findsOneWidget);
       expect(find.textContaining("Couldn't load"), findsNothing);
     });
 
@@ -215,18 +215,18 @@ void main() {
       );
       live.add(stops["callao"]!);
       await tester.pumpAndSettle();
-      expect(find.text("Audio guide"), findsOneWidget);
+      expect(find.text("Audio Guide"), findsOneWidget);
 
       // Read straight from its provider, not derived: the guide stays while
       // Riverpod retries and reads as loading.
       live.addError(refused);
       await tester.pump();
-      expect(find.text("Audio guide"), findsOneWidget);
+      expect(find.text("Audio Guide"), findsOneWidget);
       expect(find.textContaining("Couldn't load"), findsNothing);
 
       await tester.pump(const Duration(seconds: 1));
       expect(repo.segmentReads, greaterThan(1));
-      expect(find.text("Audio guide"), findsOneWidget);
+      expect(find.text("Audio Guide"), findsOneWidget);
     });
 
     testWidgets("a place with no stops has no guide and no message", (
@@ -240,7 +240,7 @@ void main() {
       );
 
       expect(find.text("Callao Cave"), findsOneWidget);
-      expect(find.text("Audio guide"), findsNothing);
+      expect(find.text("Audio Guide"), findsNothing);
       expect(find.textContaining("Couldn't load"), findsNothing);
     });
   });

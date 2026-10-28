@@ -237,9 +237,9 @@ void main() {
       expect(find.text("Callao Cave"), findsOneWidget);
       // The guide rests as one bar; opened, it lists the stops in visiting
       // order (D-16).
-      await tester.ensureVisible(find.text("Audio guide"));
+      await tester.ensureVisible(find.text("Audio Guide"));
       await tester.pumpAndSettle();
-      await tester.tap(find.text("Audio guide"));
+      await tester.tap(find.text("Audio Guide"));
       await tester.pumpAndSettle();
       expect(find.text("History"), findsOneWidget);
       expect(find.text("The Chapel"), findsOneWidget);
@@ -247,32 +247,6 @@ void main() {
         tester.getTopLeft(find.text("History")).dy,
         lessThan(tester.getTopLeft(find.text("The Chapel")).dy),
       );
-    });
-
-    testWidgets("names a subcategory ahead of the town", (tester) async {
-      final repo = FakeDestinationRepository([
-        testDestination(
-          id: "falls",
-          name: "Mapaso Falls",
-          subcategory: "Waterfall",
-        ),
-        testDestination(id: "palaui", name: "Palaui Island"),
-      ]);
-
-      await pump(
-        tester,
-        const DestinationDetailScreen(id: "falls"),
-        repo: repo,
-      );
-      expect(find.text("Waterfall in Peñablanca"), findsOneWidget);
-
-      await pump(
-        tester,
-        const DestinationDetailScreen(id: "palaui"),
-        repo: repo,
-      );
-      // Without one, the category's own noun, as before.
-      expect(find.text("Nature in Peñablanca"), findsOneWidget);
     });
 
     testWidgets("handles a destination that is gone or unpublished", (

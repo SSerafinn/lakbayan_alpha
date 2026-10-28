@@ -10,10 +10,10 @@ import "../../../core/models/destination.dart";
 import "../../../core/models/exhibit.dart";
 import "../../../core/router/app_router.dart";
 import "../../../core/theme/app_dimens.dart";
-import "../../../core/theme/app_icons.dart";
-import "../../../core/theme/app_typography.dart";
+import "../../../core/theme/lakbayan_colors.dart";
+import "../../../core/widgets/content/media_tile.dart";
 import "../../../core/widgets/content/quiet_note.dart";
-import "../../../core/widgets/content/section_heading.dart";
+import "../../../core/widgets/content/storage_image.dart";
 import "../../../core/widgets/motion/motion.dart";
 import "../../audio/domain/audio_providers.dart";
 import "../domain/ar_providers.dart";
@@ -21,9 +21,9 @@ import "../domain/exhibit_scanner.dart";
 import "exhibit_sheet.dart";
 import "exhibits_screen.dart";
 
-/// A museum's exhibits on its page (D-18): Scan an exhibit where the phone
-/// can, and the plain list where it cannot. Absent for every other place,
-/// and for a museum with nothing to show yet.
+/// A museum's Exhibits part on its page (D-18, D-19): Scan an Exhibit where
+/// the phone can, then every exhibit as a photo; a photo opens its sheet.
+/// Absent for every other place, and for a museum with nothing to show yet.
 ///
 /// A scan opens the native scan screen; the exhibit the visitor taps there
 /// opens here, in the same sheet the list uses. Whatever stops the camera —
@@ -113,82 +113,95 @@ class _ExhibitsSectionState extends ConsumerState<ExhibitsSection> {
           data: (exhibits) => exhibits.isEmpty || support == null
               ? null
               : _Exhibits(
-                  count: exhibits.length,
+                  destinationId: _id,
+                  exhibits: exhibits,
                   canScan:
                       support == ArSupport.available &&
                       exhibits.any((e) => e.isScannable),
                   scanning: _scanning,
                   onScan: () => _scan(exhibits),
-                  onList: _openList,
                 ),
         );
-    if (body == null) return const SizedBox.shrink();
-    return Padding(
-      padding: const EdgeInsets.only(top: AppSpace.x6),
-      child: body,
-    );
+    return body ?? const SizedBox.shrink();
   }
 }
 
 class _Exhibits extends StatelessWidget {
   const _Exhibits({
-    required this.count,
+    required this.destinationId,
+    required this.exhibits,
     required this.canScan,
     required this.scanning,
     required this.onScan,
-    required this.onList,
   });
 
-  final int count;
+  final String destinationId;
+  final List<Exhibit> exhibits;
   final bool canScan;
   final bool scanning;
   final VoidCallback onScan;
-  final VoidCallback onList;
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final caption = canScan
-        ? "Point your camera at an exhibit or its label to hear its story."
-        : count == 1
-        ? "One exhibit, with its story."
-        : "$count exhibits, each with its story.";
-
+    final brand = context.lakbayan;
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // With the camera on offer, the list is the lesser way in.
-        SectionHeading("Exhibits", onSeeAll: canScan ? onList : null),
-        const SizedBox(height: AppSpace.x1),
-        Text(
-          caption,
-          style: AppTypography.bodyMedium.copyWith(
-            color: scheme.onSurfaceVariant,
-          ),
-        ),
-        const SizedBox(height: AppSpace.x3),
-        SizedBox(
-          width: double.infinity,
-          child: Pressable(
+        if (canScan) ...[
+          Pressable(
             enabled: !scanning,
-            child: canScan
-                ? OutlinedButton.icon(
-                    onPressed: scanning ? null : onScan,
-                    icon: scanning
-                        ? const SizedBox.square(
-                            dimension: AppSize.glyph,
-                            child: CircularProgressIndicator(
-                              strokeWidth: AppStroke.bold,
-                            ),
-                          )
-                        : const Icon(AppIcons.scan, size: AppSize.glyph),
-                    label: const Text("Scan an exhibit"),
-                  )
-                : OutlinedButton(
-                    onPressed: onList,
-                    child: const Text("See the exhibits"),
-                  ),
+            child: TextButton(
+              onPressed: scanning ? null : onScan,
+              style: TextButton.styleFrom(
+                backgroundColor: brand.tint,
+                minimumSize: const Size.fromHeight(AppSize.formButton),
+                shape: const RoundedRectangleBorder(
+                  borderRadius: AppRadii.tileAll,
+                ),
+              ),
+              child: FadeSwap(
+                id: scanning,
+                child: scanning
+                    ? const SizedBox.square(
+                        dimension: AppSize.spinner,
+                        child: CircularProgressIndicator(
+                          strokeWidth: AppStroke.bold,
+                        ),
+                      )
+                    : const Text("Scan an Exhibit"),
+              ),
+            ),
           ),
+          const SizedBox(height: AppSpace.x3),
+        ],
+        // A museum's handful of exhibits, inside the page's own scroll.
+        GridView.count(
+          crossAxisCount: 2,
+          mainAxisSpacing: AppSpace.x2,
+          crossAxisSpacing: AppSpace.x2,
+          childAspectRatio: 6 / 5,
+          shrinkWrap: true,
+          padding: EdgeInsets.zero,
+          physics: const NeverScrollableScrollPhysics(),
+          children: [
+            for (final exhibit in exhibits)
+              MediaTile(
+                key: ValueKey("exhibit-${exhibit.id}"),
+                media: exhibit.markerPath.isEmpty
+                    ? ColoredBox(color: brand.sky)
+                    : StorageImage(path: exhibit.markerPath),
+                aspectRatio: 6 / 5,
+                overlay: true,
+                dense: true,
+                radius: AppRadii.md,
+                title: exhibit.title,
+                onTap: () => showExhibitSheet(
+                  context,
+                  destinationId: destinationId,
+                  exhibit: exhibit,
+                ),
+              ),
+          ],
         ),
       ],
     );
