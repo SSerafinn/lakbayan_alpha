@@ -1,6 +1,5 @@
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
-import "package:go_router/go_router.dart";
 
 import "../../../core/errors/error_copy.dart";
 import "../../../core/errors/local_first.dart";
@@ -9,16 +8,13 @@ import "../../../core/router/app_router.dart";
 import "../../../core/theme/app_dimens.dart";
 import "../../../core/theme/app_icons.dart";
 import "../../../core/theme/app_typography.dart";
-import "../../../core/widgets/content/media_tile.dart";
 import "../../../core/widgets/content/quiet_note.dart";
 import "../../../core/widgets/content/section_heading.dart";
-import "../../../core/widgets/content/storage_image.dart";
 import "../../../core/widgets/controls/symbol_button.dart";
 import "../../../core/widgets/motion/motion.dart";
-import "../../../core/widgets/motion/page_transitions.dart";
 import "../../destinations/domain/destination_providers.dart";
-import "../../destinations/domain/recently_viewed.dart";
 import "../../destinations/presentation/explore_sections.dart";
+import "../../destinations/presentation/place_photo.dart";
 
 /// Search surface that grows out of the bar's search cell. Finds a place
 /// or town by name; picking a row or system back folds it back into the cell.
@@ -83,21 +79,10 @@ class _SearchSurfaceState extends State<SearchSurface> {
     // Built once per build and handed down, so a frame of the grow only
     // places and fades them; the text field is never rebuilt mid-motion
     // (STANDARDS 10.10).
-    final input = TextField(
+    final input = PlacesSearchInput(
       focusNode: _focus,
       controller: widget.controller,
       onChanged: widget.onChanged,
-      textInputAction: TextInputAction.search,
-      style: AppTypography.bodyLarge,
-      decoration: const InputDecoration(
-        isDense: true,
-        hintText: "Places and Towns",
-        filled: false,
-        border: InputBorder.none,
-        enabledBorder: InputBorder.none,
-        focusedBorder: InputBorder.none,
-        contentPadding: EdgeInsets.zero,
-      ),
     );
     final close = SymbolButton(
       icon: AppIcons.close,
@@ -127,6 +112,38 @@ class _SearchSurfaceState extends State<SearchSurface> {
       ),
     );
   }
+}
+
+/// The shared place/town input; its caller supplies the field's surface.
+class PlacesSearchInput extends StatelessWidget {
+  const PlacesSearchInput({
+    required this.controller,
+    required this.onChanged,
+    this.focusNode,
+    super.key,
+  });
+
+  final TextEditingController controller;
+  final ValueChanged<String> onChanged;
+  final FocusNode? focusNode;
+
+  @override
+  Widget build(BuildContext context) => TextField(
+    controller: controller,
+    focusNode: focusNode,
+    onChanged: onChanged,
+    textInputAction: TextInputAction.search,
+    style: AppTypography.bodyLarge,
+    decoration: const InputDecoration(
+      isDense: true,
+      hintText: "Places and Towns",
+      filled: false,
+      border: InputBorder.none,
+      enabledBorder: InputBorder.none,
+      focusedBorder: InputBorder.none,
+      contentPadding: EdgeInsets.zero,
+    ),
+  );
 }
 
 /// The docked field's height: the primary button's, and taller when the
@@ -261,8 +278,8 @@ class _Field extends StatelessWidget {
   }
 }
 
-/// What sits above the search field: somewhere to start (the places looked
-/// at last, the towns, every place) or the matches, all as photos (D-19).
+/// What sits above the search field: towns and places, or the matches,
+/// all as photos (D-19).
 ///
 /// The body arrives in order each time it changes between those two, not on
 /// every keystroke, so typing reads as the grid narrowing rather than
@@ -292,10 +309,6 @@ class _SearchBody extends ConsumerWidget {
               sliver: _Matches(onLeave: onLeave),
             )
           else ...[
-            SliverPadding(
-              padding: gutter,
-              sliver: SliverToBoxAdapter(child: _Recent(onLeave: onLeave)),
-            ),
             SliverToBoxAdapter(child: _Towns(onLeave: onLeave)),
             SliverPadding(
               padding: gutter,
@@ -331,41 +344,6 @@ class _Matches extends ConsumerWidget {
               )
             : _Grid(places: results, onLeave: onLeave),
       );
-}
-
-/// The places opened last, as chips, so going back to one is a tap. A
-/// history, so the chips are not there until there is one.
-class _Recent extends ConsumerWidget {
-  const _Recent({required this.onLeave});
-
-  final VoidCallback onLeave;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    // Hidden while loading, when empty and on an error alike: the towns
-    // below carry the error state of the same list.
-    final recent = ref.watch(recentlyViewedDestinationsProvider);
-    if (recent.isEmpty) return const SizedBox.shrink();
-    return Entrance(
-      child: Padding(
-        padding: const EdgeInsets.only(bottom: AppSpace.section),
-        child: Wrap(
-          spacing: AppSpace.near,
-          runSpacing: AppSpace.near,
-          children: [
-            for (final place in recent.take(4))
-              ActionChip(
-                label: Text(place.name),
-                onPressed: () {
-                  onLeave();
-                  context.push(Routes.destination(place.id));
-                },
-              ),
-          ],
-        ),
-      ),
-    );
-  }
 }
 
 /// Every town as a small photo with its name, opening its page.
@@ -474,20 +452,13 @@ class _Grid extends StatelessWidget {
     ),
     itemCount: places.length,
     itemBuilder: (context, index) {
-      final place = places[index];
-      return MediaTile(
-        media: PhotoHero(
-          tag: coverHeroTag(place.id, HeroSource.search),
-          child: CoverImage(place.coverImage),
-        ),
+      // Three to a row: too narrow for a pill and the name both.
+      return PlacePhoto(
+        place: places[index],
+        from: HeroSource.search,
         aspectRatio: 7 / 8,
-        overlay: true,
-        dense: true,
-        title: place.name,
-        onTap: () {
-          onLeave();
-          context.push(Routes.destination(place.id, from: HeroSource.search));
-        },
+        tags: false,
+        onOpen: onLeave,
       );
     },
   );

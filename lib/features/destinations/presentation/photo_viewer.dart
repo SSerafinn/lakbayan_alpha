@@ -21,15 +21,29 @@ import "destination_detail_screen.dart" show sharePlace;
 /// A place's photos, full screen on a dark stage in either appearance
 /// (D-19). Opened from a photo on its page, which zooms into it; close,
 /// back or a pull down shrinks the photo showing back into its tile. The
-/// stage is that photo decoded tiny and stretched, a blur with no filter
-/// (STANDARDS 10.7); the dots and a strip of the photos sit at its foot.
+/// stage shares Keep or Skip's softly blurred photo and translucent shade;
+/// the dots and a strip of the photos sit at its foot.
 class PhotoViewer extends ConsumerStatefulWidget {
-  const PhotoViewer({required this.id, required this.at, super.key});
+  const PhotoViewer({
+    required this.id,
+    required this.at,
+    this.tag,
+    this.stage = false,
+    this.onPageChanged,
+    super.key,
+  });
 
   final String id;
 
   /// The photo it opens on.
   final int at;
+
+  /// The hero tag of the photo it opened from, for that photo, when it was
+  /// not a tile of the Photos part (the page's photo stage). Null: every
+  /// photo flies to and from its tile.
+  final String? tag;
+  final bool stage;
+  final ValueChanged<int>? onPageChanged;
 
   @override
   ConsumerState<PhotoViewer> createState() => _PhotoViewerState();
@@ -47,9 +61,6 @@ class _PhotoViewerState extends ConsumerState<PhotoViewer>
     vsync: this,
     initialValue: 0,
   );
-
-  /// The stage's blur: a photo this many pixels wide, stretched.
-  static const _blurWidth = 32;
 
   @override
   void dispose() {
@@ -70,11 +81,17 @@ class _PhotoViewerState extends ConsumerState<PhotoViewer>
     }
   }
 
-  void _show(int index) => _pages.animateToPage(
-    index,
-    duration: AppMotion.span,
-    curve: SpringCurve(AppMotion.chrome, AppMotion.span),
-  );
+  void _show(int index) {
+    if (MediaQuery.disableAnimationsOf(context)) {
+      _pages.jumpToPage(index);
+      return;
+    }
+    _pages.animateToPage(
+      index,
+      duration: AppMotion.span,
+      curve: SpringCurve(AppMotion.chrome, AppMotion.span),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -95,12 +112,11 @@ class _PhotoViewerState extends ConsumerState<PhotoViewer>
                 if (images.isNotEmpty)
                   FadeSwap(
                     id: page,
-                    child: StorageImage(
+                    child: SoftPhotoBackdrop(
                       path: images[page],
-                      decodeWidth: _blurWidth,
+                      fallback: Theme.of(context).colorScheme.surface,
                     ),
                   ),
-                ColoredBox(color: Theme.of(context).colorScheme.scrim),
                 GestureDetector(
                   onVerticalDragUpdate: (details) =>
                       _pull.value = max(0, _pull.value + details.delta.dy),
@@ -110,7 +126,10 @@ class _PhotoViewerState extends ConsumerState<PhotoViewer>
                     child: PageView.builder(
                       controller: _pages,
                       itemCount: images.length,
-                      onPageChanged: (index) => setState(() => _page = index),
+                      onPageChanged: (index) {
+                        setState(() => _page = index);
+                        widget.onPageChanged?.call(index);
+                      },
                       itemBuilder: (context, index) {
                         final photo = StorageImage(path: images[index]);
                         return Center(
@@ -119,7 +138,14 @@ class _PhotoViewerState extends ConsumerState<PhotoViewer>
                             // Only the photo showing flies, back to its tile.
                             child: index == page
                                 ? PhotoHero(
-                                    tag: photoHeroTag(widget.id, index),
+                                    tag: widget.stage
+                                        ? (index == 0 && widget.tag != null
+                                              ? widget.tag!
+                                              : stageHeroTag(widget.id, index))
+                                        : index == widget.at &&
+                                              widget.tag != null
+                                        ? widget.tag!
+                                        : photoHeroTag(widget.id, index),
                                     child: photo,
                                   )
                                 : photo,
@@ -140,8 +166,8 @@ class _PhotoViewerState extends ConsumerState<PhotoViewer>
                 ),
                 Positioned(
                   top: inset.top + AppSpace.x2,
-                  left: AppSpace.x2,
-                  right: AppSpace.x2,
+                  left: inset.left + AppSpace.x2,
+                  right: inset.right + AppSpace.x2,
                   child: Row(
                     children: [
                       SymbolButton(
@@ -161,8 +187,8 @@ class _PhotoViewerState extends ConsumerState<PhotoViewer>
                 ),
                 if (images.length > 1)
                   Positioned(
-                    left: 0,
-                    right: 0,
+                    left: inset.left,
+                    right: inset.right,
                     bottom: inset.bottom + AppSpace.x6,
                     child: Column(
                       children: [

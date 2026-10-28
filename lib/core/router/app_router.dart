@@ -71,10 +71,17 @@ abstract final class Routes {
     queryParameters: from == null ? null : {"from": from.name},
   ).toString();
 
-  /// A place's photos, full screen, opening on the one [at] (D-19).
-  static String photos(String id, {int at = 0}) => Uri(
+  /// A place's photos, full screen, opening on the one [at] (D-19). [tag] is
+  /// the hero tag of the photo it was opened from when that is not the
+  /// Photos part's tile (the page's own photo stage), so it zooms from there.
+  static String photos(
+    String id, {
+    int at = 0,
+    String? tag,
+    bool stage = false,
+  }) => Uri(
     path: "/destination/$id/photos",
-    queryParameters: {"at": "$at"},
+    queryParameters: {"at": "$at", "tag": ?tag, if (stage) "stage": "true"},
   ).toString();
 
   /// Every place in one town (D-19). Opened from the town's photo on
@@ -102,11 +109,12 @@ enum HeroSource {
   featured,
   popular,
   whereToEat,
+  recent,
+  scan,
   browse,
   list,
   stop,
   stopCard,
-  map,
   mapCard,
   search,
   swipe,
@@ -122,6 +130,11 @@ String coverHeroTag(String id, HeroSource from) => "cover:${from.name}:$id";
 /// The `Hero` tag for [id]'s photo number [index]: its tile on the page and
 /// the same photo in the viewer.
 String photoHeroTag(String id, int index) => "photo:$id:$index";
+
+/// The `Hero` tag for [id]'s photo number [index] on its page's photo stage,
+/// apart from [photoHeroTag] because the Photos part can be on screen with
+/// the stage, and one tag may not appear twice on a page.
+String stageHeroTag(String id, int index) => "stage:$id:$index";
 
 /// The `Hero` tag for a town's photo on [from] and at the top of its page.
 String townHeroTag(String name, HeroSource from) => "town:${from.name}:$name";
@@ -226,6 +239,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           child: PhotoViewer(
             id: state.pathParameters["id"]!,
             at: int.tryParse(state.uri.queryParameters["at"] ?? "") ?? 0,
+            tag: state.uri.queryParameters["tag"],
+            stage: state.uri.queryParameters["stage"] == "true",
+            onPageChanged: state.extra is ValueChanged<int>
+                ? state.extra as ValueChanged<int>
+                : null,
           ),
         ),
       ),

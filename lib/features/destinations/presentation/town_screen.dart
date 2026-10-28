@@ -10,7 +10,6 @@ import "../../../core/theme/app_dimens.dart";
 import "../../../core/theme/app_icons.dart";
 import "../../../core/theme/app_typography.dart";
 import "../../../core/widgets/chrome/system_bars.dart";
-import "../../../core/widgets/content/media_tile.dart";
 import "../../../core/widgets/content/quiet_note.dart";
 import "../../../core/widgets/content/storage_image.dart";
 import "../../../core/widgets/controls/kind_rail.dart";
@@ -19,8 +18,7 @@ import "../../../core/widgets/motion/page_transitions.dart";
 import "../../offline/domain/offline_providers.dart";
 import "../../offline/presentation/town_download_button.dart";
 import "../domain/destination_providers.dart";
-import "place_pills.dart";
-import "save_heart.dart";
+import "place_photo.dart";
 
 /// One town. **Job:** pick a place in a town you are in or going to.
 /// **Emotion:** the town laid out in front of you.
@@ -246,26 +244,19 @@ class _Place extends StatelessWidget {
   final bool large;
 
   @override
-  Widget build(BuildContext context) => MediaTile(
-    media: PhotoHero(
-      tag: coverHeroTag(place.id, HeroSource.town),
-      child: CoverImage(place.coverImage),
-    ),
+  Widget build(BuildContext context) => PlacePhoto(
+    place: place,
+    from: HeroSource.town,
     aspectRatio: large ? 15 / 8 : 5 / 6,
-    overlay: true,
     dense: !large,
     radius: AppRadii.md,
-    title: place.name,
-    pill: placePills(place),
-    trailing: large ? SaveHeart(place.id, style: SaveHeartStyle.tile) : null,
-    onTap: () =>
-        context.push(Routes.destination(place.id, from: HeroSource.town)),
+    heart: large,
   );
 }
 
 /// Taking the town offline from its own page; once it is on the phone, the
-/// check opens Offline. Not there when the province has no download ready
-/// for the town.
+/// check opens Offline. A town without a ready bundle still links to Offline,
+/// where availability is explained rather than silently hiding the feature.
 class _Offline extends ConsumerWidget {
   const _Offline({required this.town});
 
@@ -276,11 +267,20 @@ class _Offline extends ConsumerWidget {
     final bundle = ref.watch(
       offlineBundlesProvider.select(
         (bundles) => bundles.value
-            ?.where((bundle) => bundle.name == town && bundle.isDownloadable)
+            ?.where(
+              (bundle) =>
+                  bundle.name.trim().toLowerCase() == town.trim().toLowerCase(),
+            )
             .firstOrNull,
       ),
     );
-    if (bundle == null) return const SizedBox.shrink();
+    if (bundle == null || !bundle.isDownloadable) {
+      return SymbolButton(
+        icon: AppIcons.download,
+        tooltip: "Offline towns",
+        onTap: () => context.push(Routes.downloads),
+      );
+    }
     return TownDownloadButton(
       bundle: bundle,
       done: SymbolButton(

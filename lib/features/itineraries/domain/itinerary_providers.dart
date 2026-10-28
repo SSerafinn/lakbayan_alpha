@@ -7,6 +7,7 @@ import "../../../core/models/itinerary.dart";
 import "../../../core/models/destination.dart";
 import "../../auth/domain/auth_providers.dart";
 import "../../destinations/domain/destination_providers.dart";
+import "../../destinations/domain/saved_destinations.dart";
 import "../data/itinerary_repository.dart";
 
 part "itinerary_providers.g.dart";
@@ -54,6 +55,18 @@ Stream<List<Itinerary>> myItineraries(Ref ref) {
   if (uid == null) return Stream.value(const []);
   return ref.watch(itineraryRepositoryProvider).watchAll(uid);
 }
+
+/// Add to Trip offers only trips that do not already contain this place.
+@riverpod
+AsyncValue<List<Itinerary>> tripsAcceptingStop(Ref ref, String destinationId) =>
+    ref
+        .watch(myItinerariesProvider)
+        .deriveKeepingValue(
+          (items) => [
+            for (final trip in items)
+              if (!trip.destinationIds.contains(destinationId)) trip,
+          ],
+        );
 
 /// The Itineraries tab's order: the trip that comes next, given real size,
 /// and the rest.
@@ -136,11 +149,36 @@ AsyncValue<List<Destination>> addableStops(Ref ref, String id) {
       );
 }
 
-/// The places offered as a new itinerary's first stop: the first few
-/// published, so the sheet stays a short choice rather than a catalogue.
+/// The places offered as a new trip's first stop, for the typed [query]
+/// (a name or a town): the ones this person saved first, since a trip
+/// usually starts from a place already liked, then every other match. With
+/// nothing typed the rest is the first few published, so the sheet stays a
+/// short choice until someone searches. Derived here, not on each build.
 @riverpod
-List<Destination> firstStopChoices(Ref ref) =>
-    (ref.watch(allDestinationsProvider).value ?? const []).take(8).toList();
+({List<Destination> saved, List<Destination> rest}) firstStopChoices(
+  Ref ref,
+  String query,
+) {
+  final all = ref.watch(allDestinationsProvider).value ?? const [];
+  final savedIds = ref.watch(savedDestinationsProvider);
+  final needle = query.trim().toLowerCase();
+  final saved = <Destination>[];
+  final rest = <Destination>[];
+  for (final place in all) {
+    final matches =
+        needle.isEmpty ||
+        place.name.toLowerCase().contains(needle) ||
+        place.town.toLowerCase().contains(needle);
+    if (!matches) continue;
+    (savedIds.contains(place.id) ? saved : rest).add(place);
+  }
+  return (
+    saved: saved,
+    rest: needle.isEmpty ? rest.take(_firstStopsShown).toList() : rest,
+  );
+}
+
+const _firstStopsShown = 8;
 
 /// The province's tours this user has saved, in the catalog's order.
 @riverpod

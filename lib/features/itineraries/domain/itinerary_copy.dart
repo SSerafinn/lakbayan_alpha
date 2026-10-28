@@ -17,8 +17,8 @@ const _months = [
 
 const _weekdays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
-/// "14 Oct".
-String shortDate(DateTime date) => "${date.day} ${_months[date.month - 1]}";
+/// "Oct 14": the month first, as a trip's dates are read (2026-10-23).
+String shortDate(DateTime date) => "${_months[date.month - 1]} ${date.day}";
 
 /// "Saturday", for a heading.
 String weekday(DateTime date) => switch (_weekdays[date.weekday - 1]) {
@@ -31,16 +31,15 @@ String weekday(DateTime date) => switch (_weekdays[date.weekday - 1]) {
   _ => "Sunday",
 };
 
-/// "14 to 15 Oct", "14 Oct", or null when the trip has no dates. Also a trip
-/// row's second line: a stop count under a name is a dangling number, and
-/// "no dates yet" is a hint dressed as metadata, so neither is shown.
+/// "Oct 14 to 15", "Oct 30 to Nov 2", "Oct 14", or null when the trip has no
+/// dates. Callers choose their undated state; Add to Trip uses a stop count.
 String? datePhrase(Itinerary itinerary) {
   final start = itinerary.startDate;
   final end = itinerary.endDate;
   if (start == null && end == null) return null;
   if (start != null && end != null && !_sameDay(start, end)) {
     return start.month == end.month
-        ? "${start.day} to ${shortDate(end)}"
+        ? "${shortDate(start)} to ${end.day}"
         : "${shortDate(start)} to ${shortDate(end)}";
   }
   return shortDate(start ?? end!);

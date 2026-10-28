@@ -1,4 +1,3 @@
-import "package:flutter/cupertino.dart" show CupertinoPageTransitionsBuilder;
 import "package:flutter/material.dart";
 
 import "../widgets/motion/page_transitions.dart";
@@ -51,12 +50,12 @@ ThemeData _build(Brightness brightness) {
     highlightColor: scheme.onSurface.withValues(alpha: 0.06),
 
     // One push for every screen: in from the trailing edge over the one it
-    // came from, back along the same path under Android's back gesture.
-    // iOS gets its own, the same motion with its edge swipe.
+    // came from, back along the same path under the back gesture. iOS takes
+    // the same push: one look, one motion, on every phone.
     pageTransitionsTheme: const PageTransitionsTheme(
       builders: {
         TargetPlatform.android: PushPageTransitionsBuilder(),
-        TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+        TargetPlatform.iOS: PushPageTransitionsBuilder(),
         TargetPlatform.windows: FadeForwardsPageTransitionsBuilder(),
         TargetPlatform.linux: FadeForwardsPageTransitionsBuilder(),
         TargetPlatform.macOS: FadeForwardsPageTransitionsBuilder(),

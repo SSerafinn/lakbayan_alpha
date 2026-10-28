@@ -130,7 +130,10 @@ class _Value extends StatelessWidget {
         ),
         if (glyph != null) ...[
           const SizedBox(width: AppSpace.near),
-          Icon(glyph, size: AppSize.glyphMd, color: quiet),
+          SizedBox(
+            width: AppSize.minTouchTarget,
+            child: Icon(glyph, size: AppSize.glyphMd, color: quiet),
+          ),
         ],
       ],
     );

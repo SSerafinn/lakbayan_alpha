@@ -208,18 +208,17 @@ weight looks wrong, that is why.
 
 ## Icons
 
-**Phosphor is the one icon family** (D-20), mapped in `AppIcons`. This is a
-deliberate exception to the reference guidance of "Material icons for a
-Material app": the glyph set is the team's choice for its lighter stroke and
-for having the kinds (fork and knife, church, bank), and it carries no
-Cupertino *widgets* with it. A kind's glyph is `AppIcons.kind(kind)`, filled
-while chosen. Material widgets throughout,
+**Phosphor is the one icon family** (D-20), its Regular and Fill weights
+bundled as fonts and mapped in `AppIcons` as constant `IconData`s (which is
+what lets a release build shake unused glyphs out). This is a deliberate
+exception to the reference guidance of "Material icons for a Material app":
+the glyph set is the team's choice for its lighter stroke and for having the
+kinds (fork and knife, church, bank). A kind's glyph is
+`AppIcons.kind(kind)`, filled while chosen. Material widgets throughout,
 styled after the reference platform in our own theme: the menu, the bar
-group over media and the dialog look and move like iOS, and none of them is
-a Cupertino widget (D-15). Cupertino widgets read `CupertinoTheme`, not
-this theme; their page route's edge swipe fights Android's back gesture and
-skips predictive back; their action sheets and alerts rise from a fixed
-edge rather than from their source.
+group over media and the dialog look and move like iOS, built from our own
+tokens and springs (D-15). Nothing in the app imports Flutter's Cupertino
+library; iOS takes the same push as Android.
 
 **Rule.** A symbol stands alone only when the action has a reliable shorthand
 (search, share, add, close, back, play, pause, download, favourite).
@@ -232,20 +231,37 @@ conventional (trash + Delete). An icon on everything is noise.
 
 ## Badges and chips
 
-**On a photo, a status is a glyph or a fact** (`PhotoPill`, D-19): the scan
-glyph alone on a glass circle where a museum's exhibits can be scanned, a
-distance or a date on a glass capsule. A place's **price** is its entry fee
-in the editor's own short words ("Free", "₱50", `entryPrice`), and it is
-simply not there when the CMS has none or the fee is a sentence; it shares
-the corner with the scan glyph (`placePills`) on the big Popular tile,
-Food, Browse and a town's places, never on a small bento tile. A town's
-card carries the glyphs of the kinds it holds under its name. The one badge word is the featured card's **Popular This Season**,
-a white glass tag on the deck's cards: the CMS's `featured` flag is what
+**On a photo, a status is a glyph or a fact** (`PhotoPill`, D-19): a glyph
+alone on a glass circle, a distance, a date or a price on a glass capsule.
+What a place's photo says is one rule, `placeTags`, used by `PlacePhoto`:
+
+- **Price**, the entry fee in the editor's own short words ("Free", "₱50",
+  `entryPrice`): only "Free" or words with a number, short enough for a
+  photo; not there when the CMS has none or the fee is a sentence ("Boat
+  hire" is how you get there, not a price).
+- **Scan**, the scan glyph, where a museum has exhibits to scan (D-18).
+- **Popular**, the fire glyph (`AppIcons.popular`), where the CMS marks the
+  place `popular`. It means that flag and nothing more: there is no count
+  or trend behind it.
+
+At most two, in that order, and one on a small photo that also carries the
+heart (a rail, a two-up row, Browse's grid): beside the heart's 48 box, two
+pills fit only by cutting the price short. Most photos carry one or none. A section
+never repeats its own meaning: no fire inside Popular Destinations or on
+the deck (its tag says it), no scan glyph inside Scan Exhibits. A small
+photo carries no tag and no heart (the small Popular Destinations tiles,
+Recently Viewed, search's grid), and a photo whose part is about distance
+says only that (Nearby, the Map's cards).
+
+A town's card carries the glyphs of the kinds it holds under its name. The
+one badge word is the featured card's **Popular This Season**, a white glass
+tag led by the fire glyph: the CMS's `featured` flag is what
 puts a place there, and the tag says why (D-19 revisited, 2026-10-23). A pill
 and the heart share one row, centred on one line (`MediaTile`), so they
 never sit at two heights. A town on the phone is the check on its control.
 There is no OPEN NOW: `openHours` is free text and cannot be computed
-against (`docs/DATA_MODEL.md`).
+against (`docs/DATA_MODEL.md`). There are no stars either: no rating exists
+to show, and one is a backend request, not a number the app makes up.
 
 A **chip** is interactive and 38dp: white with the hairline and an ink label
 at rest, solid emerald with white words when chosen, filling itself on the
@@ -294,12 +310,12 @@ line under the field**: an error is the error border plus a trailing
   scroll position, the map's camera and the carousel's page survive it.
 - **The tab bar (D-16, revised by D-19)** is one hairlined white capsule,
   60 tall, holding Explore, Map, Trips and Profile, then search as its last
-  cell, all drawn in one stroke and box. The chosen section's name grows out
-  of its emerald pill; the others are glyphs, their names in semantics and
-  the long-press tooltip. The pill slides to the chosen section and only
-  the two cells it moves between change width, as a layout pass and a
-  repaint, never a rebuild. The glyphs are drawn (`TabGlyph`) and animate
-  their selection once. It **shrinks on a deliberate scroll.** `HomeChrome` holds the
+  cell, glyphs only, five equal cells. The glyphs are Phosphor from
+  `AppIcons` (compass, map, suitcase, person, magnifying glass), the
+  outline at rest and the filled one while chosen, crossing by their own
+  colour's alpha as the emerald pill slides under them. Names are the
+  semantics label and the long-press tooltip, never visible text. The
+  pill's slide is a layout pass and a repaint, never a rebuild. It **shrinks on a deliberate scroll.** `HomeChrome` holds the
   state: after ~48dp of downward travel, well past the header, the whole
   bar scales down to one touch target tall (`bottomNavCollapsed`), its
   base in place, every cell still one tap; it never changes shape. The
@@ -317,8 +333,10 @@ line under the field**: an error is the error border plus a trailing
   200ms cross-fade, the chosen tab over the one it replaces. No
   fade-through or shared axis between screens.
 - **Keep or skip (2026-09-26)** is the one screen on a dark stage in either
-  appearance: the front card's photo, decoded tiny and stretched (a blur
-  with no filter), fills the screen and changes in step with the drag.
+  appearance: the front card's photo, decoded small and softly Gaussian-blurred,
+  fills the screen and changes in step with the drag. `SoftPhotoBackdrop`
+  filters only its own image, behind a translucent shade and a repaint boundary;
+  it never blurs content behind it with a BackdropFilter.
   Keep and Skip are buttons as well as the gesture, in the card's colour:
   its kind's deep tone (`role.kind`) until photos carry their own. The last
   skipped place waits as a disc at the leading edge, the last kept one at
@@ -335,57 +353,102 @@ line under the field**: an error is the error border plus a trailing
   and the province tours kept as posters.
 - **Search is the tab bar's last cell.** It grows into a field docked above
   the keyboard while the capsule slides away, close on its own circle beside
-  it. Above it, before a word is typed: the places opened last as chips,
-  the towns as photos, then every place as a grid of photos; typing narrows
-  the grid. Close, back and a picked result retrace the same `t`. No screen
-  has a search field of its own.
-- **Explore (D-19)** opens on its title, the kinds as a glyph rail, then the
-  featured places as a deck (`FeaturedDeck`) straight on the page: the front
-  card full size with its Popular This Season tag and heart on one line, the
-  next two waiting behind, their edges showing; a swipe deals one. Popular
-  (a bento: the big tile carries price and heart, the two small ones only
-  the photo and name) and Food each sit on a white `SectionCard`, so a dark
-  photo meets a surface. The towns are clipped to one straight rope on the
-  page, all upright and the same size, each a framed photo with its name and
-  the glyphs of its kinds (no count, no panel). A swipe leans the photos
+  it. Before a word is typed: towns as photos, then places as a photo grid;
+  typing narrows the grid. Close, back and a picked result retrace the same
+  `t`. Map and Browse also share a contextual search field, using the same
+  `PlacesSearchInput` and their own local filter state, debounced by 250ms.
+- **Explore (D-19)** opens on its title with me at its trailing end
+  (`UserAvatar`, my photo or initial; it switches to the Profile tab, the
+  same place, not a copy of it), the kinds as a glyph rail, then the
+  featured places as a deck (`FeaturedDeck`) straight on the page, with no
+  heading: the front card full size with its fire-glyph Popular This
+  Season tag and heart on one line, and at its foot the price and scan
+  glyph, the name and the town; the next two wait behind, their edges
+  showing; a swipe deals one. Then, each stepping aside when it has
+  nothing: **Towns to See**, **Popular Destinations** (the popular places the
+  deck is not already showing; one fills its card wide, two share it, three
+  are a tall tile with two stacked, the small ones only the photo and a
+  two-line name), **Local Eats** (the same: one wide, two shared, three or more a
+  rail of wider photos), **Scan Exhibits** (the places with exhibits to
+  scan), **Day Trips**, **Meet a Guide**, the Keep or Skip card, and last
+  **Recently Viewed** (the places opened last, small squares, kept on the
+  phone, at most eight unique places: a way back, so it never pushes the province's places down). Popular
+  Destinations and Food sit on a white `SectionCard`, so a dark photo meets
+  a surface. The towns are clipped to one straight rope on the page, all
+  upright and the same size, each a framed photo with its name and the
+  glyphs of its kinds (no count, no panel). A swipe leans the photos
   against it, up to about eight degrees, and they swing back past upright
   once on the bouncy `arrive` spring (one number driven by the scroll,
   nothing else moves). A town opens its own page (`TownScreen`),
   the photo zooming: its kinds as a rail, the first place wide, the rest as
   a grid, and taking it offline on glass beside back. The Keep or Skip
-  entry is a white card with a question and Try It.
+  entry is a white card asking "Haven't found one you like?" with a
+  chevron; the whole card opens it, so Explore keeps no primary button.
 - **The Map (D-19)**: places are emerald pins, red when saved; the chosen
   one lifts its photo on an emerald ring. Blue is the route's numerals and
-  line only. The sheet's rail is photo cards, 3:2, the next one peeking,
-  each with how far it is from the chosen pin; raised, every place as a
-  photo, nearest first. Browse is the same results as a grid of photos,
-  names on them.
+  line only. Search and the fixed grid toggle share a row; category filters
+  scroll in their own row below, with no overlapping controls or clipper.
+  Map, Browse and the panel use the same filtered results, including Saved.
+  At the foot, an expandable panel on paper:
+  the area's name, then a rail of photo cards, 16:10 at 60% of the width,
+  the next peeking, each with how far it is from the chosen pin. It pulls
+  up into a lazy three-column grid of smaller photos. Its expand control
+  also works without dragging by tapping the shared `AppSheetHeader`, the
+  same centered handle and title as New Trip. The panel's paper reaches the
+  bottom edge; navigation clearance belongs inside its scroll end, not below
+  the whole surface. Vertical panel/grid travel hides navigation when browsing
+  down and restores it on deliberate reverse travel or at the resting detent.
+  Reuse the bar's slide and reduced-motion fade; horizontal photo swipes do
+  not toggle it. A view toggle restores navigation, including when the new
+  result list is too short to scroll. The rail holds up to five places and the grid holds the rest,
+  without duplicates. Selecting a place outside the rail replaces its last
+  card. Camera selection and route fits use the rendered controls and panel
+  bounds, centering a pin in the unobscured map rather than behind the panel.
+  After panel movement or window metrics change, reframe once layout settles.
+  Browse remains the full filtered photo view.
 - **Place detail (D-19)** keeps its photo stage, a third of the screen with
-  the dots on the photo, then the name and the place one part at a time:
-  Overview (the description and history cut at three lines with Read
-  More, the facts folded under Details, the audio guide card, Location
-  with a small still map, Known For), a museum's Exhibits, Photos and
-  Nearby. The parts' pill travels and their content slides in on the
-  `animations` shared axis, inside the page. CMS free text is tidied for
+  the dots on the photo (a tap opens the one showing in the viewer, zooming
+  from the stage), then the name with what the place is at its trailing
+  end, glyphs on small white circles with their word as tooltip and label
+  (its kind, the CMS's finer kind when it has one, "Cave"; the fire when
+  it is popular), and the place one part at a time: Overview
+  (the description and history cut at three lines with Read More, the
+  facts folded under Details, the audio guide card, Location with a small
+  still map, Known For as paper tags at their natural width on one white
+  card), a museum's Exhibits, Photos and Nearby. The parts sit on one white
+  card with the page's card radius, as Details and the audio guide do (not
+  a capsule); the chosen part's emerald shape inside is concentric with it,
+  travels on the chrome spring, and the content slides in on the
+  `animations` shared axis, inside the page. A part is never shorter than
+  the screen under the switcher, and choosing one while scrolled past the
+  switcher scrolls back to it: a page that got shorter under its scroll
+  was corrected silently and left the status bar's ground and the pinned
+  controls over the photo. CMS free text is tidied for
   reading, never rewritten: times as "8 AM", PHP as ₱, the part after the
   first comma on a quieter line. A photo opens the viewer, a dark stage
-  whose blur is the photo decoded tiny; a pull down closes it.
+  with the same Gaussian photo backdrop as Keep or Skip; a pull down closes
+  it. Its translucent shade preserves the image instead of covering it with
+  an opaque scrim.
 - **Profile (D-19)** is what is mine: a cover from my own saved places (a
   tap moves to the next), the gear to Settings on it, my avatar half over
   its foot and my name large; then Saved, Trips and Offline as counts on
   one card, each the label of what it opens; then the saved places as
   photos with See All. A guest gets Sign In under the name.
-- **A pushed page (D-19)** opens on back alone on its circle and its name
-  large under it (`PageTitle`), and scrolls with it: Settings, Help, the
+- **A pushed page (D-19, amended 2026-10-23)** opens on a plain back chevron
+  beside its title (`PageTitle`), with a 48dp target, and scrolls with it: Settings, Help, the
   policies, Popular and Saved, Offline, a museum's exhibits. Settings is
   white cards under short headings, each row a label with its value,
   chevron, menu glyph or switch trailing, no row glyphs; Theme opens an
-  `AppMenu` from its row; Sign Out last on its own card, red.
+  `AppMenu` from its row; Sign Out last on its own card, red. White content
+  cards stay. Destination detail retains its back circle over photography.
 - **Offline (D-19)** is each town as its photo, name and size on it, with
   its state as the one control in the corner (`TownDownloadButton`, the
   same on the town's page): download, the ring while it runs, the emerald
   check once it is on the phone, which opens Update and Remove. A town the
-  province is still preparing says so on a pill.
+  province is still preparing says so on a pill. A town without a ready
+  bundle still links to Offline. No manifest means no invented download.
+  Downloaded-town counts come from the local records, even before manifests
+  load. Only the current route announces a download error.
 - **Presented surfaces come from their source.** Menus are `AppMenu`
   (`app_menu.dart`), on `RawMenuAnchor`: it grows from the control that
   opened it and folds back into it on one spring, whether closed by an item,
@@ -394,7 +457,10 @@ line under the field**: an error is the error border plus a trailing
   gap apart, never divided; a destructive item is last, alone, red, with the
   trash. A menu of choices adds a leading check slot. Sheets via
   `showAppSheet` (with scrim, for an interrupting task) or `showBottomSheet`
-  (no scrim, parallel task); dialogs via `showAppDialog`.
+  (no scrim, parallel task); dialogs via `showAppDialog`. A sheet is its
+  handle and title, with no close symbol: the handle, a scrim tap and back
+  close it (2026-10-23). New Trip's first stop is searchable, the saved
+  places first. Dates read month first: "Oct 14", "Oct 14 to 15".
 - **Predictive back is on** (`enableOnBackInvokedCallback` in the manifest).
   The app's own transitions (`PushPageTransitionsBuilder`, `ZoomPage`) hand
   the gesture's progress to the route, so the page follows the finger. Use
@@ -493,28 +559,29 @@ unless they name a feature.
 
 | Widget | File | What it is |
 |---|---|---|
-| `AppMotionBuilder`, `Pressable`, `SymbolSwap`, `Fold`, `FadeSwap`, `PopIn`, `Entrance`, `SpringCurve`, `TravellingPill`, `showAppDialog` | `motion/motion.dart` | every shared motion, each settling on identity values in the same tree; `TravellingPill` paints the selection pill of the chips and a place's parts |
+| `AppMotionBuilder`, `Pressable`, `SymbolSwap`, `Fold`, `FadeSwap`, `PopIn`, `Entrance`, `SpringCurve`, `TravellingPill`, `showAppDialog` | `motion/motion.dart` | every shared motion, each settling on identity values in the same tree; `TravellingPill` paints a travelling selection, a capsule or a concentric rounded rectangle (a place's parts) |
 | `PushPageTransitionsBuilder`, `ZoomPage`, `PhotoHero` | `motion/page_transitions.dart` | every route's push, in from the trailing edge with the page beneath drifting back; a place opened from its photo zooms instead, the photo (`PhotoHero`) scaled, never re-decoded. Both follow Android's back gesture |
-| `FloatingTabBar`, `TabBarLayout`, `TabGlyph` | `chrome/floating_tab_bar.dart` | one capsule, the four sections then search, all drawn glyphs, the chosen one's name growing out of its pill; shrinks on scroll as one transform, slides away for search |
+| `FloatingTabBar`, `TabBarLayout`, `AppDestination` | `chrome/floating_tab_bar.dart` | one capsule, the four sections then search, `AppIcons` glyphs only, the chosen one filled on the emerald pill; shrinks on scroll as one transform, slides away for search |
 | `SystemBars`, `StatusBarGround` | `chrome/system_bars.dart` | the bars' icon style for a region; the opaque ground under the status bar (`.below` closes in under a resting header) |
-| `PageTitle` | `chrome/page_title.dart` | a pushed page's top: back on its card circle, the page's name large under it |
+| `PageTitle` | `chrome/page_title.dart` | a pushed page's plain back chevron beside its title, a 48dp target, no back-button plate |
 | `_PinnedAction`, `_PinnedActionScope` | private in `destination_detail_screen.dart`, its one user | the floating primary action; folds into a circle while reading |
 | `AppMenu`, `AppMenuItem` | `chrome/app_menu.dart` | the anchored menu: label then trailing glyph, grouped surfaces, grows from its source |
-| `showAppSheet` | `chrome/app_sheet.dart` | the modal sheet, riding the keyboard |
+| `showAppSheet`, `AppSheetHeader` | `chrome/app_sheet.dart` | the modal sheet, riding the keyboard; its centered handle/title is shared with the map panel, no close symbol |
 | `SymbolButton` | `controls/symbol_button.dart` | a symbol-only control on its own glass circle over photography, or a white one on the page (`onGround`) |
 | `BarItemGroup` | `controls/bar_item_group.dart` | two to four symbol-only actions on one capsule; `.overMedia` over a photo or map; an item may open a menu, or be a control of its own (`BarItem.control`, the save heart) |
-| `FilterChipRow` | `controls/filter_chip_row.dart` | the single-select chips, the chosen one filling itself emerald (the inline date picker is private in `trip_dates.dart`) |
+| `FilterChipRow` | `controls/filter_chip_row.dart` | single-select chips, the chosen one filling itself emerald; their own scrolling row without overlapping controls (the inline date picker is private in `trip_dates.dart`) |
 | `KindRail` | `controls/kind_rail.dart` | the kinds as a glyph over a name, the chosen one a solid emerald cell; Explore and a town's page |
-| `MediaTile`, `MediaScrim`, `PhotoPill` | `content/media_tile.dart` | a photograph with a caption below, or a title on a tested scrim; glass pills top leading (the scan glyph, a price, a distance, a date) on one centred line with the trailing slot for the save heart |
-| `StorageImage`, `CoverImage`, `ImagePlaceholder` | `content/storage_image.dart` | every photo, decoded at its box's size (or a fixed tiny width for a blur), and the quiet surface where one has not arrived |
+| `MediaTile`, `MediaScrim`, `PhotoPill` | `content/media_tile.dart` | a photograph with a caption below, or a title on a tested scrim; glass pills top leading (the scan or fire glyph, a price, a distance, a date) on one centred line with the trailing slot for the save heart |
+| `StorageImage`, `CoverImage`, `ImagePlaceholder`, `SoftPhotoBackdrop` | `content/storage_image.dart` | size-aware photos and placeholders; a shared small photo with an image-only Gaussian blur and translucent shade for Keep or Skip and the viewer |
 | `GroupedSection`, `GroupedRow` | `content/grouped_section.dart` | comparable rows on one white card, no dividers; a 48 photo and one second line; a row may carry a mark (a stop's numeral); a row of words alone reads in body type, as a settings row; every row at least 48 tall |
 | `StopNumeral` | `content/stop_numeral.dart` | a stop's number on a blue circle, the same on its pin and its row |
 | `PageDots` | `content/page_dots.dart` | where you are in a swipeable row; a sliding window of dots past seven pages |
-| `SectionHeading` | `content/section_heading.dart` | a one or two word Title Case heading with an optional emerald "See All" |
+| `SectionHeading` | `content/section_heading.dart` | a short heading with optional emerald "See All"; approved Explore names include Towns to See and Meet a Guide |
 | `FeaturedDeck` | `features/destinations/presentation/featured_deck.dart` | Explore's featured places as a deck: one transform per card on the chrome spring |
 | `TownPhoto` | `features/destinations/presentation/explore_sections.dart` | a town's photo with its name and the glyphs of its kinds, opening its page; Explore's hanging towns and search's |
-| `SectionCard` | `features/destinations/presentation/explore_sections.dart` | a white card round a section of photos, photos inside concentric (Popular, Food) |
-| `placePills` | `features/destinations/presentation/place_pills.dart` | a place's price and scan glyph, each on glass, or nothing |
+| `SectionCard` | `features/destinations/presentation/explore_sections.dart` | a white card round a section of photos, photos inside concentric, no clip of its own (Popular Destinations, Food) |
+| `PlacePhoto`, `placeTags` | `features/destinations/presentation/place_photo.dart` | a place as its photo that opens it, the photo zooming: the name on the scrim, the town where asked, the heart where there is room; `placeTags` decides its pills (price, scan, fire; at most two; a section hides its own) for Explore, Browse, search, a town, Nearby and the Map's cards |
+| `UserAvatar` | `features/profile/presentation/user_avatar.dart` | me as a circle, my photo or initial on the emerald wash, a guest's the account glyph: Profile's on its cover, Explore's at its title |
 | `AudioGuideSection` | `features/audio/presentation/audio_guide_section.dart` | one white card on the page, the place's photo with play on it, that opens the player sheet: the stop playing, progress, transport and every stop |
 | `PhotoViewer` | `features/destinations/presentation/photo_viewer.dart` | a place's photos full screen on a dark stage, zoomed from their tile; a pull down closes it |
 | `SaveHeart` | `features/destinations/presentation/save_heart.dart` | the save control in its four sizes, `bar` inside a `BarItemGroup` |
@@ -522,6 +589,18 @@ unless they name a feature.
 | `SelectionCircle`, `StopPicker` | `features/itineraries/presentation/stop_picker.dart` | the green check circle and selectable place rows |
 | `CameraFlight`, `Basemap`, `StillMapCredit` | `features/maps/presentation/map_view.dart` | a map camera's flight (pull back, cross, settle in), the tiles every map draws, appearing without a fade, and the ODbL credit on a map that does not move |
 | `TourTile`, `TourRail` | `features/itineraries/presentation/tour_tile.dart` | a province tour as a 3:4 poster, and a row of them |
+
+## Add to Trip sheet
+
+Use the shared `AppSheet` with a stable **Add to Trip** title. A compact
+`GroupedRow` photo preview identifies the place and town above the lazy trip
+list. Offer only trips that do not contain the place; omit the old already-added
+status. Show each trip's dates, or its stop count when undated. Keep **New Trip**
+as a separate outlined action in the sheet's safe-area footer. Disable choices
+during a write and show progress on that choice. Failed writes remain retryable.
+On success, reuse the preview with the trip name and check, then offer **View
+Trip**. Guests retain **Sign In**. Use theme roles and existing size tokens;
+the shared sheet supplies scrolling and safe-area constraints.
 
 ## Migrating from 1.0.0
 
@@ -547,8 +626,9 @@ Resolved under that rule:
 - **Auth providers** are email/password + Google only (D-06); provider choice
   is scope, not structure.
 - **Explore has no primary button** (D-19, reversing D-16's "Add to a
-  tour" on the featured card): the deck opens a place, and a place's page
-  carries Add to Trip. Building a trip from scratch is the Trips tab's
+  tour" on the featured card): the deck opens a place, a place's page
+  carries Add to Trip, and the Keep or Skip card is a card with a chevron,
+  not an emerald button. Building a trip from scratch is the Trips tab's
   New Itinerary, a tinted `+` beside its title. The wireframe's "create
   your own tour" entry survives there.
 - **A town has its own page** (D-19), a structure change against the

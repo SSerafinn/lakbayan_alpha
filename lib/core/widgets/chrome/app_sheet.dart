@@ -3,15 +3,13 @@ import "dart:math" as math;
 import "package:flutter/material.dart";
 
 import "../../theme/app_dimens.dart";
-import "../../theme/app_icons.dart";
 import "../../theme/app_motion.dart";
 import "../../theme/app_typography.dart";
-import "../controls/symbol_button.dart";
 import "../motion/motion.dart";
 
 /// Presents [AppSheet] content modally: an interrupting task, so it gets the
-/// scrim, rising from the bottom, dismissed by drag, the close symbol, a
-/// scrim tap or system back.
+/// scrim, rising from the bottom, dismissed by drag, a scrim tap or system
+/// back.
 Future<T?> showAppSheet<T>(
   BuildContext context, {
   required WidgetBuilder builder,
@@ -37,7 +35,7 @@ final _sheetMotion = AnimationStyle(
 const _sheetIn = Duration(milliseconds: 460);
 const _sheetOut = Duration(milliseconds: 320);
 
-/// Shared scaffold for every modal sheet: handle, title, close button, scrollable
+/// Shared scaffold for every modal sheet: handle, title, scrollable
 /// body, and optional pinned primary action. Height is capped at [AppSheetSize.form];
 /// body shrinks with the keyboard, fixed parts never have to fit remaining space.
 class AppSheet extends StatelessWidget {
@@ -59,7 +57,6 @@ class AppSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     final keyboard = MediaQuery.viewInsetsOf(context).bottom;
     final screen = MediaQuery.sizeOf(context).height;
     final action = this.action;
@@ -101,20 +98,7 @@ class AppSheet extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const SizedBox(height: AppSpace.x2),
-                  Center(
-                    child: SizedBox(
-                      width: AppSize.dragHandleWidth,
-                      height: AppSize.dragHandleHeight,
-                      child: DecoratedBox(
-                        decoration: ShapeDecoration(
-                          color: scheme.outlineVariant,
-                          shape: const StadiumBorder(),
-                        ),
-                      ),
-                    ),
-                  ),
-                  _Header(title: title),
+                  AppSheetHeader(title: title),
                   if (fill) Expanded(child: body) else Flexible(child: body),
                   if (action != null)
                     SafeArea(
@@ -137,37 +121,71 @@ class AppSheet extends StatelessWidget {
   }
 }
 
-class _Header extends StatelessWidget {
-  const _Header({required this.title});
+/// Shared handle and title for modal sheets and the Map's parallel panel.
+/// A parallel panel may also toggle from this full-size accessible target.
+class AppSheetHeader extends StatelessWidget {
+  const AppSheetHeader({required this.title, this.onToggle, super.key});
 
   final String title;
+  final VoidCallback? onToggle;
+
+  /// Room for both title lines at the person's text size, for a resting panel.
+  static double heightOf(BuildContext context) =>
+      (AppSpace.x2 +
+              AppSize.dragHandleHeight +
+              AppSpace.x3 +
+              2 *
+                  MediaQuery.textScalerOf(context)
+                      .lineHeightOf(AppTypography.titleMedium))
+          .ceilToDouble();
 
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.fromLTRB(
-      AppSpace.gutter,
-      AppSpace.x2,
-      AppSpace.x2,
-      0,
-    ),
-    child: Row(
-      children: [
-        Expanded(
-          child: Text(
-            title,
-            style: AppTypography.titleMedium,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
+  Widget build(BuildContext context) {
+    final header = ConstrainedBox(
+      constraints: const BoxConstraints(minHeight: AppSize.minTouchTarget),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const SizedBox(height: AppSpace.x2),
+          Center(
+            child: SizedBox(
+              width: AppSize.dragHandleWidth,
+              height: AppSize.dragHandleHeight,
+              child: DecoratedBox(
+                decoration: ShapeDecoration(
+                  color: Theme.of(context).colorScheme.outlineVariant,
+                  shape: const StadiumBorder(),
+                ),
+              ),
+            ),
           ),
-        ),
-        SymbolButton(
-          icon: AppIcons.close,
-          tooltip: "Close",
-          onTap: () => Navigator.of(context).pop(),
-        ),
-      ],
-    ),
-  );
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpace.gutter,
+              AppSpace.x3,
+              AppSpace.gutter,
+              0,
+            ),
+            child: Text(
+              title,
+              style: AppTypography.titleMedium,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+    );
+    if (onToggle == null) return header;
+    return Semantics(
+      button: true,
+      child: Tooltip(
+        message: "Expand or collapse",
+        child: InkWell(onTap: onToggle, child: header),
+      ),
+    );
+  }
 }
 
 /// The standard inset for an [AppSheet] body sliver.

@@ -5,6 +5,7 @@ import "package:flutter_test/flutter_test.dart";
 import "package:lakbayan/core/models/destination.dart";
 import "package:lakbayan/core/theme/app_theme.dart";
 import "package:lakbayan/features/destinations/domain/destination_providers.dart";
+import "package:lakbayan/features/destinations/presentation/browse_screen.dart";
 import "package:lakbayan/features/maps/domain/tile_source.dart";
 import "package:lakbayan/features/maps/presentation/map_screen.dart";
 import "package:lakbayan/features/maps/presentation/map_view.dart";
@@ -162,7 +163,7 @@ void main() {
       await tester.tap(find.byTooltip("Show as photos"));
       await tester.pump(const Duration(milliseconds: 50));
       expect(find.byType(FlutterMap), findsNothing);
-      expect(find.text("Browse"), findsOneWidget);
+      expect(find.byType(BrowseScreen), findsOneWidget);
 
       await tester.tap(find.byTooltip("Show on the map"));
       await tester.pump(const Duration(milliseconds: 50));

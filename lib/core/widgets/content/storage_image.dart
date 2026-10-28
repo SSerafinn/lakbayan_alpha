@@ -1,3 +1,5 @@
+import "dart:ui" show ImageFilter;
+
 import "package:cached_network_image/cached_network_image.dart";
 import "package:firebase_storage/firebase_storage.dart";
 import "package:flutter/material.dart";
@@ -69,6 +71,49 @@ class StorageImage extends StatelessWidget {
         ? child
         : ClipRRect(borderRadius: borderRadius!, child: child);
   }
+}
+
+/// A soft photo stage shared by Keep or Skip and the photo viewer.
+/// A small decode with an image-only Gaussian blur, isolated from foreground
+/// motion. The translucent shade keeps the photo visible under white controls.
+class SoftPhotoBackdrop extends StatelessWidget {
+  const SoftPhotoBackdrop({
+    required this.path,
+    required this.fallback,
+    super.key,
+  });
+
+  final String? path;
+  final Color fallback;
+
+  static const _decodeWidth = 32;
+  static const _blurSigma = 8.0;
+  static const _shade = 0.4;
+
+  @override
+  Widget build(BuildContext context) => RepaintBoundary(
+    child: ClipRect(
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          ColoredBox(color: fallback),
+          if (path case final photo?)
+            ImageFiltered(
+              imageFilter: ImageFilter.blur(
+                sigmaX: _blurSigma,
+                sigmaY: _blurSigma,
+                tileMode: TileMode.mirror,
+              ),
+              child: StorageImage(path: photo, decodeWidth: _decodeWidth),
+            ),
+          ColoredBox(
+            color: Theme.of(context).colorScheme.scrim
+                .withValues(alpha: _shade),
+          ),
+        ],
+      ),
+    ),
+  );
 }
 
 /// The photo at [decode]: a bundled asset as it is, anything else from

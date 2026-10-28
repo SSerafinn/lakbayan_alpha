@@ -47,7 +47,10 @@ class FilterChipRow extends StatelessWidget {
       height: height,
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: AppSpace.gutter),
+        padding: const EdgeInsetsDirectional.only(
+          start: AppSpace.gutter,
+          end: AppSpace.gutter,
+        ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [

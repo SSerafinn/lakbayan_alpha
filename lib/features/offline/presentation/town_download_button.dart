@@ -37,12 +37,14 @@ class TownDownloadButton extends ConsumerWidget {
     ref.listen(
       downloadsControllerProvider.select((downloads) => downloads[id]?.error),
       (_, error) {
-        if (error == null) return;
+        if (error == null || ModalRoute.of(context)?.isCurrent == false) return;
         // Nothing was kept, so the honest instruction is to try again.
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              "That download didn't finish, and nothing was kept. $error",
+              ref.read(downloadStoreProvider).recordFor(id) == null
+                  ? "That download didn't finish, and nothing was kept. $error"
+                  : "That update didn't finish. Your previous download is still on this phone. $error",
             ),
           ),
         );

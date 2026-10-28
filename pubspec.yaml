@@ -25,10 +25,6 @@ dependencies:
   cloud_firestore: ^6.10.0
   cloud_functions: ^6.5.0
   connectivity_plus: ^7.3.1
-  # go_router 18 depends on cupertino_ui, whose IconData reference this font
-  # family. Without the package every build warns "Expected to find fonts for
-  # CupertinoIcons"; it is tree-shaken to a few KB in practice.
-  cupertino_icons: ^1.0.8
   firebase_analytics: ^12.6.0
   firebase_auth: ^6.7.0
   firebase_core: ^4.15.0

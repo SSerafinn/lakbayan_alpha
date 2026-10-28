@@ -25,8 +25,8 @@ import "../../guides/domain/guide_providers.dart";
 import "../../itineraries/domain/itinerary_providers.dart";
 import "../../itineraries/presentation/tour_tile.dart";
 import "../domain/destination_providers.dart";
-import "place_pills.dart";
-import "save_heart.dart";
+import "../domain/recently_viewed.dart";
+import "place_photo.dart";
 
 // Explore's feed under the featured cards, one widget per section, in the
 // order the screen shows them (see `ExploreScreen`). Every photo carries its
@@ -46,10 +46,12 @@ class SectionCard extends StatelessWidget {
   static const inset = AppSpace.x3;
 
   @override
+  // No clip of its own: everything inside sits [inset] in from the edge and
+  // clips itself (each photo its corners, a rail its ends), so a clip here
+  // would only add a layer over a scrolling rail (STANDARDS 10.4).
   Widget build(BuildContext context) => Material(
     color: Theme.of(context).colorScheme.surfaceContainerLowest,
     shape: const RoundedRectangleBorder(borderRadius: AppRadii.lgAll),
-    clipBehavior: Clip.antiAlias,
     child: Padding(
       padding: const EdgeInsets.all(inset),
       child: ParentRadius(radius: AppRadii.lg, child: child),
@@ -57,125 +59,179 @@ class SectionCard extends StatelessWidget {
   );
 }
 
-/// Popular as a bento: the most visited place a tall tile, the next two
-/// stacked beside it, one block of photos to read across (doc 01: give the
-/// top item real size). See All is the way to the rest.
+/// Popular Destinations, the places the province marks popular that the deck
+/// above is not already showing, as one block of photos on a card (doc 01:
+/// give the top item real size). See All is the way to the rest.
+///
+/// When every popular place is already in the deck there is nothing new to
+/// show, so the section steps aside. With nothing popular at all it keeps
+/// its heading and says so, so a new province's Explore still shows where
+/// things will go.
 class PopularSection extends ConsumerWidget {
   const PopularSection({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final popular = ref.watch(popularDestinationsProvider);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        SectionHeading("Popular", onSeeAll: () => context.push(Routes.popular)),
-        popular.whenLocalFirst(
-          loading: () => const SectionCard(
-            child: AspectRatio(
-              aspectRatio: 1 / _Bento.heightShare,
-              child: ImagePlaceholder(borderRadius: AppRadii.smAll),
-            ),
+    final popular = ref.watch(popularBeyondFeaturedProvider);
+    final anyPopular = ref.watch(
+      popularDestinationsProvider.select((all) => all.value?.isNotEmpty),
+    );
+    if (anyPopular == true && popular.value?.isEmpty == true) {
+      return const SizedBox.shrink();
+    }
+    return _FeedSection(
+      title: "Popular Destinations",
+      onSeeAll: () => context.push(Routes.popular),
+      child: popular.whenLocalFirst(
+        loading: () => const SectionCard(
+          child: AspectRatio(
+            aspectRatio: 1 / _Bento.heightShare,
+            child: ImagePlaceholder(borderRadius: AppRadii.smAll),
           ),
-          // Popular's own query. The featured cards above say when theirs
-          // fails; the rails below hide on theirs.
-          error: (error, _) => QuietNote(
-            errorCopy("Couldn't load destinations.", error),
-            onRetry: () => ref.invalidate(popularDestinationsProvider),
-          ),
-          data: (items) => items.isEmpty
-              ? const QuietNote("Nothing here yet.")
-              : SectionCard(child: _Bento(items: items.take(3).toList())),
         ),
-      ],
+        // Popular's own query. The featured cards above say when theirs
+        // fails; the rails below hide on theirs.
+        error: (error, _) => QuietNote(
+          errorCopy("Couldn't load destinations.", error),
+          onRetry: () => ref.invalidate(popularDestinationsProvider),
+        ),
+        data: (items) => items.isEmpty
+            ? const QuietNote("Nothing here yet.")
+            : SectionCard(child: _Bento(items: items.take(3).toList())),
+      ),
     );
   }
 }
 
+/// The block, shaped by how many places it has: one fills the card wide,
+/// two share it, three are a tall tile with two stacked beside it. Only a
+/// tile with room for them carries the town, the tags and the heart; a small
+/// one is the photo and the name, which may take two lines.
 class _Bento extends StatelessWidget {
   const _Bento({required this.items});
 
   final List<Destination> items;
 
-  /// The block's height as a share of its width.
-  static const heightShare = 0.62;
+  /// The three-place block's height as a share of its width: tall enough
+  /// that a small tile holds a two-line name under its photo's top half.
+  static const heightShare = 0.7;
   static const _bigShare = 0.58;
   static const _gap = AppSpace.x2;
 
+  /// The section says popular; its photos do not say it again.
+  static const _hide = {PlaceTag.popular};
+
   @override
-  Widget build(BuildContext context) => LayoutBuilder(
-    builder: (context, constraints) {
-      final width = constraints.maxWidth;
-      final height = width * heightShare;
-      final rest = items.skip(1).toList();
-      final bigWidth = rest.isEmpty ? width : (width - _gap) * _bigShare;
-      final sideWidth = width - _gap - bigWidth;
-      final sideHeight = rest.length < 2 ? height : (height - _gap) / 2;
-      return SizedBox(
-        height: height,
-        child: Row(
-          children: [
-            _Tile(place: items.first, width: bigWidth, height: height),
-            if (rest.isNotEmpty) ...[
+  Widget build(BuildContext context) {
+    if (items.length == 1) {
+      return PlacePhoto(
+        place: items.single,
+        from: HeroSource.popular,
+        aspectRatio: 16 / 10,
+        dense: false,
+        town: true,
+        hide: _hide,
+        heart: true,
+      );
+    }
+    if (items.length == 2) {
+      return Row(
+        children: [
+          for (final (index, place) in items.indexed) ...[
+            if (index > 0) const SizedBox(width: _gap),
+            Expanded(
+              child: PlacePhoto(
+                place: place,
+                from: HeroSource.popular,
+                aspectRatio: 4 / 5,
+                town: true,
+                hide: _hide,
+                heart: true,
+              ),
+            ),
+          ],
+        ],
+      );
+    }
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        final height = width * heightShare;
+        final bigWidth = (width - _gap) * _bigShare;
+        final sideWidth = width - _gap - bigWidth;
+        final sideHeight = (height - _gap) / 2;
+        return SizedBox(
+          height: height,
+          child: Row(
+            children: [
+              SizedBox(
+                width: bigWidth,
+                child: PlacePhoto(
+                  place: items.first,
+                  from: HeroSource.popular,
+                  aspectRatio: bigWidth / height,
+                  town: true,
+                  hide: _hide,
+                  heart: true,
+                ),
+              ),
               const SizedBox(width: _gap),
-              Column(
-                children: [
-                  for (final (index, place) in rest.indexed) ...[
-                    if (index > 0) const SizedBox(height: _gap),
-                    _Tile(
-                      place: place,
-                      width: sideWidth,
-                      height: sideHeight,
-                      small: true,
-                    ),
+              SizedBox(
+                width: sideWidth,
+                child: Column(
+                  children: [
+                    for (final (index, place) in items.skip(1).indexed) ...[
+                      if (index > 0) const SizedBox(height: _gap),
+                      PlacePhoto(
+                        place: place,
+                        from: HeroSource.popular,
+                        aspectRatio: sideWidth / sideHeight,
+                        tags: false,
+                      ),
+                    ],
                   ],
-                ],
+                ),
               ),
             ],
-          ],
-        ),
-      );
-    },
-  );
+          ),
+        );
+      },
+    );
+  }
 }
 
-class _Tile extends StatelessWidget {
-  const _Tile({
-    required this.place,
-    required this.width,
-    required this.height,
-    this.small = false,
+/// One of the feed's sections: a gap above it, its heading on the gutter,
+/// then what it shows, on the gutter too unless it runs edge to edge (a
+/// rail of posters). Each brings its own gap, so one that is not there
+/// leaves none.
+class _FeedSection extends StatelessWidget {
+  const _FeedSection({
+    required this.title,
+    required this.child,
+    this.onSeeAll,
+    this.edgeToEdge = false,
   });
 
-  final Destination place;
-  final double width;
-  final double height;
+  final String title;
+  final Widget child;
+  final VoidCallback? onSeeAll;
+  final bool edgeToEdge;
 
-  /// A tile beside the big one: just the photo and its name, with no price
-  /// and no heart. The big one carries those, and a place's page has them
-  /// all.
-  final bool small;
+  static const _gutter = EdgeInsets.symmetric(horizontal: AppSpace.gutter);
 
   @override
-  Widget build(BuildContext context) => SizedBox(
-    width: width,
-    height: height,
-    child: MediaTile(
-      media: PhotoHero(
-        tag: coverHeroTag(place.id, HeroSource.popular),
-        child: CoverImage(place.coverImage),
-      ),
-      aspectRatio: width / height,
-      overlay: true,
-      dense: true,
-      title: place.name,
-      subtitle: place.town,
-      pill: small
-          ? (place.hasAR ? const PhotoPill.scan() : null)
-          : placePills(place),
-      trailing: small ? null : SaveHeart(place.id, style: SaveHeartStyle.tile),
-      onTap: () =>
-          context.push(Routes.destination(place.id, from: HeroSource.popular)),
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(top: AppSpace.section),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: _gutter,
+          child: SectionHeading(title, onSeeAll: onSeeAll),
+        ),
+        const SizedBox(height: AppSpace.near),
+        if (edgeToEdge) child else Padding(padding: _gutter, child: child),
+      ],
     ),
   );
 }
@@ -192,19 +248,10 @@ class ReadyMadeDays extends ConsumerWidget {
     // that the screen needs.
     final tours = ref.watch(tourRailProvider).value ?? const [];
     if (tours.isEmpty) return const SizedBox.shrink();
-    return Padding(
-      padding: const EdgeInsets.only(top: AppSpace.section),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: AppSpace.gutter),
-            child: SectionHeading("Day Tours"),
-          ),
-          const SizedBox(height: AppSpace.near),
-          TourRail(tours: tours),
-        ],
-      ),
+    return _FeedSection(
+      title: "Day Trips",
+      edgeToEdge: true,
+      child: TourRail(tours: tours),
     );
   }
 }
@@ -232,30 +279,21 @@ class LocalGuides extends ConsumerWidget {
         : AppSize.rowMediaDense;
     final height = (content + 2 * AppSpace.x3).ceilToDouble();
 
-    return Padding(
-      padding: const EdgeInsets.only(top: AppSpace.section),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: AppSpace.gutter),
-            child: SectionHeading("Guides"),
+    return _FeedSection(
+      title: "Meet a Guide",
+      edgeToEdge: true,
+      child: SizedBox(
+        height: height,
+        child: ListView.separated(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: AppSpace.gutter),
+          itemCount: guides.length,
+          separatorBuilder: (_, _) => const SizedBox(width: AppSpace.x2),
+          itemBuilder: (context, index) => SizedBox(
+            width: AppSize.guideCard,
+            child: _GuideCard(guide: guides[index]),
           ),
-          const SizedBox(height: AppSpace.near),
-          SizedBox(
-            height: height,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: AppSpace.gutter),
-              itemCount: guides.length,
-              separatorBuilder: (_, _) => const SizedBox(width: AppSpace.x2),
-              itemBuilder: (context, index) => SizedBox(
-                width: AppSize.guideCard,
-                child: _GuideCard(guide: guides[index]),
-              ),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -379,9 +417,10 @@ class _GuideCard extends ConsumerWidget {
   }
 }
 
-/// For the undecided: a plain card with a question and a way in. A tap on
-/// the card or on Try It opens Keep or Skip; so does a sideways swipe, the
-/// gesture the screen behind it is built on.
+/// For the undecided: one white card asking the question, a chevron saying
+/// it goes somewhere. The whole card is the way in, as a Settings row is, so
+/// Explore keeps no primary button; a tap opens Keep or Skip, and so does a
+/// sideways swipe, the gesture the screen behind it is built on.
 class SwipeEntry extends StatelessWidget {
   const SwipeEntry({super.key});
 
@@ -390,39 +429,39 @@ class SwipeEntry extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     void open() => context.push(Routes.swipe);
 
-    return Pressable(
-      child: GestureDetector(
-        onHorizontalDragEnd: (_) => open(),
-        child: Material(
-          color: scheme.surfaceContainerLowest,
-          shape: const RoundedRectangleBorder(borderRadius: AppRadii.mdAll),
-          clipBehavior: Clip.antiAlias,
-          child: InkWell(
-            onTap: open,
-            child: Padding(
-              padding: const EdgeInsets.all(AppSpace.x4),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          "Haven't found one you like?",
-                          style: AppTypography.secondLine.copyWith(
-                            color: scheme.onSurfaceVariant,
-                          ),
-                        ),
-                        Text(
-                          "Try Keep or Skip",
-                          style: AppTypography.titleMedium,
-                        ),
-                      ],
+    return Semantics(
+      button: true,
+      label: "Open Keep or Skip",
+      excludeSemantics: true,
+      child: Pressable(
+        child: GestureDetector(
+          onHorizontalDragEnd: (_) => open(),
+          child: Material(
+            color: scheme.surfaceContainerLowest,
+            shape: const RoundedRectangleBorder(borderRadius: AppRadii.mdAll),
+            child: InkWell(
+              onTap: open,
+              customBorder: const RoundedRectangleBorder(
+                borderRadius: AppRadii.mdAll,
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(AppSpace.x4),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        "Haven't found one you like?",
+                        style: AppTypography.titleMedium,
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: AppSpace.x3),
-                  FilledButton(onPressed: open, child: const Text("Try It")),
-                ],
+                    const SizedBox(width: AppSpace.x3),
+                    Icon(
+                      AppIcons.chevron,
+                      size: AppSize.glyphMd,
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -489,43 +528,47 @@ class _TownRailState extends ConsumerState<TownRail>
     final towns = ref.watch(townsProvider);
     if (towns.isEmpty) return const SizedBox.shrink();
     final brand = context.lakbayan;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: AppSpace.gutter),
-          child: SectionHeading("Towns"),
-        ),
-        SizedBox(
-          height: _Hanging.height,
-          child: Stack(
-            children: [
-              // The rope: one straight line across the page, at the height
-              // each clip grips it.
-              Positioned(
-                left: 0,
-                right: 0,
-                top: _Hanging.ropeY,
-                height: AppStroke.regular,
-                child: ColoredBox(color: brand.cord),
-              ),
-              NotificationListener<ScrollNotification>(
-                onNotification: _lean,
-                child: ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpace.gutter,
-                  ),
-                  itemExtent: _Hanging.extent,
-                  itemCount: towns.length,
-                  itemBuilder: (context, index) =>
-                      _Hanging(town: towns[index], sway: _sway),
-                ),
-              ),
-            ],
+    // Brings its own gap, as every section after the deck does.
+    return Padding(
+      padding: const EdgeInsets.only(top: AppSpace.section),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: AppSpace.gutter),
+            child: SectionHeading("Towns to See"),
           ),
-        ),
-      ],
+          SizedBox(
+            height: _Hanging.height,
+            child: Stack(
+              children: [
+                // The rope: one straight line across the page, at the height
+                // each clip grips it.
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  top: _Hanging.ropeY,
+                  height: AppStroke.regular,
+                  child: ColoredBox(color: brand.cord),
+                ),
+                NotificationListener<ScrollNotification>(
+                  onNotification: _lean,
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpace.gutter,
+                    ),
+                    itemExtent: _Hanging.extent,
+                    itemCount: towns.length,
+                    itemBuilder: (context, index) =>
+                        _Hanging(town: towns[index], sway: _sway),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -572,7 +615,8 @@ class _Hanging extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.only(top: ropeY),
           // The clip is the pivot: only the rotation follows the sway, and
-          // the photo is built once.
+          // the photo is built once and painted once, behind its own
+          // boundary, so a frame of the sway turns a kept picture.
           child: AnimatedBuilder(
             animation: sway,
             builder: (context, photo) => Transform.rotate(
@@ -580,31 +624,33 @@ class _Hanging extends StatelessWidget {
               alignment: Alignment.topCenter,
               child: photo,
             ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: _clip.width,
-                  height: _clip.height,
-                  decoration: BoxDecoration(
-                    color: cord,
-                    borderRadius: AppRadii.xsAll,
+            child: RepaintBoundary(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: _clip.width,
+                    height: _clip.height,
+                    decoration: BoxDecoration(
+                      color: cord,
+                      borderRadius: AppRadii.xsAll,
+                    ),
                   ),
-                ),
-                Container(
-                  height: _photo,
-                  padding: const EdgeInsets.all(_frame),
-                  decoration: BoxDecoration(
-                    color: card,
-                    borderRadius: AppRadii.mdAll,
+                  Container(
+                    height: _photo,
+                    padding: const EdgeInsets.all(_frame),
+                    decoration: BoxDecoration(
+                      color: card,
+                      borderRadius: AppRadii.mdAll,
+                    ),
+                    child: TownPhoto(
+                      town: town,
+                      from: HeroSource.towns,
+                      radius: inner,
+                    ),
                   ),
-                  child: TownPhoto(
-                    town: town,
-                    from: HeroSource.towns,
-                    radius: inner,
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -719,64 +765,164 @@ class WhereToEat extends ConsumerWidget {
     // are, and from the same list of every place.
     final food = ref.watch(foodPlacesProvider);
     if (food.isEmpty) return const SizedBox.shrink();
-    return Padding(
-      padding: const EdgeInsets.only(top: AppSpace.section),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+    return _FeedSection(
+      title: "Local Eats",
+      onSeeAll: () => ref
+          .read(homeCategoryProvider.notifier)
+          .toggle(DestinationCategory.food),
+      child: SectionCard(child: _Food(places: food)),
+    );
+  }
+}
+
+/// Food shaped by how many places there are, so one place reads as chosen
+/// rather than as a rail with a gap in it: one fills the card wide, two
+/// share it, three or more are a rail of photos wider than the others on
+/// Explore, since a place to eat is picked by its photo.
+class _Food extends StatelessWidget {
+  const _Food({required this.places});
+
+  final List<Destination> places;
+
+  static const _from = HeroSource.whereToEat;
+
+  @override
+  Widget build(BuildContext context) {
+    if (places.length == 1) {
+      return PlacePhoto(
+        place: places.single,
+        from: _from,
+        aspectRatio: 16 / 9,
+        dense: false,
+        town: true,
+        heart: true,
+      );
+    }
+    if (places.length == 2) {
+      return Row(
         children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: AppSpace.gutter),
-            child: SectionHeading(
-              "Food",
-              onSeeAll: () => ref
-                  .read(homeCategoryProvider.notifier)
-                  .toggle(DestinationCategory.food),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: AppSpace.gutter),
-            child: SectionCard(
-              child: SizedBox(
-                height: AppSize.railTile * 5 / 4,
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: food.length,
-                  separatorBuilder: (_, _) =>
-                      const SizedBox(width: AppSpace.x2),
-                  itemBuilder: (context, index) {
-                    final place = food[index];
-                    return SizedBox(
-                      width: AppSize.railTile,
-                      child: MediaTile(
-                        media: PhotoHero(
-                          tag: coverHeroTag(place.id, HeroSource.whereToEat),
-                          child: CoverImage(place.coverImage),
-                        ),
-                        aspectRatio: 4 / 5,
-                        overlay: true,
-                        dense: true,
-                        title: place.name,
-                        subtitle: place.town,
-                        pill: placePills(place),
-                        trailing: SaveHeart(
-                          place.id,
-                          style: SaveHeartStyle.tile,
-                        ),
-                        onTap: () => context.push(
-                          Routes.destination(
-                            place.id,
-                            from: HeroSource.whereToEat,
-                          ),
-                        ),
-                      ),
-                    );
-                  },
-                ),
+          for (final (index, place) in places.indexed) ...[
+            if (index > 0) const SizedBox(width: AppSpace.x2),
+            Expanded(
+              child: PlacePhoto(
+                place: place,
+                from: _from,
+                aspectRatio: 4 / 5,
+                town: true,
+                heart: true,
               ),
             ),
-          ),
+          ],
         ],
+      );
+    }
+    return _PlaceRail(
+      places: places,
+      width: AppSize.foodTile,
+      aspectRatio: 4 / 5,
+      padding: EdgeInsets.zero,
+      tile: (place) => PlacePhoto(
+        place: place,
+        from: _from,
+        aspectRatio: 4 / 5,
+        town: true,
+        heart: true,
       ),
     );
   }
+}
+
+/// Places opened before, newest first, as small square photos: the quickest
+/// way back to one. Kept on the phone (`recentlyViewed`), so it works
+/// offline, and not there until something has been opened.
+class RecentlyViewed extends ConsumerWidget {
+  const RecentlyViewed({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final recent = ref.watch(recentlyViewedDestinationsProvider);
+    if (recent.isEmpty) return const SizedBox.shrink();
+    return _FeedSection(
+      title: "Recently Viewed",
+      edgeToEdge: true,
+      child: _PlaceRail(
+        places: recent,
+        width: AppSize.recentTile,
+        aspectRatio: 1,
+        // Small, and a reminder: the photo and the name are enough.
+        tile: (place) => PlacePhoto(
+          place: place,
+          from: HeroSource.recent,
+          aspectRatio: 1,
+          tags: false,
+        ),
+      ),
+    );
+  }
+}
+
+/// The places with exhibits to scan (D-18), what only this app can show
+/// there. Not there when no museum has an exhibit ready. Its photos leave
+/// out the scan glyph: the heading says it.
+class ScanExhibits extends ConsumerWidget {
+  const ScanExhibits({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final places = ref.watch(scanPlacesProvider);
+    if (places.isEmpty) return const SizedBox.shrink();
+    return _FeedSection(
+      title: "Scan Exhibits",
+      edgeToEdge: true,
+      child: _PlaceRail(
+        places: places,
+        width: AppSize.railTile,
+        aspectRatio: 4 / 5,
+        tile: (place) => PlacePhoto(
+          place: place,
+          from: HeroSource.scan,
+          aspectRatio: 4 / 5,
+          town: true,
+          hide: const {PlaceTag.scan},
+          heart: true,
+        ),
+      ),
+    );
+  }
+}
+
+/// A row of place photos exactly one photo tall (STANDARDS 10.4a), every
+/// tile the same width, built only as it nears the screen.
+class _PlaceRail extends StatelessWidget {
+  const _PlaceRail({
+    required this.places,
+    required this.width,
+    required this.aspectRatio,
+    required this.tile,
+    this.padding = const EdgeInsets.symmetric(horizontal: AppSpace.gutter),
+  });
+
+  final List<Destination> places;
+  final double width;
+  final double aspectRatio;
+  final Widget Function(Destination place) tile;
+
+  /// Where the rail starts and ends: the gutter when it runs edge to edge,
+  /// none inside a card.
+  final EdgeInsets padding;
+
+  static const _gap = AppSpace.x2;
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+    height: (width / aspectRatio).ceilToDouble(),
+    child: ListView.separated(
+      scrollDirection: Axis.horizontal,
+      padding: padding,
+      itemCount: places.length,
+      separatorBuilder: (_, _) => const SizedBox(width: _gap),
+      itemBuilder: (context, index) =>
+          SizedBox(width: width, child: tile(places[index])),
+    ),
+  );
 }

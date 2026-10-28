@@ -4,6 +4,7 @@ import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
 import "../../../core/theme/app_dimens.dart";
+import "../../../core/theme/app_icons.dart";
 import "../../../core/widgets/chrome/floating_tab_bar.dart";
 import "../../../core/widgets/chrome/system_bars.dart";
 import "../../destinations/domain/destination_providers.dart";
@@ -161,24 +162,29 @@ class _TabBarSlot extends ConsumerWidget {
       left: AppSpace.gutter,
       right: AppSpace.gutter,
       bottom: 0,
-      child: ClipRect(
-        child: Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.paddingOf(context).bottom + AppSpace.x3,
-          ),
-          child: FloatingTabBar(
-            destinations: _tabs,
-            selectedIndex: tab.index,
-            collapsed: chrome == HomeChromeState.collapsed,
-            hidden: chrome == HomeChromeState.hidden,
-            searchOpen: searchOpen,
-            searchKey: searchKey,
-            onSearch: onSearch,
-            onExpand: ref.read(homeChromeProvider.notifier).expand,
-            // The shell resets the bar on every switch, however it came.
-            onSelected: (i) => ref
-                .read(selectedHomeTabProvider.notifier)
-                .select(HomeTab.values[i]),
+      child: SafeArea(
+        top: false,
+        bottom: false,
+        child: ClipRect(
+          child: Padding(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.paddingOf(context).bottom + AppSpace.x3,
+            ),
+            child: FloatingTabBar(
+              destinations: _tabs,
+              selectedIndex: tab.index,
+              collapsed:
+                  tab != HomeTab.map && chrome == HomeChromeState.collapsed,
+              hidden: chrome == HomeChromeState.hidden,
+              searchOpen: searchOpen,
+              searchKey: searchKey,
+              onSearch: onSearch,
+              onExpand: ref.read(homeChromeProvider.notifier).expand,
+              // The shell resets the bar on every switch, however it came.
+              onSelected: (i) => ref
+                  .read(selectedHomeTabProvider.notifier)
+                  .select(HomeTab.values[i]),
+            ),
           ),
         ),
       ),
@@ -187,8 +193,24 @@ class _TabBarSlot extends ConsumerWidget {
 }
 
 const _tabs = [
-  AppDestination(symbol: TabSymbol.explore, label: "Explore"),
-  AppDestination(symbol: TabSymbol.map, label: "Map"),
-  AppDestination(symbol: TabSymbol.trips, label: "Trips"),
-  AppDestination(symbol: TabSymbol.profile, label: "Profile"),
+  AppDestination(
+    icon: AppIcons.explore,
+    selectedIcon: AppIcons.exploreFilled,
+    label: "Explore",
+  ),
+  AppDestination(
+    icon: AppIcons.map,
+    selectedIcon: AppIcons.mapFilled,
+    label: "Map",
+  ),
+  AppDestination(
+    icon: AppIcons.trips,
+    selectedIcon: AppIcons.tripsFilled,
+    label: "Trips",
+  ),
+  AppDestination(
+    icon: AppIcons.profile,
+    selectedIcon: AppIcons.profileFilled,
+    label: "Profile",
+  ),
 ];

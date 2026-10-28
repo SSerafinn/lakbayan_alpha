@@ -106,7 +106,7 @@ void main() {
       await pump(tester, const Scaffold(body: ItinerariesTab()));
 
       expect(find.text("Two days in Peñablanca"), findsOneWidget);
-      expect(find.text("14 to 15 Oct"), findsOneWidget);
+      expect(find.text("Oct 14 to 15"), findsOneWidget);
     });
 
     testWidgets("puts nothing under a name that has no dates", (tester) async {

@@ -12,12 +12,13 @@ import "../../../core/theme/app_typography.dart";
 import "../../../core/widgets/chrome/app_sheet.dart";
 import "../../../core/widgets/content/grouped_section.dart";
 import "../../../core/widgets/content/quiet_note.dart";
+import "../../../core/widgets/content/storage_image.dart";
 import "../../../core/widgets/motion/motion.dart";
 import "../../auth/domain/auth_providers.dart";
+import "../../destinations/domain/destination_providers.dart";
 import "../domain/itinerary_actions.dart";
 import "../domain/itinerary_copy.dart";
 import "../domain/itinerary_providers.dart";
-import "stop_picker.dart";
 
 /// Put a destination into one of the user's itineraries.
 ///
@@ -26,11 +27,11 @@ import "stop_picker.dart";
 ///
 /// A modal sheet, not a screen: it is one choice from a short list, and
 /// pushing a route would lose the destination behind it. Interrupting, so it
-/// carries the scrim; the close symbol is the cancel.
+/// carries the scrim; drag down, tap outside or use system back to cancel.
 ///
 /// Picking a trip turns the same sheet into its confirmation: a check pops
-/// in, the title says where the place went, and **View trip** opens the
-/// itinerary with the new stop landing in it. "New itinerary with this stop"
+/// in, the preview says where the place went, and **View Trip** opens the
+/// itinerary with the new stop landing in it. **New Trip**
 /// creates the trip and opens it straight away. A write that fails marks its
 /// row with the warning glyph and stays tappable to try again.
 Future<void> showAddToItinerary(
@@ -45,7 +46,7 @@ Future<void> showAddToItinerary(
   ),
 );
 
-/// Marks the "new itinerary" row as the one that failed.
+/// Identifies the new-trip action while pending or failed.
 const _newTrip = "";
 
 class _AddToItinerarySheet extends ConsumerStatefulWidget {
@@ -65,23 +66,35 @@ class _AddToItinerarySheet extends ConsumerStatefulWidget {
 class _AddToItinerarySheetState extends ConsumerState<_AddToItinerarySheet> {
   Itinerary? _addedTo;
   String? _failed;
-  bool _busy = false;
+  String? _pending;
+
+  bool get _busy => _pending != null;
 
   Future<void> _add(Itinerary itinerary) async {
-    setState(() => _busy = true);
+    if (_busy || itinerary.destinationIds.contains(widget.destinationId)) {
+      return;
+    }
+    setState(() {
+      _pending = itinerary.id;
+      _failed = null;
+    });
     final landed = await ref
         .read(itineraryActionsProvider)
         .addStop(itinerary, widget.destinationId);
     if (!mounted) return;
     setState(() {
-      _busy = false;
+      _pending = null;
       _addedTo = landed ? itinerary : null;
       _failed = landed ? null : itinerary.id;
     });
   }
 
   Future<void> _createAndOpen() async {
-    setState(() => _busy = true);
+    if (_busy) return;
+    setState(() {
+      _pending = _newTrip;
+      _failed = null;
+    });
     final router = GoRouter.of(context);
     final id = await ref
         .read(itineraryActionsProvider)
@@ -89,7 +102,7 @@ class _AddToItinerarySheetState extends ConsumerState<_AddToItinerarySheet> {
     if (!mounted) return;
     if (id == null) {
       setState(() {
-        _busy = false;
+        _pending = null;
         _failed = _newTrip;
       });
       return;
@@ -111,7 +124,7 @@ class _AddToItinerarySheetState extends ConsumerState<_AddToItinerarySheet> {
 
     if (addedTo != null) {
       return AppSheet(
-        title: "Added to ${addedTo.name}",
+        title: "Added to Trip",
         action: FilledButton(
           onPressed: () =>
               _open(Routes.itinerary(addedTo.id, added: widget.destinationId)),
@@ -124,7 +137,11 @@ class _AddToItinerarySheetState extends ConsumerState<_AddToItinerarySheet> {
           SliverPadding(
             padding: appSheetBodyPadding,
             sliver: SliverToBoxAdapter(
-              child: _Confirmation(place: widget.destinationName),
+              child: _PlacePreview(
+                id: widget.destinationId,
+                name: widget.destinationName,
+                addedTo: addedTo.name,
+              ),
             ),
           ),
         ],
@@ -132,7 +149,7 @@ class _AddToItinerarySheetState extends ConsumerState<_AddToItinerarySheet> {
     }
 
     return AppSheet(
-      title: "Add ${widget.destinationName} to",
+      title: "Add to Trip",
       action: uid == null
           ? FilledButton(
               // Leaving guest mode is what sends the router to sign-in.
@@ -145,8 +162,30 @@ class _AddToItinerarySheetState extends ConsumerState<_AddToItinerarySheet> {
               ),
               child: const Text("Sign In"),
             )
-          : null,
+          : Tooltip(
+              message: _failed == _newTrip
+                  ? "Couldn't create the trip. Try again."
+                  : "Create a trip with this place",
+              child: OutlinedButton(
+                onPressed: _busy ? null : _createAndOpen,
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size.fromHeight(AppSize.primaryButton),
+                ),
+                child: _pending == _newTrip
+                    ? const _Pending()
+                    : Text(_failed == _newTrip ? "Try Again" : "New Trip"),
+              ),
+            ),
       slivers: [
+        SliverPadding(
+          padding: appSheetBodyPadding,
+          sliver: SliverToBoxAdapter(
+            child: _PlacePreview(
+              id: widget.destinationId,
+              name: widget.destinationName,
+            ),
+          ),
+        ),
         SliverPadding(
           padding: appSheetBodyPadding,
           sliver: uid == null
@@ -154,9 +193,8 @@ class _AddToItinerarySheetState extends ConsumerState<_AddToItinerarySheet> {
               : _Trips(
                   destinationId: widget.destinationId,
                   failed: _failed,
-                  busy: _busy,
+                  pending: _pending,
                   onAdd: _add,
-                  onCreate: _createAndOpen,
                 ),
         ),
       ],
@@ -164,27 +202,24 @@ class _AddToItinerarySheetState extends ConsumerState<_AddToItinerarySheet> {
   }
 }
 
-/// The user's trips, then "New itinerary with this stop".
+/// Eligible trips keep the source's cached results and retry behavior.
 class _Trips extends ConsumerWidget {
   const _Trips({
     required this.destinationId,
     required this.failed,
-    required this.busy,
+    required this.pending,
     required this.onAdd,
-    required this.onCreate,
   });
 
   final String destinationId;
   final String? failed;
-  final bool busy;
+  final String? pending;
   final ValueChanged<Itinerary> onAdd;
-  final VoidCallback onCreate;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final scheme = Theme.of(context).colorScheme;
     return ref
-        .watch(myItinerariesProvider)
+        .watch(tripsAcceptingStopProvider(destinationId))
         .whenLocalFirst(
           loading: () => const SliverToBoxAdapter(
             child: Padding(
@@ -198,37 +233,28 @@ class _Trips extends ConsumerWidget {
               onRetry: () => ref.invalidate(myItinerariesProvider),
             ),
           ),
-          data: (items) => SliverGroupedSection(
-            itemCount: items.length + 1,
-            itemBuilder: (context, index) {
-              if (index == items.length) {
-                return GroupedRow(
-                  title: "New Trip with This Stop",
-                  leadingGlyph: AppIcons.add,
-                  glyphColor: scheme.primary,
-                  trailing: failed == _newTrip
-                      ? const _Failed()
-                      : GroupedRow.noAccessory,
-                  onTap: busy ? null : onCreate,
-                );
-              }
-              final itinerary = items[index];
-              final already = itinerary.destinationIds.contains(destinationId);
-              return GroupedRow(
-                title: itinerary.name,
-                // Not an error, and not a reason to hide the row: seeing it
-                // listed and marked is how somebody confirms they already
-                // added it.
-                subtitle: already
-                    ? "Already on this trip"
-                    : datePhrase(itinerary),
-                trailing: failed == itinerary.id
-                    ? const _Failed()
-                    : SelectionCircle(selected: already),
-                onTap: already || busy ? null : () => onAdd(itinerary),
-              );
-            },
-          ),
+          data: (items) => items.isEmpty
+              ? const SliverToBoxAdapter(
+                  child: QuietNote("No trips to choose from."),
+                )
+              : SliverGroupedSection(
+                  itemCount: items.length,
+                  itemBuilder: (context, index) {
+                    final itinerary = items[index];
+                    return GroupedRow(
+                      title: itinerary.name,
+                      subtitle:
+                          datePhrase(itinerary) ??
+                          stopsPhrase(itinerary.destinationIds.length),
+                      trailing: pending == itinerary.id
+                          ? const _Pending()
+                          : failed == itinerary.id
+                          ? const _Failed()
+                          : null,
+                      onTap: pending != null ? null : () => onAdd(itinerary),
+                    );
+                  },
+                ),
         );
   }
 }
@@ -249,58 +275,46 @@ class _Failed extends StatelessWidget {
   );
 }
 
-/// The place, now on the trip: a check that pops in as the sheet changes
-/// shape, then the place's name.
-class _Confirmation extends StatelessWidget {
-  const _Confirmation({required this.place});
+class _PlacePreview extends ConsumerWidget {
+  const _PlacePreview({required this.id, required this.name, this.addedTo});
 
-  final String place;
+  final String id;
+  final String name;
+  final String? addedTo;
 
   @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Row(
+  Widget build(BuildContext context, WidgetRef ref) {
+    final place = ref.watch(destinationByIdProvider(id)).value;
+    return GroupedSection(
       children: [
-        PopIn(
-          child: SizedBox.square(
-            dimension: AppSize.rowGlyphCircle,
-            child: DecoratedBox(
-              decoration: ShapeDecoration(
-                color: scheme.primary,
-                shape: const CircleBorder(),
-              ),
-              child: Icon(
-                AppIcons.check,
-                size: AppSize.glyphLg,
-                color: scheme.onPrimary,
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(width: AppSpace.x3),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                place,
-                style: AppTypography.titleSmall,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-              Text(
-                "The last stop, for now",
-                style: AppTypography.secondLine.copyWith(
-                  color: scheme.onSurfaceVariant,
+        GroupedRow(
+          title: name,
+          subtitle: addedTo ?? place?.town,
+          leading: CoverImage(place?.coverImage),
+          trailing: addedTo == null
+              ? GroupedRow.noAccessory
+              : PopIn(
+                  child: Icon(
+                    AppIcons.check,
+                    size: AppSize.glyphLg,
+                    color: Theme.of(context).colorScheme.primary,
+                    semanticLabel: "Added",
+                  ),
                 ),
-              ),
-            ],
-          ),
         ),
       ],
     );
   }
+}
+
+class _Pending extends StatelessWidget {
+  const _Pending();
+
+  @override
+  Widget build(BuildContext context) => const SizedBox.square(
+    dimension: AppSize.glyphLg,
+    child: CircularProgressIndicator(semanticsLabel: "Adding to trip"),
+  );
 }
 
 class _GuestNote extends StatelessWidget {

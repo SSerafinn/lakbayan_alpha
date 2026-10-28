@@ -4,28 +4,27 @@ import "../../router/app_router.dart";
 import "../../theme/app_dimens.dart";
 import "../../theme/app_icons.dart";
 import "../../theme/app_typography.dart";
-import "../controls/symbol_button.dart";
 
-/// A pushed page's top: back on its card circle, then the page's name large
-/// under it, one or two words (D-19). Scrolls with the page.
+/// A pushed page's title beside a plain back target. Scrolls with the page.
 class PageTitle extends StatelessWidget {
   const PageTitle(this.title, {super.key});
 
   final String title;
 
   @override
-  Widget build(BuildContext context) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
+  Widget build(BuildContext context) => Row(
     children: [
-      SymbolButton(
-        icon: AppIcons.back,
+      IconButton(
+        icon: const Icon(AppIcons.back, size: AppSize.glyphMd),
         tooltip: "Back",
-        onTap: context.popOrHome,
-        onGround: true,
+        constraints: const BoxConstraints.tightFor(
+          width: AppSize.minTouchTarget,
+          height: AppSize.minTouchTarget,
+        ),
+        onPressed: context.popOrHome,
       ),
-      const SizedBox(height: AppSpace.x2),
-      Padding(
-        padding: const EdgeInsets.symmetric(horizontal: AppSpace.x1),
+      const SizedBox(width: AppSpace.x1),
+      Expanded(
         child: Semantics(
           header: true,
           child: Text(title, style: AppTypography.display),

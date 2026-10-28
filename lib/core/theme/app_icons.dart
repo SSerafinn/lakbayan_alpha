@@ -5,9 +5,8 @@ import "../models/destination.dart";
 /// The single action-to-glyph map (design doc 06).
 ///
 /// Phosphor is the one icon family in this app (D-20), its regular and fill
-/// weights bundled as fonts (`assets/fonts/Phosphor/`, MIT). The glyph set is
-/// used with Material widgets; nothing here implies Cupertino widgets.
-/// Reference only this file: a call site that writes an `IconData` or
+/// weights bundled as fonts (`assets/fonts/Phosphor/`, MIT), used with
+/// Material widgets. Reference only this file: a call site that writes an `IconData` or
 /// `Icons.x` directly is how two glyphs end up meaning the same thing.
 ///
 /// Rules this file exists to hold:
@@ -23,14 +22,24 @@ abstract final class AppIcons {
   static const _regular = "PhosphorRegular";
   static const _fill = "PhosphorFill";
 
-  // The top-level sections are drawn, not taken from this set: `TabGlyph`
-  // animates its own selection (D-16). `map` is Browse's way back to the
-  // map.
+  // The four sections in the tab bar, the outline at rest and the filled
+  // one while chosen. `map` is also Browse's way back to the map.
+  static const IconData explore = IconData(0xe1c8, fontFamily: _regular);
+  static const IconData exploreFilled = IconData(0xe1c8, fontFamily: _fill);
   static const IconData map = IconData(
     0xe31a,
     fontFamily: _regular,
     matchTextDirection: true,
   );
+  static const IconData mapFilled = IconData(
+    0xe31a,
+    fontFamily: _fill,
+    matchTextDirection: true,
+  );
+  static const IconData trips = IconData(0xe5b0, fontFamily: _regular);
+  static const IconData tripsFilled = IconData(0xe5b0, fontFamily: _fill);
+  static const IconData profile = IconData(0xe4c2, fontFamily: _regular);
+  static const IconData profileFilled = IconData(0xe4c2, fontFamily: _fill);
 
   // Actions with reliable shorthand. May appear symbol-only, with a tooltip.
   static const IconData search = IconData(0xe30c, fontFamily: _regular);
@@ -114,6 +123,11 @@ abstract final class AppIcons {
 
   /// A guide the province accredits: a status as a glyph, not a word (D-19).
   static const IconData verified = IconData(0xe606, fontFamily: _fill);
+
+  /// A place the province marks popular (the CMS `popular` flag): the
+  /// featured card's tag, and a pill on a photo outside Popular
+  /// Destinations. Never a count or a trend; there is no data for one.
+  static const IconData popular = IconData(0xe242, fontFamily: _fill);
 
   /// A kind of place as a picture of it, the outline at rest and the filled
   /// one while chosen (the kind rail on Explore and Town). Both weights share

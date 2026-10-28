@@ -326,9 +326,6 @@ class _Stage extends StatelessWidget {
   final Destination? next;
   final Animation<double> rise;
 
-  /// How dark the stage sits under white type and the answers.
-  static const _shade = 0.4;
-
   @override
   Widget build(BuildContext context) {
     final front = this.front;
@@ -344,24 +341,17 @@ class _Stage extends StatelessWidget {
           ),
         if (next != null)
           _Backdrop(key: ValueKey(next.id), place: next, opacity: rise),
-        ColoredBox(
-          color: Theme.of(context).colorScheme.scrim.withValues(alpha: _shade),
-        ),
       ],
     );
   }
 }
 
-/// One place on the stage: its photo decoded tiny and stretched (a blur with
-/// no filter), or its kind's tone. Fades in once, when first mounted.
+/// One shared blurred photo stage, or the kind's tone. Fades in once.
 class _Backdrop extends StatelessWidget {
   const _Backdrop({required this.place, required this.opacity, super.key});
 
   final Destination place;
   final Animation<double> opacity;
-
-  /// The photo's decoded width, in pixels.
-  static const _decodeWidth = 32;
 
   /// It settles from this much larger as it fades in, once.
   static const _settle = 1.04;
@@ -374,9 +364,10 @@ class _Backdrop extends StatelessWidget {
       child: AppMotionBuilder(
         end: 1,
         from: 0,
-        child: cover == null
-            ? ColoredBox(color: _toneOf(context, place))
-            : StorageImage(path: cover, decodeWidth: _decodeWidth),
+        child: SoftPhotoBackdrop(
+          path: cover,
+          fallback: _toneOf(context, place),
+        ),
         builder: (context, t, layer) {
           final shown = t.clamp(0.0, 1.0);
           return Opacity(

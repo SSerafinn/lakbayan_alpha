@@ -4,6 +4,7 @@ import "package:riverpod_annotation/riverpod_annotation.dart";
 import "../../../core/errors/error_copy.dart";
 import "../data/town_downloader.dart";
 import "offline_bundle.dart";
+import "local_assets.dart";
 import "offline_providers.dart";
 
 part "downloads_controller.g.dart";
@@ -81,10 +82,15 @@ class DownloadsController extends _$DownloadsController {
       if (ref.mounted) {
         state = {...state}..remove(bundle.townId);
         ref.invalidate(townStatesProvider);
+        ref.invalidate(localAssetProvider);
       }
     } on DownloadCancelled {
       if (ref.mounted) state = {...state}..remove(bundle.townId);
     } catch (e) {
+      if (ref.mounted) {
+        ref.invalidate(townStatesProvider);
+        ref.invalidate(localAssetProvider);
+      }
       // The detail is for the log: the screen shows this under "nothing was
       // kept", where a storage path or an exception's name says nothing.
       debugPrint("Downloading '${bundle.townId}' failed: $e");
@@ -111,6 +117,7 @@ class DownloadsController extends _$DownloadsController {
     if (ref.mounted) {
       state = {...state}..remove(townId);
       ref.invalidate(townStatesProvider);
+      ref.invalidate(localAssetProvider);
     }
   }
 }

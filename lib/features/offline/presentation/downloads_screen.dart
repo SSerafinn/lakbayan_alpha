@@ -109,13 +109,26 @@ class _Town extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final cover = ref.watch(
       townsProvider.select(
-        (towns) =>
-            towns.where((town) => town.name == bundle.name).firstOrNull?.cover,
+        (towns) => towns
+            .where(
+              (town) =>
+                  town.name.trim().toLowerCase() ==
+                  bundle.name.trim().toLowerCase(),
+            )
+            .firstOrNull
+            ?.cover,
       ),
     );
     final stale = ref.watch(
       townStatesProvider.select(
         (states) => states[bundle.townId] == TownState.stale,
+      ),
+    );
+    final onPhone = ref.watch(
+      townStatesProvider.select(
+        (states) =>
+            states[bundle.townId] != null &&
+            states[bundle.townId] != TownState.absent,
       ),
     );
     final ready = bundle.isDownloadable;
@@ -133,7 +146,7 @@ class _Town extends ConsumerWidget {
           : stale
           ? const PhotoPill("Update Ready")
           : null,
-      trailing: ready
+      trailing: ready || onPhone
           ? TownDownloadButton(
               bundle: bundle,
               done: _OnPhone(bundle: bundle, stale: stale),
@@ -157,7 +170,7 @@ class _OnPhone extends ConsumerWidget {
     final downloads = ref.read(downloadsControllerProvider.notifier);
     return AppMenu(
       groups: [
-        if (stale)
+        if (stale && bundle.isDownloadable)
           [
             AppMenuItem(
               label: "Update",

@@ -14,6 +14,8 @@ import "../../../core/widgets/content/section_heading.dart";
 import "../../../core/widgets/content/storage_image.dart";
 import "../../../core/widgets/controls/kind_rail.dart";
 import "../../../core/widgets/motion/motion.dart";
+import "../../explore/domain/home_tab.dart";
+import "../../profile/presentation/user_avatar.dart";
 import "../domain/destination_providers.dart";
 import "explore_sections.dart";
 import "featured_deck.dart";
@@ -25,7 +27,10 @@ import "province_notice.dart";
 ///
 /// The title, the province's notice while it has one ([ProvinceNotice]),
 /// the kinds as a glyph rail, then the featured deck and the feed in the
-/// order a visitor decides: Towns, Popular, Food, Day Tours, Guides. A kind
+/// order a visitor decides: Towns, Popular Destinations, Food, Scan
+/// Exhibits, Day Tours, Guides, Keep or Skip for the undecided, and last
+/// Recently Viewed (once there is one). Every section that has nothing
+/// steps aside. A kind
 /// chosen puts its places under the pills in place of the deck and feed.
 class ExploreScreen extends ConsumerWidget {
   const ExploreScreen({super.key});
@@ -49,15 +54,22 @@ class ExploreScreen extends ConsumerWidget {
               AppSpace.x3,
             ),
             sliver: SliverToBoxAdapter(
-              child: Semantics(
-                header: true,
-                child: Text("Explore", style: AppTypography.display),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Semantics(
+                      header: true,
+                      child: Text("Explore", style: AppTypography.display),
+                    ),
+                  ),
+                  const _Me(),
+                ],
               ),
             ),
           ),
           const SliverToBoxAdapter(child: ProvinceNotice()),
           const SliverToBoxAdapter(child: Entrance(child: _Kinds())),
-          const SliverToBoxAdapter(child: SizedBox(height: AppSpace.x3)),
+          const SliverToBoxAdapter(child: SizedBox(height: AppSpace.x6)),
           // A new scope per choice, so the section under the pills arrives
           // in order each time it changes rather than cutting.
           EntranceScope(
@@ -78,6 +90,36 @@ class ExploreScreen extends ConsumerWidget {
       ),
     );
   }
+}
+
+/// Me, at the title's trailing end: my photo or initial, the way to what is
+/// mine. It switches to the Profile tab, so the bar's pill moves there too;
+/// it is the same place, not a second copy of it.
+class _Me extends ConsumerWidget {
+  const _Me();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) => Tooltip(
+    message: "Your profile",
+    excludeFromSemantics: true,
+    child: Semantics(
+      button: true,
+      label: "Your profile",
+      excludeSemantics: true,
+      child: Pressable(
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () => ref
+              .read(selectedHomeTabProvider.notifier)
+              .select(HomeTab.profile),
+          child: const SizedBox.square(
+            dimension: AppSize.minTouchTarget,
+            child: Center(child: UserAvatar(size: AppSize.rowMediaDense)),
+          ),
+        ),
+      ),
+    ),
+  );
 }
 
 /// The kinds of place as glyphs over words, food among them. Tapping the
@@ -166,7 +208,6 @@ class _Feed extends ConsumerWidget {
   final AsyncValue<List<Destination>> featured;
 
   static const _gutter = EdgeInsets.symmetric(horizontal: AppSpace.gutter);
-  static const _gap = SizedBox(height: AppSpace.section);
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -189,17 +230,13 @@ class _Feed extends ConsumerWidget {
             ),
           ),
         ),
-        _gap,
-        const Entrance(order: 2, child: TownRail()),
-        _gap,
-        const Padding(
-          padding: _gutter,
-          child: Entrance(order: 3, child: PopularSection()),
-        ),
         // Each of these brings its own gap, so an empty one leaves none.
+        const Entrance(order: 2, child: TownRail()),
+        const Entrance(order: 3, child: PopularSection()),
         const Entrance(order: 4, child: WhereToEat()),
-        const Entrance(order: 5, child: ReadyMadeDays()),
-        const Entrance(order: 6, child: LocalGuides()),
+        const Entrance(order: 5, child: ScanExhibits()),
+        const Entrance(order: 6, child: ReadyMadeDays()),
+        const Entrance(order: 7, child: LocalGuides()),
         if (covers.isNotEmpty)
           const Padding(
             padding: EdgeInsets.fromLTRB(
@@ -208,8 +245,11 @@ class _Feed extends ConsumerWidget {
               AppSpace.gutter,
               0,
             ),
-            child: Entrance(order: 7, child: SwipeEntry()),
+            child: Entrance(order: 8, child: SwipeEntry()),
           ),
+        // Last: a way back to what you opened, not a pitch, so it never
+        // pushes the province's own places down.
+        const Entrance(order: 9, child: RecentlyViewed()),
       ],
     );
   }

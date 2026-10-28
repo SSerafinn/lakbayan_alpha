@@ -1,11 +1,12 @@
-import "dart:math" show max;
+import "dart:math" show max, pi;
 
 import "package:animations/animations.dart";
 import "package:flutter/material.dart";
+import "package:flutter/rendering.dart" show RenderAbstractViewport;
 import "package:flutter_map/flutter_map.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
-import "package:latlong2/latlong.dart";
+import "package:latlong2/latlong.dart" hide pi;
 import "package:motor/motor.dart";
 
 import "../../../core/errors/error_copy.dart";
@@ -40,6 +41,7 @@ import "../domain/destination_providers.dart";
 import "../domain/place_share.dart";
 import "../domain/practical_text.dart";
 import "../domain/recently_viewed.dart";
+import "place_photo.dart";
 import "save_heart.dart";
 
 /// Place detail. **Job:** decide whether to go, then put it on a trip.
@@ -158,7 +160,14 @@ class _ContentState extends State<_Content> {
               sliver: SliverList.list(
                 children: [
                   Entrance(child: _Title(destination: destination)),
-                  Entrance(order: 1, child: _Parts(destination: destination)),
+                  Entrance(
+                    order: 1,
+                    child: _Parts(
+                      destination: destination,
+                      scroll: _scroll,
+                      clearance: controlsTop + AppSize.minTouchTarget,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -191,10 +200,10 @@ class _ContentState extends State<_Content> {
   }
 }
 
-/// The photos, clean and pageable when there are several. The page's rounded
-/// edge sits over their foot, carrying the dots, so the page reads as rising
-/// over the photo. As the page scrolls up over it, the photo drifts at half
-/// speed.
+/// The photos, clean and pageable when there are several; a tap opens the
+/// one showing full screen. The page's rounded edge sits over their foot,
+/// carrying the dots, so the page reads as rising over the photo. As the page
+/// scrolls up over it, the photo drifts at half speed.
 class _PhotoStage extends StatefulWidget {
   const _PhotoStage({
     required this.destination,
@@ -250,14 +259,41 @@ class _PhotoStageState extends State<_PhotoStage> {
             controller: _pages,
             onPageChanged: (i) => setState(() => _page = i),
             itemCount: images.length,
-            // Only the cover carries the tag: it is the one image the tile
-            // that opened this screen shares a flight with.
-            itemBuilder: (context, i) => i == 0 && from != null
-                ? PhotoHero(
-                    tag: coverHeroTag(destination.id, from),
+            itemBuilder: (context, i) {
+              // The cover keeps the tag of the tile that opened this page,
+              // so back still shrinks it home; the rest take the stage's own.
+              final tag = i == 0 && from != null
+                  ? coverHeroTag(destination.id, from)
+                  : stageHeroTag(destination.id, i);
+              // A tap opens the photo full screen, zooming from here: the
+              // same viewer as the Photos part.
+              return Semantics(
+                button: true,
+                label: "View photo ${i + 1} of ${images.length}",
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => context.push(
+                    Routes.photos(
+                      destination.id,
+                      at: i,
+                      stage: true,
+                      tag: from == null
+                          ? null
+                          : coverHeroTag(destination.id, from),
+                    ),
+                    extra: (int index) {
+                      if (mounted && _pages.hasClients) {
+                        _pages.jumpToPage(index);
+                      }
+                    },
+                  ),
+                  child: PhotoHero(
+                    tag: tag,
                     child: StorageImage(path: images[i]),
-                  )
-                : StorageImage(path: images[i]),
+                  ),
+                ),
+              );
+            },
           );
 
     return SizedBox(
@@ -333,22 +369,95 @@ class _Drift extends StatelessWidget {
 /// Between the blocks of a part: a clear step, kept short (D-19).
 const _gap = AppSpace.x3;
 
-/// The name, large; its town is on the Location card, so it is not said
-/// twice. No badges: featured is the deck's business, not this page's.
+/// The name, large, and at its trailing end what the place is, as glyphs on
+/// small white circles, the way a photo's tags sit: its kind (the CMS's finer
+/// kind when it has one, "Cave", is the glyph's tooltip and spoken label),
+/// and the flame when the province marks it popular. Each says its word on
+/// a long press and to a screen reader. Nothing the page says again: the
+/// town is on the Location card, the fee in Details, the exhibits are their
+/// own part.
 class _Title extends StatelessWidget {
   const _Title({required this.destination});
 
   final Destination destination;
 
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(top: AppSpace.x2),
-    child: Semantics(
-      header: true,
-      child: Text(destination.name, style: AppTypography.hero),
-    ),
-  );
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final place = destination;
+    final kind = place.subcategory?.trim();
+    final facts = [
+      if (place.category != DestinationCategory.unknown)
+        (
+          glyph: AppIcons.kind(place.category),
+          word: kind == null || kind.isEmpty
+              ? _kindName(place.category)
+              : capital(kind),
+        ),
+      if (place.popular) (glyph: AppIcons.popular, word: "Popular"),
+    ];
+    // Level with the name's first line, however large the type is.
+    final firstLine = MediaQuery.textScalerOf(context)
+        .lineHeightOf(AppTypography.hero);
+    final lift = ((firstLine - AppSize.tileSave) / 2).clamp(0.0, firstLine);
+
+    return Padding(
+      padding: const EdgeInsets.only(top: AppSpace.x2),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Semantics(
+              header: true,
+              child: Text(place.name, style: AppTypography.hero),
+            ),
+          ),
+          for (final (:glyph, :word) in facts)
+            Padding(
+              padding: EdgeInsetsDirectional.only(
+                start: AppSpace.x1,
+                top: lift,
+              ),
+              child: Tooltip(
+                message: word,
+                excludeFromSemantics: true,
+                child: Semantics(
+                  label: word,
+                  excludeSemantics: true,
+                  child: Container(
+                    width: AppSize.tileSave,
+                    height: AppSize.tileSave,
+                    alignment: Alignment.center,
+                    decoration: ShapeDecoration(
+                      color: scheme.surfaceContainerLowest,
+                      shape: const CircleBorder(),
+                    ),
+                    child: Icon(
+                      glyph,
+                      size: AppSize.glyphSm,
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
 }
+
+/// A kind as one of it ("Church"), for the line under a place's name; the
+/// kinds' own labels are the plural headings of their lists.
+String _kindName(DestinationCategory kind) => switch (kind) {
+  DestinationCategory.church => "Church",
+  DestinationCategory.nature => "Nature",
+  DestinationCategory.heritage => "Heritage",
+  DestinationCategory.museum => "Museum",
+  DestinationCategory.food => "Food",
+  DestinationCategory.landmark => "Landmark",
+  DestinationCategory.unknown => "",
+};
 
 /// Back alone on its circle at the leading top; share and the heart on one
 /// glass capsule at the trailing top (PREFERENCES: symbols over a photo
@@ -497,10 +606,29 @@ enum _Part {
 /// more scroll. The pill travels to the chosen part and its content slides
 /// in from that side (the `animations` shared axis, inside the page); a
 /// fling across the content moves one part.
+///
+/// A part is never shorter than the screen under the switcher, and choosing
+/// one while scrolled past the switcher scrolls back to it, on the spring,
+/// while the old part is still there. So the page never ends above where it
+/// is scrolled to. When it did (scrolled down Overview, then Photos), the
+/// scroll was corrected to the shorter end without telling its listeners,
+/// and the status bar's ground and the pinned controls stayed where the old
+/// scroll had put them: a white band over the photo.
 class _Parts extends ConsumerStatefulWidget {
-  const _Parts({required this.destination});
+  const _Parts({
+    required this.destination,
+    required this.scroll,
+    required this.clearance,
+  });
 
   final Destination destination;
+
+  /// The page's scroll, to bring the switcher back into view.
+  final ScrollController scroll;
+
+  /// How far down the screen the pinned controls reach: the switcher comes
+  /// to rest just under them.
+  final double clearance;
 
   @override
   ConsumerState<_Parts> createState() => _PartsState();
@@ -516,6 +644,28 @@ class _PartsState extends ConsumerState<_Parts> {
       _forward = index > parts.indexOf(_part);
       _part = parts[index];
     });
+    _keepSwitcherInView();
+  }
+
+  /// Scrolled past the switcher, back up to it, so the new part starts at
+  /// its top; a move the scroll's listeners hear, unlike a correction.
+  void _keepSwitcherInView() {
+    final scroll = widget.scroll;
+    final box = context.findRenderObject();
+    if (!scroll.hasClients || box == null) return;
+    final top =
+        RenderAbstractViewport.of(box).getOffsetToReveal(box, 0).offset -
+        widget.clearance;
+    if (scroll.offset <= top) return;
+    if (MediaQuery.disableAnimationsOf(context)) {
+      scroll.jumpTo(top);
+    } else {
+      scroll.animateTo(
+        top,
+        duration: AppMotion.span,
+        curve: SpringCurve(AppMotion.chrome, AppMotion.span),
+      );
+    }
   }
 
   @override
@@ -559,21 +709,34 @@ class _PartsState extends ConsumerState<_Parts> {
             if (speed.abs() < AppMotion.flingSpeed) return;
             _go(parts, index + (speed < 0 ? 1 : -1));
           },
-          child: PageTransitionSwitcher(
-            reverse: !_forward,
-            duration: AppMotion.span,
-            layoutBuilder: (entries) =>
-                Stack(alignment: Alignment.topCenter, children: entries),
-            transitionBuilder: (child, animation, secondary) => reduced
-                ? FadeTransition(opacity: animation, child: child)
-                : SharedAxisTransition(
-                    animation: animation,
-                    secondaryAnimation: secondary,
-                    transitionType: SharedAxisTransitionType.horizontal,
-                    fillColor: Theme.of(context).colorScheme.surface,
-                    child: child,
-                  ),
-            child: KeyedSubtree(key: ValueKey(part), child: content),
+          child: ConstrainedBox(
+            // At least the screen under the switcher once it sits under
+            // the pinned controls (see the class comment).
+            constraints: BoxConstraints(
+              minHeight: max(
+                0,
+                MediaQuery.sizeOf(context).height -
+                    widget.clearance -
+                    2 * _gap -
+                    AppSize.minTouchTarget,
+              ),
+            ),
+            child: PageTransitionSwitcher(
+              reverse: !_forward,
+              duration: AppMotion.span,
+              layoutBuilder: (entries) =>
+                  Stack(alignment: Alignment.topCenter, children: entries),
+              transitionBuilder: (child, animation, secondary) => reduced
+                  ? FadeTransition(opacity: animation, child: child)
+                  : SharedAxisTransition(
+                      animation: animation,
+                      secondaryAnimation: secondary,
+                      transitionType: SharedAxisTransitionType.horizontal,
+                      fillColor: Theme.of(context).colorScheme.surface,
+                      child: child,
+                    ),
+              child: KeyedSubtree(key: ValueKey(part), child: content),
+            ),
           ),
         ),
       ],
@@ -581,9 +744,12 @@ class _PartsState extends ConsumerState<_Parts> {
   }
 }
 
-/// The parts as one capsule, the chosen one on an emerald pill that travels
-/// to it on the chrome spring: painted, never rebuilt per frame. Each part
-/// is a full-height target.
+/// The parts as one white card, the chosen one on an emerald shape that
+/// travels to it on the chrome spring: painted, never rebuilt per frame.
+/// The card takes the page's card radius, as Details and the audio guide
+/// do, and the shape inside is concentric with it, so the page's blocks
+/// share one curvature rather than a capsule among cards. Each part is a
+/// full-height target.
 class _Segments extends StatefulWidget {
   const _Segments({
     required this.labels,
@@ -601,6 +767,15 @@ class _Segments extends StatefulWidget {
 
 class _SegmentsState extends State<_Segments>
     with SingleTickerProviderStateMixin {
+  /// The gap from the card's edge to the chosen part's shape, and that
+  /// shape's corners, derived from the card's (never typed).
+  static const _inset = AppSpace.x1;
+  static final _inner = concentricRadius(
+    parentRadius: AppRadii.md,
+    padding: _inset,
+    fallback: AppRadii.sm,
+  );
+
   late final _at = SingleMotionController(
     motion: AppMotion.chrome,
     vsync: this,
@@ -629,9 +804,12 @@ class _SegmentsState extends State<_Segments>
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final labels = widget.labels;
+    final inner = RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(_inner),
+    );
     return Material(
       color: scheme.surfaceContainerLowest,
-      shape: capsule,
+      shape: const RoundedRectangleBorder(borderRadius: AppRadii.mdAll),
       child: SizedBox(
         height: AppSize.minTouchTarget,
         child: CustomPaint(
@@ -644,9 +822,10 @@ class _SegmentsState extends State<_Segments>
                 0,
                 cell,
                 size.height,
-              ).deflate(AppSpace.x1);
+              ).deflate(_inset);
             },
             color: scheme.primary,
+            radius: _inner,
           ),
           child: Row(
             children: [
@@ -656,7 +835,7 @@ class _SegmentsState extends State<_Segments>
                     selected: index == widget.index,
                     button: true,
                     child: InkWell(
-                      customBorder: capsule,
+                      customBorder: inner,
                       onTap: () => widget.onSelected(index),
                       child: Center(
                         child: AnimatedDefaultTextStyle(
@@ -1063,15 +1242,27 @@ class _StillMap extends ConsumerWidget {
   }
 }
 
-/// What the place is known for: the CMS's tags as plain words on one white
-/// card, two to a row, in Title Case. Not there when it has none.
+/// What the place is known for: the CMS's tags in Title Case, each on its
+/// own paper tag at its natural width inside one white card, wrapping as
+/// they fit. A two-column grid of words left ragged gaps beside the short
+/// ones. No glyph per tag: the tags are the editor's free words ("Bats at
+/// Dusk"), and a glyph for each would be a guess, or the same one repeated
+/// as a bullet. Not there when it has none.
 class _KnownFor extends StatelessWidget {
   const _KnownFor({required this.destination});
 
   final Destination destination;
 
+  /// The card's inset to the first tags, and their corners from the card's.
+  static final _tagRadius = concentricRadius(
+    parentRadius: AppRadii.md,
+    padding: AppSpace.x3,
+    fallback: AppRadii.sm,
+  );
+
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     final tags = [
       for (final tag in destination.tags)
         if (tag.trim().isNotEmpty) _titleCase(tag),
@@ -1084,27 +1275,33 @@ class _KnownFor extends StatelessWidget {
         children: [
           const SectionHeading("Known For"),
           Material(
-            color: Theme.of(context).colorScheme.surfaceContainerLowest,
+            color: scheme.surfaceContainerLowest,
             shape: const RoundedRectangleBorder(borderRadius: AppRadii.mdAll),
-            clipBehavior: Clip.antiAlias,
             child: Padding(
-              padding: const EdgeInsets.all(AppSpace.x4),
-              // Two even columns: a tag per cell, the words themselves.
-              child: LayoutBuilder(
-                builder: (context, box) {
-                  final cell = (box.maxWidth - AppSpace.x3) / 2;
-                  return Wrap(
-                    spacing: AppSpace.x3,
-                    runSpacing: AppSpace.x3,
-                    children: [
-                      for (final tag in tags)
-                        SizedBox(
-                          width: cell,
-                          child: Text(tag, style: AppTypography.bodyMedium),
+              padding: const EdgeInsets.all(AppSpace.x3),
+              child: Wrap(
+                spacing: AppSpace.x2,
+                runSpacing: AppSpace.x2,
+                children: [
+                  for (final tag in tags)
+                    // Paper inside the white card (never grey on grey), its
+                    // corners concentric with the card's.
+                    DecoratedBox(
+                      decoration: ShapeDecoration(
+                        color: scheme.surfaceContainerLow,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(_tagRadius),
                         ),
-                    ],
-                  );
-                },
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpace.x3,
+                          vertical: AppSpace.x2,
+                        ),
+                        child: Text(tag, style: AppTypography.labelMedium),
+                      ),
+                    ),
+                ],
               ),
             ),
           ),
@@ -1181,21 +1378,15 @@ class _Nearby extends StatelessWidget {
     columns: 2,
     gap: AppSpace.x2,
     children: [
+      // How far is what this part is about, so it is the photo's one note.
       for (final (:place, :distance) in places)
-        MediaTile(
-          media: PhotoHero(
-            tag: coverHeroTag(place.id, HeroSource.around),
-            child: CoverImage(place.coverImage),
-          ),
+        PlacePhoto(
+          place: place,
+          from: HeroSource.around,
           aspectRatio: 1,
-          overlay: true,
-          dense: true,
           radius: AppRadii.md,
-          title: place.name,
+          tags: false,
           pill: distance == null ? null : PhotoPill(distance),
-          onTap: () => context.push(
-            Routes.destination(place.id, from: HeroSource.around),
-          ),
         ),
     ],
   );

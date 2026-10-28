@@ -1,25 +1,19 @@
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
-import "package:go_router/go_router.dart";
 
 import "../../../core/errors/error_copy.dart";
 import "../../../core/errors/local_first.dart";
 import "../../../core/models/destination.dart";
 import "../../../core/router/app_router.dart";
 import "../../../core/theme/app_dimens.dart";
-import "../../../core/theme/app_icons.dart";
 import "../../../core/theme/app_typography.dart";
 import "../../../core/widgets/chrome/floating_tab_bar.dart";
-import "../../../core/widgets/content/media_tile.dart";
 import "../../../core/widgets/content/quiet_note.dart";
-import "../../../core/widgets/content/storage_image.dart";
 import "../../../core/widgets/controls/filter_chip_row.dart";
-import "../../../core/widgets/controls/symbol_button.dart";
 import "../../../core/widgets/motion/motion.dart";
-import "../../../core/widgets/motion/page_transitions.dart";
 import "../domain/destination_providers.dart";
-import "place_pills.dart";
-import "save_heart.dart";
+import "../../maps/presentation/map_top_controls.dart";
+import "place_photo.dart";
 
 /// Browse, the Map tab's second view: the same results as a photo grid.
 ///
@@ -29,9 +23,8 @@ import "save_heart.dart";
 /// **Emotion.** Abundance. There is more here than one trip can hold.
 ///
 /// **Anatomy, top to bottom.** The header sits on solid surface and does not
-/// scroll: the title with the map symbol beside it, then the chips, led by
-/// the town when one was picked elsewhere. No search field: search is the
-/// bar's last cell (D-16). Under the header, the grid: featured places span
+/// scroll: the shared map search field and view toggle, then the chips.
+/// Under the header, the grid: featured places span
 /// the row at 16:10, the rest sit in columns at 4:5, each name on its photo
 /// (D-19), no card chrome. The map symbol returns to the map, which is the
 /// tab's landing.
@@ -54,11 +47,13 @@ class BrowseScreen extends ConsumerWidget {
       _WidthClass.expanded => 4,
     };
     final rows = ref.watch(browseGridRowsProvider(columns));
+    final savedOnly = ref.watch(mapShowsSavedProvider);
 
     void clearAll() {
       ref.read(browseQueryProvider.notifier).update("");
       ref.read(browseCategoryProvider.notifier).select(null);
       ref.read(browseSubcategoryProvider.notifier).select(null);
+      ref.read(mapShowsSavedProvider.notifier).set(false);
     }
 
     return Column(
@@ -70,19 +65,7 @@ class BrowseScreen extends ConsumerWidget {
             AppSpace.x2,
             0,
           ),
-          child: Row(
-            children: [
-              Expanded(child: Text("Browse", style: AppTypography.display)),
-              // A lone symbol action gets its own container; it switches the
-              // whole view, so it does not live inside the search field.
-              SymbolButton(
-                icon: AppIcons.map,
-                tooltip: "Show on the map",
-                onGround: true,
-                onTap: ref.read(browseShowsGridProvider.notifier).toggle,
-              ),
-            ],
-          ),
+          child: const MapSearchBar(),
         ),
         const SizedBox(height: AppSpace.x2),
         FilterChipRow(
@@ -97,19 +80,30 @@ class BrowseScreen extends ConsumerWidget {
               ),
             FilterChipItem(
               label: "All",
-              selected: selected == null,
-              onTap: () =>
-                  ref.read(browseCategoryProvider.notifier).select(null),
+              selected: selected == null && !savedOnly,
+              onTap: () {
+                ref.read(browseCategoryProvider.notifier).select(null);
+                ref.read(mapShowsSavedProvider.notifier).set(false);
+              },
             ),
             for (final category in DestinationCategory.values)
               if (category != DestinationCategory.unknown)
                 FilterChipItem(
                   label: category.label,
-                  selected: selected == category,
-                  onTap: () => ref
-                      .read(browseCategoryProvider.notifier)
-                      .select(category),
+                  selected: selected == category && !savedOnly,
+                  onTap: () {
+                    ref.read(browseCategoryProvider.notifier).select(category);
+                    ref.read(mapShowsSavedProvider.notifier).set(false);
+                  },
                 ),
+            FilterChipItem(
+              label: "Saved",
+              selected: savedOnly,
+              onTap: () {
+                ref.read(browseCategoryProvider.notifier).select(null);
+                ref.read(mapShowsSavedProvider.notifier).set(true);
+              },
+            ),
           ],
         ),
         // A chosen category's finer kinds, when its places use any. The same
@@ -148,6 +142,7 @@ class BrowseScreen extends ConsumerWidget {
             data: (rows) => rows.isEmpty
                 ? _NoResults(
                     hasFilters:
+                        savedOnly ||
                         selected != null ||
                         subcategory != null ||
                         query.isNotEmpty,
@@ -208,23 +203,12 @@ class _Cell extends StatelessWidget {
   final bool wide;
 
   @override
-  Widget build(BuildContext context) {
-    return MediaTile(
-      media: PhotoHero(
-        tag: coverHeroTag(destination.id, HeroSource.browse),
-        child: CoverImage(destination.coverImage),
-      ),
-      aspectRatio: wide ? 16 / 10 : 4 / 5,
-      overlay: true,
-      dense: true,
-      title: destination.name,
-      pill: placePills(destination),
-      trailing: SaveHeart(destination.id, style: SaveHeartStyle.tile),
-      onTap: () => context.push(
-        Routes.destination(destination.id, from: HeroSource.browse),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => PlacePhoto(
+    place: destination,
+    from: HeroSource.browse,
+    aspectRatio: wide ? 16 / 10 : 4 / 5,
+    heart: true,
+  );
 }
 
 class _NoResults extends StatelessWidget {

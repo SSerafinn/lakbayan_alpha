@@ -2,6 +2,7 @@ import "dart:async";
 import "dart:math" show max, min, sin;
 import "dart:ui" show lerpDouble;
 
+import "package:flutter/foundation.dart" show ValueListenable;
 import "package:flutter/material.dart";
 import "package:flutter_map/flutter_map.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
@@ -77,7 +78,7 @@ class CameraFlight {
   /// Its own motion, declared here rather than in `AppMotion` (PREFERENCES):
   /// a camera crossing a map needs longer than chrome's 350ms to follow, and
   /// must not overshoot, which makes people queasy.
-  static const motion = CupertinoMotion.smooth(
+  static const motion = Motion.smoothSpring(
     duration: Duration(milliseconds: 700),
     snapToEnd: true,
   );
@@ -112,7 +113,14 @@ mixin CameraFlying<T extends StatefulWidget>
   );
   VoidCallback? _step;
 
+  void stopCameraFlight() {
+    _flight.stop();
+    if (_step case final previous?) _flight.removeListener(previous);
+    _step = null;
+  }
+
   void flyCamera(LatLng to, double zoom) {
+    stopCameraFlight();
     if (MediaQuery.disableAnimationsOf(context)) {
       camera.move(to, zoom);
       return;
@@ -124,7 +132,6 @@ mixin CameraFlying<T extends StatefulWidget>
       camera.move(at.center, at.zoom);
     }
 
-    if (_step case final previous?) _flight.removeListener(previous);
     _step = step;
     _flight
       ..stop()
@@ -145,9 +152,19 @@ mixin CameraFlying<T extends StatefulWidget>
 /// chrome. Selection lives in [mapSelectedIdProvider] so Place detail can
 /// land here on a pin.
 class MapView extends ConsumerStatefulWidget {
-  const MapView({required this.destinations, super.key});
+  const MapView({
+    required this.destinations,
+    this.visibleBounds,
+    this.viewportChanges,
+    super.key,
+  });
 
   final List<Destination> destinations;
+
+  /// Global rendered bounds left clear by the caller's controls and panel.
+  /// Read on selection and layout completion, not on every animation tick.
+  final Rect? Function()? visibleBounds;
+  final ValueListenable<int>? viewportChanges;
 
   @override
   ConsumerState<MapView> createState() => _MapViewState();
@@ -155,6 +172,92 @@ class MapView extends ConsumerStatefulWidget {
 
 class _MapViewState extends ConsumerState<MapView>
     with SingleTickerProviderStateMixin, CameraFlying {
+  bool _ready = false;
+  final _creditInsets = ValueNotifier<EdgeInsets>(EdgeInsets.zero);
+
+  @override
+  void initState() {
+    super.initState();
+    widget.viewportChanges?.addListener(_frameViewport);
+  }
+
+  @override
+  void didUpdateWidget(MapView old) {
+    super.didUpdateWidget(old);
+    if (old.viewportChanges != widget.viewportChanges) {
+      old.viewportChanges?.removeListener(_frameViewport);
+      widget.viewportChanges?.addListener(_frameViewport);
+    }
+    if (old.destinations != widget.destinations) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _frameViewport();
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.viewportChanges?.removeListener(_frameViewport);
+    _creditInsets.dispose();
+    super.dispose();
+  }
+
+  Rect get _visibleRect {
+    final full = Offset.zero & camera.camera.nonRotatedSize;
+    final bounds = widget.visibleBounds?.call();
+    final box = context.findRenderObject() as RenderBox?;
+    if (bounds == null || box == null || !box.hasSize) return full;
+    final topLeft = box.globalToLocal(bounds.topLeft);
+    final bottomRight = box.globalToLocal(bounds.bottomRight);
+    return full.intersect(
+      Rect.fromLTRB(topLeft.dx, topLeft.dy, bottomRight.dx, bottomRight.dy),
+    );
+  }
+
+  EdgeInsets _fitInsets(Rect visible) {
+    final size = camera.camera.nonRotatedSize;
+    final gap = min(AppSpace.x8, visible.shortestSide / 4);
+    return EdgeInsets.fromLTRB(
+      visible.left + gap,
+      visible.top + gap,
+      size.width - visible.right + gap,
+      size.height - visible.bottom + gap,
+    );
+  }
+
+  void _frameViewport() {
+    if (!_ready || !mounted) return;
+    final visible = _visibleRect;
+    final size = camera.camera.nonRotatedSize;
+    _creditInsets.value = EdgeInsets.fromLTRB(
+      visible.left.clamp(0, size.width),
+      visible.top.clamp(0, size.height),
+      (size.width - visible.right).clamp(0, size.width),
+      (size.height - visible.bottom).clamp(0, size.height),
+    );
+    // A fully expanded panel leaves no map to frame. Keep the camera until
+    // the panel returns instead of fitting into zero or negative space.
+    if (visible.isEmpty) {
+      stopCameraFlight();
+      return;
+    }
+    final selectedId = ref.read(mapSelectedIdProvider);
+    if (widget.destinations.any((place) => place.id == selectedId)) {
+      _onSelected(null, selectedId);
+    } else if (ref.read(activeMapRouteProvider) case final route?) {
+      _onRoute(null, route);
+    } else if (_bounds case final bounds?) {
+      stopCameraFlight();
+      camera.fitCamera(
+        CameraFit.bounds(
+          bounds: bounds,
+          padding: _fitInsets(visible),
+          maxZoom: 14,
+        ),
+      );
+    }
+  }
+
   /// The area the pins occupy, or null when there is nothing to fit.
   LatLngBounds? get _bounds {
     final points = widget.destinations
@@ -164,31 +267,46 @@ class _MapViewState extends ConsumerState<MapView>
     return LatLngBounds.fromPoints(points);
   }
 
-  /// A chosen pin is brought to the middle: from elsewhere (Place detail's
-  /// "Getting there"), from the sheet's rail, or tapped on the map.
+  /// A chosen pin is brought to the visible map's middle: from Place detail's
+  /// "Getting there", from the sheet's rail, or tapped on the map.
   void _onSelected(String? previous, String? next) {
-    if (next == null || next == previous) return;
+    if (!_ready || next == null || next == previous) return;
     final place = widget.destinations.where((d) => d.id == next).firstOrNull;
     if (place == null) return;
-    final zoom = camera.camera.zoom < 13 ? 13.0 : camera.camera.zoom;
-    flyCamera(LatLng(place.coords.lat, place.coords.lng), zoom);
+    final visible = _visibleRect;
+    if (visible.isEmpty) return;
+    final current = camera.camera;
+    final zoom = current.clampZoom(max(13, current.zoom));
+    final point = current.projectAtZoom(
+      LatLng(place.coords.lat, place.coords.lng),
+      zoom,
+    );
+    final offset = visible.center - current.nonRotatedSize.center(Offset.zero);
+    final center = current.unprojectAtZoom(
+      current.rotatePoint(point, point - offset),
+      zoom,
+    );
+    if ((current.projectAtZoom(current.center, zoom) -
+                    current.projectAtZoom(center, zoom))
+                .distance <
+            1 &&
+        current.zoom == zoom) {
+      return;
+    }
+    flyCamera(center, zoom);
   }
 
   /// Frames a route just opened. It does not also select a stop: both would
   /// move the camera, and whichever ran last would win.
   void _onRoute(MapRoute? previous, MapRoute? next) {
-    if (next == null) return;
+    if (!_ready || next == null || _visibleRect.isEmpty) return;
     final points = _currentPointsFor(next);
     if (points.length < 2) return;
+    stopCameraFlight();
     camera.fitCamera(
       CameraFit.coordinates(
         coordinates: points,
-        padding: const EdgeInsets.fromLTRB(
-          AppSpace.x8,
-          AppSpace.x12 * 4,
-          AppSpace.x8,
-          AppSpace.x12 * 5,
-        ),
+        padding: _fitInsets(_visibleRect),
         maxZoom: 14,
       ),
     );
@@ -228,19 +346,17 @@ class _MapViewState extends ConsumerState<MapView>
             ? null
             : CameraFit.bounds(
                 bounds: bounds,
-                padding: const EdgeInsets.fromLTRB(
-                  AppSpace.x8,
-                  AppSpace.x12 * 3,
-                  AppSpace.x8,
-                  AppSpace.x12 * 5,
-                ),
+                padding: const EdgeInsets.all(AppSpace.x8),
                 maxZoom: 14,
               ),
         initialCenter: _fallbackCentre,
         initialZoom: 9,
         maxZoom: source.maxZoom.toDouble(),
-        // Tapping the basemap clears the selection, the same gesture that
-        // dismisses a sheet.
+        onMapReady: () {
+          _ready = true;
+          _frameViewport();
+        },
+        // Tapping the basemap clears selection without dismissing the panel.
         onTap: (_, _) => ref.read(mapSelectedIdProvider.notifier).select(null),
       ),
       children: [
@@ -248,7 +364,15 @@ class _MapViewState extends ConsumerState<MapView>
         // Under the pins: the line joins the stops, the pins are the stops.
         const _RouteLine(),
         _Pins(destinations: widget.destinations),
-        MapAttribution(source: source),
+        ValueListenableBuilder<EdgeInsets>(
+          valueListenable: _creditInsets,
+          builder: (context, insets, child) =>
+              camera.camera.nonRotatedSize.height - insets.vertical <
+                  AppSize.minTouchTarget
+              ? const SizedBox.shrink()
+              : Padding(padding: insets, child: child),
+          child: MapAttribution(source: source),
+        ),
       ],
     );
   }
