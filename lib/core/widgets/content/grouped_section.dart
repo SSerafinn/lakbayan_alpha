@@ -174,78 +174,85 @@ class GroupedRow extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(rowRadius),
-      child: Padding(
-        padding: padding,
-        child: Row(
-          children: [
-            if (mark != null) ...[mark!, const SizedBox(width: AppSpace.x3)],
-            if (leading != null) ...[
-              SizedBox(
-                width: mediaSize,
-                height: mediaSize,
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(mediaRadius),
-                  child: ParentRadius(radius: mediaRadius, child: leading!),
-                ),
-              ),
-              const SizedBox(width: AppSpace.x3),
-            ],
-            if (leadingGlyph != null) ...[
-              SizedBox.square(
-                dimension: mediaSize,
-                child: DecoratedBox(
-                  // Paper inside the card, never grey on grey.
-                  decoration: ShapeDecoration(
-                    color: scheme.surfaceContainerLow,
-                    shape: const CircleBorder(),
-                  ),
-                  child: Icon(
-                    leadingGlyph,
-                    size: AppSize.glyphLg,
-                    color: glyphColor ?? scheme.onSurface,
+      // A row of words alone is still a full target.
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: AppSize.minTouchTarget),
+        child: Padding(
+          padding: padding,
+          child: Row(
+            children: [
+              if (mark != null) ...[mark!, const SizedBox(width: AppSpace.x3)],
+              if (leading != null) ...[
+                SizedBox(
+                  width: mediaSize,
+                  height: mediaSize,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(mediaRadius),
+                    child: ParentRadius(radius: mediaRadius, child: leading!),
                   ),
                 ),
-              ),
-              const SizedBox(width: AppSpace.x3),
-            ],
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    title,
-                    style: AppTypography.titleSmall,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                const SizedBox(width: AppSpace.x3),
+              ],
+              if (leadingGlyph != null) ...[
+                SizedBox.square(
+                  dimension: mediaSize,
+                  child: DecoratedBox(
+                    // Paper inside the card, never grey on grey.
+                    decoration: ShapeDecoration(
+                      color: scheme.surfaceContainerLow,
+                      shape: const CircleBorder(),
+                    ),
+                    child: Icon(
+                      leadingGlyph,
+                      size: AppSize.glyphLg,
+                      color: glyphColor ?? scheme.onSurface,
+                    ),
                   ),
-                  if (subtitle != null)
+                ),
+                const SizedBox(width: AppSpace.x3),
+              ],
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
                     Text(
-                      subtitle!,
-                      style: AppTypography.secondLine.copyWith(
-                        color: subtitleColor ?? scheme.onSurfaceVariant,
-                      ),
+                      title,
+                      // A settings row's label reads as text, not a title.
+                      style: bare
+                          ? AppTypography.bodyLarge
+                          : AppTypography.titleSmall,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                ],
-              ),
-            ),
-            if (accessory != null) ...[
-              const SizedBox(width: AppSpace.x2),
-              // One 48dp slot, and no narrower, so lone accessories share an
-              // axis; a cluster of controls (a stop row while reordering)
-              // widens it rather than overflowing the row.
-              ConstrainedBox(
-                constraints: const BoxConstraints(
-                  minWidth: AppSize.minTouchTarget,
-                  minHeight: AppSize.minTouchTarget,
-                  maxHeight: AppSize.minTouchTarget,
+                    if (subtitle != null)
+                      Text(
+                        subtitle!,
+                        style: AppTypography.secondLine.copyWith(
+                          color: subtitleColor ?? scheme.onSurfaceVariant,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                  ],
                 ),
-                child: Center(child: accessory),
               ),
+              if (accessory != null) ...[
+                const SizedBox(width: AppSpace.x2),
+                // One 48dp slot, and no narrower, so lone accessories share an
+                // axis; a cluster of controls (a stop row while reordering)
+                // widens it rather than overflowing the row.
+                ConstrainedBox(
+                  constraints: const BoxConstraints(
+                    minWidth: AppSize.minTouchTarget,
+                    minHeight: AppSize.minTouchTarget,
+                    maxHeight: AppSize.minTouchTarget,
+                  ),
+                  child: Center(child: accessory),
+                ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );

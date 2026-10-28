@@ -132,6 +132,6 @@ void main() {
     await tester.tap(find.byTooltip("Profile"));
     await settle(tester);
 
-    expect(find.text("Browsing as a guest"), findsOneWidget);
+    expect(find.text("Guest"), findsOneWidget);
   });
 }

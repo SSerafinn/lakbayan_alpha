@@ -83,9 +83,10 @@ void main() {
   /// * The downloader writes real files. `testWidgets` runs inside a
   ///   fake-async zone where real I/O futures never complete, so the work has
   ///   to happen inside [WidgetTester.runAsync].
-  /// * While it runs, the progress bar is an **indeterminate**
-  ///   `LinearProgressIndicator`, which animates forever, so `pumpAndSettle`
-  ///   would never return afterwards. Pump a bounded number of frames instead.
+  /// * While it runs, the progress ring is an **indeterminate**
+  ///   `CircularProgressIndicator`, which animates forever, so
+  ///   `pumpAndSettle` would never return afterwards. Pump a bounded number
+  ///   of frames instead.
   ///
   /// It waits for the work itself, not for a guessed length of time: a fixed
   /// 400 ms was enough on a laptop and not always on a CI runner, where
@@ -152,13 +153,12 @@ void main() {
   }
 
   group("listing", () {
-    testWidgets("shows a town, its size and place count", (tester) async {
+    testWidgets("shows a town and its size", (tester) async {
       await pump(tester, [ready]);
 
       expect(find.text("Peñablanca"), findsOneWidget);
       expect(find.textContaining("2.0 MB"), findsOneWidget);
-      expect(find.textContaining("1 place"), findsOneWidget);
-      expect(find.widgetWithText(FilledButton, "Download"), findsOneWidget);
+      expect(find.byTooltip("Save Peñablanca offline"), findsOneWidget);
     });
 
     testWidgets("refuses to offer a bundle the province has not finished", (
@@ -168,12 +168,8 @@ void main() {
       // it would download a town with no map and no way to say why.
       await pump(tester, [notReady]);
 
-      expect(find.text("NOT READY"), findsOneWidget);
-      expect(find.widgetWithText(FilledButton, "Download"), findsNothing);
-      expect(
-        find.text("The province is still preparing this town."),
-        findsOneWidget,
-      );
+      expect(find.text("Preparing"), findsOneWidget);
+      expect(find.byTooltip("Save Aparri offline"), findsNothing);
     });
 
     testWidgets("says so when no town is ready at all", (tester) async {
@@ -194,20 +190,19 @@ void main() {
     testWidgets("a current town says it is on the phone", (tester) async {
       await pump(tester, [ready], downloaded: [recordAt("v1")]);
 
-      expect(find.text("ON THIS PHONE"), findsOneWidget);
-      expect(find.widgetWithText(OutlinedButton, "Remove"), findsOneWidget);
-      expect(
-        find.widgetWithText(FilledButton, "Download again"),
-        findsOneWidget,
-      );
+      await tester.tap(find.byTooltip("Peñablanca is on this phone"));
+      await tester.pumpAndSettle();
+      expect(find.text("Remove"), findsOneWidget);
     });
 
     testWidgets("an edited town offers an update", (tester) async {
       // The province changed something since this phone downloaded it.
       await pump(tester, [ready], downloaded: [recordAt("v0")]);
 
-      expect(find.text("UPDATE AVAILABLE"), findsOneWidget);
-      expect(find.widgetWithText(FilledButton, "Update"), findsOneWidget);
+      expect(find.text("Update Ready"), findsOneWidget);
+      await tester.tap(find.byTooltip("Peñablanca is on this phone"));
+      await tester.pumpAndSettle();
+      expect(find.text("Update"), findsOneWidget);
     });
   });
 
@@ -217,10 +212,10 @@ void main() {
     ) async {
       await pump(tester, [ready]);
 
-      await tapAndFinish(tester, find.widgetWithText(FilledButton, "Download"));
+      await tapAndFinish(tester, find.byTooltip("Save Peñablanca offline"));
 
       expect(store.recordFor("penablanca"), isNotNull);
-      expect(find.text("ON THIS PHONE"), findsOneWidget);
+      expect(find.byTooltip("Peñablanca is on this phone"), findsOneWidget);
     });
 
     testWidgets("a failure says nothing was kept, and keeps nothing", (
@@ -229,23 +224,26 @@ void main() {
       fetcher.failOn = "tiles/penablanca/pack.pmtiles";
       await pump(tester, [ready]);
 
-      await tapAndFinish(tester, find.widgetWithText(FilledButton, "Download"));
+      await tapAndFinish(tester, find.byTooltip("Save Peñablanca offline"));
 
       expect(find.textContaining("nothing was kept"), findsOneWidget);
       expect(store.recordFor("penablanca"), isNull);
       // Still offered, because there is nothing half-done to repair.
-      expect(find.widgetWithText(FilledButton, "Download"), findsOneWidget);
+      expect(find.byTooltip("Save Peñablanca offline"), findsOneWidget);
     });
 
     testWidgets("removing a town clears it", (tester) async {
       await pump(tester, [ready]);
-      await tapAndFinish(tester, find.widgetWithText(FilledButton, "Download"));
-      expect(find.text("ON THIS PHONE"), findsOneWidget);
+      await tapAndFinish(tester, find.byTooltip("Save Peñablanca offline"));
+      final onPhone = find.byTooltip("Peñablanca is on this phone");
+      expect(onPhone, findsOneWidget);
 
-      await tapAndFinish(tester, find.widgetWithText(OutlinedButton, "Remove"));
+      await tester.tap(onPhone);
+      await tester.pumpAndSettle();
+      await tapAndFinish(tester, find.text("Remove"));
 
       expect(store.recordFor("penablanca"), isNull);
-      expect(find.text("ON THIS PHONE"), findsNothing);
+      expect(onPhone, findsNothing);
     });
   });
 }

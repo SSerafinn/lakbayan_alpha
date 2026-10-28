@@ -23,7 +23,7 @@ class _CreditsSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return AppSheet(
-      title: "Photo credits",
+      title: "Photo Credits",
       slivers: [
         SliverPadding(
           padding: appSheetBodyPadding,

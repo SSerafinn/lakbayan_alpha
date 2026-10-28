@@ -7,12 +7,10 @@ import "../../../core/errors/local_first.dart";
 import "../../../core/models/destination.dart";
 import "../../../core/router/app_router.dart";
 import "../../../core/theme/app_dimens.dart";
-import "../../../core/theme/app_icons.dart";
-import "../../../core/theme/app_typography.dart";
+import "../../../core/widgets/chrome/page_title.dart";
 import "../../../core/widgets/content/grouped_section.dart";
 import "../../../core/widgets/content/quiet_note.dart";
 import "../../../core/widgets/content/storage_image.dart";
-import "../../../core/widgets/controls/symbol_button.dart";
 import "../../../core/widgets/motion/motion.dart";
 import "../../../core/widgets/motion/page_transitions.dart";
 import "../domain/destination_providers.dart";
@@ -22,9 +20,9 @@ import "save_heart.dart";
 /// Which list this screen shows.
 enum PlacesList { popular, saved }
 
-/// A plain list of places under a title: Home's "See all" and Profile's
-/// Saved places. One grouped section, whole row opens the place, the heart
-/// trailing.
+/// A plain list of places under a large title: Explore's Popular and
+/// Profile's Saved, each from its See All. One grouped card, the whole row
+/// opens the place, the heart trailing.
 class PlacesListScreen extends ConsumerWidget {
   const PlacesListScreen({required this.list, super.key});
 
@@ -33,11 +31,8 @@ class PlacesListScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final (String title, AsyncValue<List<Destination>> places) = switch (list) {
-      PlacesList.popular => (
-        "Popular this week",
-        ref.watch(popularDestinationsProvider),
-      ),
-      PlacesList.saved => ("Saved places", ref.watch(savedPlacesProvider)),
+      PlacesList.popular => ("Popular", ref.watch(popularDestinationsProvider)),
+      PlacesList.saved => ("Saved", ref.watch(savedPlacesProvider)),
     };
 
     return EntranceScope(
@@ -53,7 +48,7 @@ class PlacesListScreen extends ConsumerWidget {
                   AppSpace.gutter,
                   AppSpace.section,
                 ),
-                sliver: SliverToBoxAdapter(child: _Header(title: title)),
+                sliver: SliverToBoxAdapter(child: PageTitle(title)),
               ),
               SliverPadding(
                 padding: EdgeInsets.fromLTRB(
@@ -93,25 +88,6 @@ class PlacesListScreen extends ConsumerWidget {
       ),
     );
   }
-}
-
-class _Header extends StatelessWidget {
-  const _Header({required this.title});
-
-  final String title;
-
-  @override
-  Widget build(BuildContext context) => Row(
-    children: [
-      SymbolButton(
-        icon: AppIcons.back,
-        tooltip: "Back",
-        onTap: () => context.popOrHome(),
-      ),
-      const SizedBox(width: AppSpace.x2),
-      Expanded(child: Text(title, style: AppTypography.titleLarge)),
-    ],
-  );
 }
 
 /// Places as rows on one surface: thumbnail, name, town, save heart. A

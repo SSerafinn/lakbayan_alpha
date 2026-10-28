@@ -153,8 +153,8 @@ abstract final class AppSize {
   /// An anchored menu's width: long enough for "Change dates" and a glyph.
   static const menuWidth = 240.0;
 
-  /// The signed-in avatar on Profile.
-  static const avatar = 56.0;
+  /// Profile's avatar, half over the cover photo.
+  static const avatar = 80.0;
 
   /// The check circle beside a pickable row.
   static const selectionCircle = 26.0;

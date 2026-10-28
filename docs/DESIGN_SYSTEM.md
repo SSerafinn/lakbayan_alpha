@@ -11,8 +11,8 @@ system update for an Android/Flutter target). This document is the committed
 statement of what that reasoning decided. Where it says **Rule**, deviating
 needs a written reason in the PR.
 
-Live specimen: run the app in debug and open **`/design-system`** (Profile tab,
-"Design system"). It renders the real theme with the real widgets. Every
+Live specimen: run the app in debug and open **`/design-system`** (Settings,
+Developer, "Design System"). It renders the real theme with the real widgets. Every
 screen is on this system since the 2a–2k redesign (D-14); each screen's class
 comment states its one job, its emotion and its anatomy.
 
@@ -264,10 +264,10 @@ line under the field**: an error is the error border plus a trailing
   the bar.
 - **Nothing scrolls under the status bar** (2026-09-26, D-16 amendment).
   Every screen keeps an opaque ground there in the page's paper
-  (`StatusBarGround`); the home shell carries one for every tab, so lists
-  and the map start below it. A header photo or map at rest (Place detail,
-  a trip) still reaches the top edge, and the ground closes in under the
-  status bar as the page reaches it.
+  (`StatusBarGround`); the home shell carries one for every tab but
+  Profile, so lists and the map start below it. A header photo or map at
+  rest (Place detail, a trip, Profile's cover) still reaches the top edge,
+  and the ground closes in under the status bar as the page reaches it.
 - **No scroll edge treatment** (removed 2026-09-26, D-16 amendment). No
   blur and no fade where content scrolls under a pinned control: a pinned
   control carries its own surface (the tab bar's white capsule, a
@@ -342,6 +342,22 @@ line under the field**: an error is the error border plus a trailing
   reading, never rewritten: times as "8 AM", PHP as ₱, the part after the
   first comma on a quieter line. A photo opens the viewer, a dark stage
   whose blur is the photo decoded tiny; a pull down closes it.
+- **Profile (D-19)** is what is mine: a cover from my own saved places (a
+  tap moves to the next), the gear to Settings on it, my avatar half over
+  its foot and my name large; then Saved, Trips and Offline as counts on
+  one card, each the label of what it opens; then the saved places as
+  photos with See All. A guest gets Sign In under the name.
+- **A pushed page (D-19)** opens on back alone on its circle and its name
+  large under it (`PageTitle`), and scrolls with it: Settings, Help, the
+  policies, Popular and Saved, Offline, a museum's exhibits. Settings is
+  white cards under short headings, each row a label with its value,
+  chevron, menu glyph or switch trailing, no row glyphs; Theme opens an
+  `AppMenu` from its row; Sign Out last on its own card, red.
+- **Offline (D-19)** is each town as its photo, name and size on it, with
+  its state as the one control in the corner (`TownDownloadButton`, the
+  same on the town's page): download, the ring while it runs, the emerald
+  check once it is on the phone, which opens Update and Remove. A town the
+  province is still preparing says so on a pill.
 - **Presented surfaces come from their source.** Menus are `AppMenu`
   (`app_menu.dart`), on `RawMenuAnchor`: it grows from the control that
   opened it and folds back into it on one spring, whether closed by an item,
@@ -453,6 +469,7 @@ unless they name a feature.
 | `PushPageTransitionsBuilder`, `ZoomPage`, `PhotoHero` | `motion/page_transitions.dart` | every route's push, in from the trailing edge with the page beneath drifting back; a place opened from its photo zooms instead, the photo (`PhotoHero`) scaled, never re-decoded. Both follow Android's back gesture |
 | `FloatingTabBar`, `TabBarLayout`, `TabGlyph` | `chrome/floating_tab_bar.dart` | one capsule, the four sections then search, all drawn glyphs, the chosen one's name growing out of its pill; shrinks on scroll as one transform, slides away for search |
 | `SystemBars`, `StatusBarGround` | `chrome/system_bars.dart` | the bars' icon style for a region; the opaque ground under the status bar (`.below` closes in under a resting header) |
+| `PageTitle` | `chrome/page_title.dart` | a pushed page's top: back on its card circle, the page's name large under it |
 | `_PinnedAction`, `_PinnedActionScope` | private in `destination_detail_screen.dart`, its one user | the floating primary action; folds into a circle while reading |
 | `AppMenu`, `AppMenuItem` | `chrome/app_menu.dart` | the anchored menu: label then trailing glyph, grouped surfaces, grows from its source |
 | `showAppSheet` | `chrome/app_sheet.dart` | the modal sheet, riding the keyboard |
@@ -461,8 +478,8 @@ unless they name a feature.
 | `FilterChipRow` | `controls/filter_chip_row.dart` | the single-select chips, a photo leading where given, the emerald pill travelling between them (the inline date picker is private in `trip_dates.dart`) |
 | `MediaTile`, `MediaScrim`, `PhotoPill` | `content/media_tile.dart` | a photograph with a caption below, or a title on a tested scrim; a glass pill top leading (the scan glyph, a distance, a date); a trailing slot for the save heart |
 | `StorageImage`, `CoverImage` | `content/storage_image.dart` | every photo, decoded at its box's size (or a fixed tiny width for a blur) |
-| `GroupedSection`, `GroupedRow` | `content/grouped_section.dart` | comparable rows on one white card, no dividers; a 48 photo and one second line; a row may carry a mark (a stop's numeral) |
-| `AppCard` | `content/app_card.dart` | a white card on the page, its radius provided downward, whole surface tappable |
+| `GroupedSection`, `GroupedRow` | `content/grouped_section.dart` | comparable rows on one white card, no dividers; a 48 photo and one second line; a row may carry a mark (a stop's numeral); a row of words alone reads in body type, as a settings row; every row at least 48 tall |
+| `AppCard` | `content/app_card.dart` | a white card on the page; only the specimen still uses it |
 | `LakbayanBadge` | `content/lakbayan_badge.dart` | read-only annotation off the photo, until its last screens move |
 | `StopNumeral` | `content/stop_numeral.dart` | a stop's number on a blue circle, the same on its pin and its row |
 | `PageDots` | `content/page_dots.dart` | where you are in a swipeable row; a sliding window of dots past seven pages |
@@ -472,6 +489,7 @@ unless they name a feature.
 | `AudioGuideSection` | `features/audio/presentation/audio_guide_section.dart` | one white card on the page, the place's photo with play on it, that opens the player sheet: the stop playing, progress, transport and every stop |
 | `PhotoViewer` | `features/destinations/presentation/photo_viewer.dart` | a place's photos full screen on a dark stage, zoomed from their tile; a pull down closes it |
 | `SaveHeart` | `features/destinations/presentation/save_heart.dart` | the save control in its four sizes, `bar` inside a `BarItemGroup` |
+| `TownDownloadButton` | `features/offline/presentation/town_download_button.dart` | taking a town offline as one round control: download, the ring while it runs, then what the caller shows once it is on the phone |
 | `SelectionCircle`, `StopPicker` | `features/itineraries/presentation/stop_picker.dart` | the green check circle and selectable place rows |
 | `CameraFlight`, `Basemap`, `StillMapCredit` | `features/maps/presentation/map_view.dart` | a map camera's flight (pull back, cross, settle in), the tiles every map draws, appearing without a fade, and the ODbL credit on a map that does not move |
 | `TourTile`, `TourRail` | `features/itineraries/presentation/tour_tile.dart` | a province tour as a 3:4 poster, and a row of them |

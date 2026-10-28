@@ -165,7 +165,7 @@ void main() {
         policies: () => Stream.value(policies),
       );
 
-      expect(find.text("Privacy policy"), findsOneWidget);
+      expect(find.text("Privacy Policy"), findsOneWidget);
       expect(find.text("Last updated 7 Oct 2026"), findsOneWidget);
       expect(find.text("We collect what you save."), findsOneWidget);
       expect(find.text("We never sell it."), findsOneWidget);
