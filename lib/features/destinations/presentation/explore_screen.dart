@@ -6,22 +6,27 @@ import "../../../core/errors/local_first.dart";
 import "../../../core/models/destination.dart";
 import "../../../core/router/app_router.dart";
 import "../../../core/theme/app_dimens.dart";
+import "../../../core/theme/app_typography.dart";
 import "../../../core/widgets/chrome/floating_tab_bar.dart";
 import "../../../core/widgets/content/lakbayan_badge.dart";
 import "../../../core/widgets/content/quiet_note.dart";
 import "../../../core/widgets/content/section_heading.dart";
+import "../../../core/widgets/content/storage_image.dart";
 import "../../../core/widgets/controls/filter_chip_row.dart";
 import "../../../core/widgets/motion/motion.dart";
 import "../domain/destination_providers.dart";
 import "explore_sections.dart";
-import "featured_carousel.dart";
+import "featured_deck.dart";
 import "places_list_screen.dart";
 import "province_notice.dart";
 
-/// The Explore tab. Sections ordered by how a visitor decides:
-/// Featured → Kinds → Towns → Popular → Where to eat → Tours → Guides.
-/// Above them all, only while the province has one, its notice
-/// ([ProvinceNotice]).
+/// The Explore tab. **Job:** pick a place by looking. **Emotion:** the
+/// province spread out in photos.
+///
+/// The title, the province's notice while it has one ([ProvinceNotice]),
+/// the kinds as photo pills, then the featured deck and the feed in the
+/// order a visitor decides: Towns, Popular, Food, Day Tours, Guides. A kind
+/// chosen puts its places under the pills in place of the deck and feed.
 class ExploreScreen extends ConsumerWidget {
   const ExploreScreen({super.key});
 
@@ -29,42 +34,31 @@ class ExploreScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final featured = ref.watch(featuredDestinationsProvider);
     final category = ref.watch(homeCategoryProvider);
-    final barHeight = FloatingTabBar.clearance(context);
     const gutter = EdgeInsets.symmetric(horizontal: AppSpace.gutter);
-    const gap = SliverToBoxAdapter(child: SizedBox(height: AppSpace.section));
 
     // One scroll view, slivers all the way down: lazy list of sections,
     // inner lists build only visible rows.
     return EntranceScope(
       child: CustomScrollView(
         slivers: [
-          SliverToBoxAdapter(
-            child: SizedBox(
-              height: MediaQuery.viewPaddingOf(context).top + AppSpace.x2,
+          SliverPadding(
+            padding: EdgeInsets.fromLTRB(
+              AppSpace.gutter,
+              MediaQuery.viewPaddingOf(context).top + AppSpace.x2,
+              AppSpace.gutter,
+              AppSpace.x3,
             ),
-          ),
-          const SliverToBoxAdapter(child: ProvinceNotice()),
-          SliverToBoxAdapter(
-            child: Entrance(
-              child: featured.whenLocalFirst(
-                loading: () => const _FeaturedPlaceholder(),
-                error: (error, _) => Padding(
-                  padding: gutter,
-                  child: QuietNote(
-                    errorCopy("Couldn't load destinations.", error),
-                    onRetry: () => ref.invalidate(featuredDestinationsProvider),
-                  ),
-                ),
-                data: (items) => items.isEmpty
-                    ? const SizedBox.shrink()
-                    : FeaturedCarousel(places: items),
+            sliver: SliverToBoxAdapter(
+              child: Semantics(
+                header: true,
+                child: Text("Explore", style: AppTypography.display),
               ),
             ),
           ),
-          gap,
-          const SliverToBoxAdapter(child: Entrance(order: 1, child: _Kinds())),
-          gap,
-          // A new scope per choice, so the section under the chips arrives
+          const SliverToBoxAdapter(child: ProvinceNotice()),
+          const SliverToBoxAdapter(child: Entrance(child: _Kinds())),
+          const SliverToBoxAdapter(child: SizedBox(height: AppSpace.x3)),
+          // A new scope per choice, so the section under the pills arrives
           // in order each time it changes rather than cutting.
           EntranceScope(
             key: ValueKey(category),
@@ -73,10 +67,12 @@ class ExploreScreen extends ConsumerWidget {
                     padding: gutter,
                     sliver: _Matches(category: category),
                   )
-                : _Feed(featured: featured.value ?? const []),
+                : _Feed(featured: featured),
           ),
           SliverToBoxAdapter(
-            child: SizedBox(height: barHeight + AppSpace.section),
+            child: SizedBox(
+              height: FloatingTabBar.clearance(context) + AppSpace.section,
+            ),
           ),
         ],
       ),
@@ -84,21 +80,8 @@ class ExploreScreen extends ConsumerWidget {
   }
 }
 
-class _FeaturedPlaceholder extends StatelessWidget {
-  const _FeaturedPlaceholder();
-
-  @override
-  Widget build(BuildContext context) => const Padding(
-    padding: EdgeInsets.symmetric(horizontal: AppSpace.gutter),
-    child: SizedBox(
-      height: AppSize.featuredCard,
-      child: ImagePlaceholder(borderRadius: AppRadii.lgAll),
-    ),
-  );
-}
-
-/// The kinds of place, the same single-select chips as the Map's, food
-/// among them. Tapping the chosen kind again clears it.
+/// The kinds of place as pills, each with a photo of one, food among them.
+/// Tapping the chosen kind again clears it.
 class _Kinds extends ConsumerWidget {
   const _Kinds();
 
@@ -114,12 +97,14 @@ class _Kinds extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final chosen = ref.watch(homeCategoryProvider);
+    final covers = ref.watch(kindCoversProvider);
     return FilterChipRow(
       items: [
         for (final kind in _kinds)
           FilterChipItem(
             label: kind.label,
             selected: chosen == kind,
+            avatar: covers[kind] == null ? null : CoverImage(covers[kind]),
             onTap: () => ref.read(homeCategoryProvider.notifier).toggle(kind),
           ),
       ],
@@ -141,9 +126,9 @@ class _Matches extends ConsumerWidget {
       slivers: [
         SliverToBoxAdapter(
           child: Entrance(
-            order: 2,
+            order: 1,
             child: Padding(
-              padding: const EdgeInsets.only(bottom: AppSpace.x2),
+              padding: const EdgeInsets.only(bottom: AppSpace.near),
               child: SectionHeading(category.label),
             ),
           ),
@@ -172,40 +157,75 @@ class _Matches extends ConsumerWidget {
   }
 }
 
-/// Everything under the chips, each a beat after the one before, as one
-/// lazy list: a section is built only as it nears the screen, and each sits
-/// behind its own repaint boundary.
-class _Feed extends StatelessWidget {
+/// The deck and everything under it, each a beat after the one before, as
+/// one lazy list: a section is built only as it nears the screen, and each
+/// sits behind its own repaint boundary.
+class _Feed extends ConsumerWidget {
   const _Feed({required this.featured});
 
-  final List<Destination> featured;
+  final AsyncValue<List<Destination>> featured;
 
   static const _gutter = EdgeInsets.symmetric(horizontal: AppSpace.gutter);
   static const _gap = SizedBox(height: AppSpace.section);
 
   @override
-  Widget build(BuildContext context) => SliverList.list(
-    children: [
-      const Entrance(order: 2, child: TownRail()),
-      _gap,
-      const Padding(
-        padding: _gutter,
-        child: Entrance(order: 3, child: PopularSection()),
-      ),
-      // Each of these brings its own gap, so an empty one leaves none.
-      const Entrance(order: 4, child: WhereToEat()),
-      const Entrance(order: 5, child: ReadyMadeDays()),
-      const Entrance(order: 6, child: LocalGuides()),
-      if (featured.isNotEmpty)
+  Widget build(BuildContext context, WidgetRef ref) {
+    final covers = featured.value ?? const <Destination>[];
+    return SliverList.list(
+      children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(
-            AppSpace.gutter,
-            AppSpace.section,
-            AppSpace.gutter,
-            0,
+          padding: _gutter,
+          child: Entrance(
+            order: 1,
+            child: featured.whenLocalFirst(
+              loading: () => const _DeckPlaceholder(),
+              error: (error, _) => QuietNote(
+                errorCopy("Couldn't load destinations.", error),
+                onRetry: () => ref.invalidate(featuredDestinationsProvider),
+              ),
+              data: (items) => items.isEmpty
+                  ? const SizedBox.shrink()
+                  : FeaturedDeck(places: items),
+            ),
           ),
-          child: Entrance(order: 7, child: SwipeEntry(covers: featured)),
         ),
-    ],
+        _gap,
+        const Entrance(order: 2, child: TownRail()),
+        _gap,
+        const Padding(
+          padding: _gutter,
+          child: Entrance(order: 3, child: PopularSection()),
+        ),
+        // Each of these brings its own gap, so an empty one leaves none.
+        const Entrance(order: 4, child: WhereToEat()),
+        const Entrance(order: 5, child: ReadyMadeDays()),
+        const Entrance(order: 6, child: LocalGuides()),
+        if (covers.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpace.gutter,
+              AppSpace.section,
+              AppSpace.gutter,
+              0,
+            ),
+            child: Entrance(order: 7, child: SwipeEntry(covers: covers)),
+          ),
+      ],
+    );
+  }
+}
+
+class _DeckPlaceholder extends StatelessWidget {
+  const _DeckPlaceholder();
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, box) => Padding(
+      padding: const EdgeInsets.only(right: FeaturedDeck.peek),
+      child: SizedBox(
+        height: FeaturedDeck.heightOf(box.maxWidth),
+        child: const ImagePlaceholder(borderRadius: AppRadii.lgAll),
+      ),
+    ),
   );
 }

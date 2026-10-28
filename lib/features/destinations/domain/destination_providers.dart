@@ -49,6 +49,19 @@ Stream<List<Destination>> featuredDestinations(Ref ref) =>
 Stream<List<Destination>> allDestinations(Ref ref) =>
     ref.watch(destinationRepositoryProvider).watchAll();
 
+/// A photo for each kind of place, Explore's kind pills: its first place
+/// with one.
+@riverpod
+Map<DestinationCategory, String> kindCovers(Ref ref) {
+  final all = ref.watch(allDestinationsProvider).value ?? const [];
+  final covers = <DestinationCategory, String>{};
+  for (final place in all) {
+    final cover = place.coverImage;
+    if (cover != null) covers.putIfAbsent(place.category, () => cover);
+  }
+  return covers;
+}
+
 /// Grouped by town. Derived here so the screen does not group on every build.
 @riverpod
 List<Town> towns(Ref ref) {
@@ -66,15 +79,24 @@ List<Town> towns(Ref ref) {
 
 /// A municipality and the published places in it.
 class Town {
-  Town({required this.name, required this.places})
-    : placesLine = places.take(3).map((place) => place.name).join(", ");
+  Town({required this.name, required this.places}) : byKind = _group(places);
 
   final String name;
   final List<Destination> places;
 
-  /// The row's second line: what is there rather than how many. Joined once
-  /// here, not on every build.
-  final String placesLine;
+  /// Its places by kind, in the order the kinds first show: the town page's
+  /// chips and what each one shows. Grouped once here, not on every build.
+  final Map<DestinationCategory, List<Destination>> byKind;
+
+  static Map<DestinationCategory, List<Destination>> _group(
+    List<Destination> places,
+  ) {
+    final byKind = <DestinationCategory, List<Destination>>{};
+    for (final place in places) {
+      byKind.putIfAbsent(place.category, () => []).add(place);
+    }
+    return byKind;
+  }
 
   /// The photo that stands for the town: its first place with one.
   String? get cover {

@@ -98,6 +98,6 @@ void main() {
     // somebody's contact details, and `guidesProvider` answers empty.
     await pump(tester, launcher: (_) async => true, guides: const []);
 
-    expect(find.text("Local guides"), findsNothing);
+    expect(find.text("Guides"), findsNothing);
   });
 }
