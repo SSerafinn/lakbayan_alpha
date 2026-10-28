@@ -337,10 +337,11 @@ class _GuideCard extends ConsumerWidget {
   }
 }
 
-/// For the undecided: a fan of three covers, tilted the way the deck is, so
-/// the row looks like the thing it opens. A tap opens swipe mode; so does a
-/// sideways swipe, the gesture the screen behind it is built on. The fan
-/// deals itself out once as the screen opens, on `AppMotion.arrive`.
+/// For the undecided: a fan of three covers, tilted the way the deck is, and
+/// the mode's name, on a mint card, so the row looks like the thing it
+/// opens. A tap opens Keep or Skip; so does a sideways swipe, the gesture
+/// the screen behind it is built on. The fan deals itself out once as the
+/// screen opens, on `AppMotion.arrive`.
 class SwipeEntry extends StatelessWidget {
   const SwipeEntry({required this.covers, super.key});
 
@@ -348,53 +349,35 @@ class SwipeEntry extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     void open() => context.push(Routes.swipe);
 
     return Pressable(
       child: GestureDetector(
         onHorizontalDragEnd: (_) => open(),
         child: Material(
-          color: scheme.surfaceContainerLowest,
+          // A brand moment, so a pastel, ink on it (D-19).
+          color: context.lakbayan.mint,
           shape: const RoundedRectangleBorder(borderRadius: AppRadii.mdAll),
           clipBehavior: Clip.antiAlias,
           child: InkWell(
             onTap: open,
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(
-                AppSpace.x3,
-                AppSpace.x2,
-                AppSpace.x1,
-                AppSpace.x2,
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpace.x3,
+                vertical: AppSpace.x2,
               ),
               child: Row(
                 children: [
                   _Fan(covers: covers.take(3).toList()),
                   const SizedBox(width: AppSpace.x3),
                   Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          "Not sure where to go?",
-                          style: AppTypography.titleSmall,
-                        ),
-                        Text(
-                          "Flip through places one at a time",
-                          style: AppTypography.secondLine.copyWith(
-                            color: scheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ],
+                    child: Text(
+                      "Keep or Skip",
+                      style: AppTypography.titleMedium.copyWith(
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
                     ),
                   ),
-                  Icon(
-                    AppIcons.chevron,
-                    size: AppSize.glyphMd,
-                    color: scheme.onSurfaceVariant,
-                  ),
-                  const SizedBox(width: AppSpace.x2),
                 ],
               ),
             ),
@@ -445,7 +428,7 @@ class _Fan extends StatelessWidget {
                     (index - 1) * (_width - _cardWidth) / 2 * spread,
                 top: 0,
                 bottom: 0,
-                width: AppSize.guideCard,
+                width: _cardWidth,
                 child: Transform.rotate(
                   angle: (index - 1) * _tilt * spread,
                   child: card,

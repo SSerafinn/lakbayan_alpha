@@ -308,7 +308,11 @@ line under the field**: an error is the error border plus a trailing
   appearance: the front card's photo, decoded tiny and stretched (a blur
   with no filter), fills the screen and changes in step with the drag.
   Keep and Skip are buttons as well as the gesture, in the card's colour:
-  its kind's deep tone (`role.kind`) until photos carry their own.
+  its kind's deep tone (`role.kind`) until photos carry their own. The last
+  skipped place waits as a disc at the leading edge, the last kept one at
+  the trailing edge with the heart, opening Saved, and the stage settles in
+  once (D-19). Explore's way in is a mint card: the photo fan and the
+  mode's name.
 - **A trip's page** has one way into its map, the map itself: no pill and
   no floating button. The full-screen map carries Open in Map and each
   stop's directions. On the page (D-19): the name, the dates and the trip's
