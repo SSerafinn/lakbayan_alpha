@@ -51,20 +51,13 @@ class LakbayanBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.lakbayan;
     final scheme = Theme.of(context).colorScheme;
+    final card = scheme.surfaceContainerLowest;
 
     final (Color fill, Color text, Color? side) = switch (kind) {
-      BadgeKind.ar => (scheme.onSurface, scheme.surface, null),
+      BadgeKind.ar => (scheme.onSurface, card, null),
       BadgeKind.featured => (c.featured, c.onFeatured, null),
-      BadgeKind.neutral => (
-        scheme.surface,
-        c.textOnLightGreen,
-        scheme.outlineVariant,
-      ),
-      BadgeKind.info => (
-        scheme.surface,
-        scheme.onSurface,
-        scheme.outlineVariant,
-      ),
+      BadgeKind.neutral => (card, c.textOnLightGreen, scheme.outlineVariant),
+      BadgeKind.info => (card, scheme.onSurface, scheme.outlineVariant),
       BadgeKind.closed => (scheme.error, scheme.onError, null),
     };
 

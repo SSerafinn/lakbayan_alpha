@@ -62,7 +62,7 @@ class StopStrip extends StatelessWidget {
             label: "Stop $number",
             // The list's own row on a white card, so it reads over the map.
             child: Material(
-              color: Theme.of(context).colorScheme.surface,
+              color: Theme.of(context).colorScheme.surfaceContainerLowest,
               shape: const RoundedRectangleBorder(borderRadius: AppRadii.mdAll),
               clipBehavior: Clip.antiAlias,
               child: GroupedSection(

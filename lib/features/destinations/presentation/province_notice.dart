@@ -12,8 +12,8 @@ import "../../profile/domain/settings_providers.dart";
 /// (`Announcement.isLiveAt`), and gone without a trace otherwise — no
 /// space held for it while it loads.
 ///
-/// A card on the surface step, like a guide's, with the info glyph in ink:
-/// not red, which is CLOSED and errors, and not gold, which is FEATURED.
+/// A white card, like a guide's, with the info glyph in ink: not red, which
+/// is CLOSED and errors.
 class ProvinceNotice extends ConsumerWidget {
   const ProvinceNotice({super.key});
 
@@ -35,7 +35,7 @@ class ProvinceNotice extends ConsumerWidget {
         AppSpace.section,
       ),
       child: Material(
-        color: scheme.surfaceContainerLow,
+        color: scheme.surfaceContainerLowest,
         shape: const RoundedRectangleBorder(borderRadius: AppRadii.mdAll),
         child: Padding(
           padding: const EdgeInsets.all(AppSpace.x3),

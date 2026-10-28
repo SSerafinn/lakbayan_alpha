@@ -110,17 +110,21 @@ flutter:
 
   # Bundled rather than fetched via google_fonts: offline-first is a hard
   # guardrail, and google_fonts downloads at first run by default.
-  # Satoshi is a variable font: see the FontVariation note in app_typography.dart.
+  # Both are variable fonts: see the FontVariation note in app_typography.dart.
   fonts:
-    # The one UI voice: headings, body, labels, controls (D-13). Fontshare
-    # licence (FFL) ships beside it.
+    # Every word a person reads in the UI: body, labels, controls (D-13).
+    # Fontshare licence (FFL) ships beside it.
     - family: Satoshi
       fonts:
         - asset: assets/fonts/Satoshi/Fonts/TTF/Satoshi-Variable.ttf
         - asset: assets/fonts/Satoshi/Fonts/TTF/Satoshi-VariableItalic.ttf
           style: italic
-    # Brand voice: the landing greetings and the LAKBAYAN wordmark only. A
-    # Philippine tourism trademark face; never a ramp step. Static OTF, so
+    # Headings: titles, place names, section heads (D-19). Fontshare
+    # licence (FFL) ships beside it.
+    - family: CabinetGrotesk
+      fonts:
+        - asset: assets/fonts/CabinetGrotesk/Fonts/TTF/CabinetGrotesk-Variable.ttf
+    # The LAKBAYAN wordmark and the landing greetings only. Static OTF, so
     # no `wght` axis to set.
     - family: Barabara
       fonts:

@@ -219,7 +219,7 @@ class _BarState extends State<_Bar> with TickerProviderStateMixin {
                 count: destinations.length,
                 parting: _parting,
                 index: _index,
-                fill: scheme.surface,
+                fill: scheme.surfaceContainerLowest,
                 hairline: scheme.outlineVariant,
                 indicator: scheme.primary,
               ),

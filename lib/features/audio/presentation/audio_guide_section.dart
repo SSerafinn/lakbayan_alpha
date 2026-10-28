@@ -212,8 +212,8 @@ class _Capsule extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     return Pressable(
       child: Material(
-        color: scheme.surface,
-        shape: StadiumBorder(side: BorderSide(color: scheme.outlineVariant)),
+        color: scheme.surfaceContainerLowest,
+        shape: const StadiumBorder(),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: onOpen,

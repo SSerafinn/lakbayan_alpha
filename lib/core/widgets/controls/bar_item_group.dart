@@ -1,6 +1,7 @@
 import "package:flutter/material.dart";
 
 import "../../theme/app_dimens.dart";
+import "../../theme/lakbayan_colors.dart";
 import "../chrome/app_menu.dart";
 import "symbol_button.dart";
 
@@ -50,8 +51,8 @@ class BarItem {
 /// **Shape.** Capsule. Items inside have no individual container; emphasis
 /// comes from the group, not from per-button plates.
 ///
-/// **Variants.** The default sits on the white ground on a grey capsule.
-/// [BarItemGroup.overMedia] sits over a photo or a map on a white capsule,
+/// **Variants.** The default sits on the paper ground on a white capsule.
+/// [BarItemGroup.overMedia] sits over a photo or a map on a glass capsule,
 /// sized with [SymbolButton] so a back circle beside it shares its height
 /// (design doc 03: a control over content needs its own surface).
 ///
@@ -71,9 +72,9 @@ class BarItemGroup extends StatelessWidget {
         "A bar group holds two to four items; overflow goes to a menu.",
       );
 
-  /// [background] replaces the white capsule's fill, for a group that
-  /// passes from a photo onto the white page and takes the grey step up
-  /// there, as [SymbolButton]'s `onGround` does.
+  /// [background] replaces the glass capsule's fill, for a group that
+  /// passes from a photo onto the page and takes the card there, as
+  /// [SymbolButton]'s `onGround` does.
   const BarItemGroup.overMedia({
     required this.items,
     this.background,
@@ -106,7 +107,8 @@ class BarItemGroup extends StatelessWidget {
 
     return Material(
       color:
-          background ?? (overMedia ? scheme.surface : scheme.surfaceContainer),
+          background ??
+          (overMedia ? context.lakbayan.glass : scheme.surfaceContainerLowest),
       shape: capsule,
       clipBehavior: Clip.antiAlias,
       child: Padding(

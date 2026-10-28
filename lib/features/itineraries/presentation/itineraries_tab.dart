@@ -10,6 +10,7 @@ import "../../../core/router/app_router.dart";
 import "../../../core/theme/app_dimens.dart";
 import "../../../core/theme/app_icons.dart";
 import "../../../core/theme/app_typography.dart";
+import "../../../core/theme/lakbayan_colors.dart";
 import "../../../core/widgets/chrome/app_menu.dart";
 import "../../../core/widgets/chrome/floating_tab_bar.dart";
 import "../../../core/widgets/content/grouped_section.dart";
@@ -232,7 +233,7 @@ class _TourMenu extends ConsumerWidget {
         tooltip: "More",
         onPressed: controller.isOpen ? controller.close : controller.open,
         style: IconButton.styleFrom(
-          backgroundColor: scheme.surface,
+          backgroundColor: context.lakbayan.glass,
           foregroundColor: scheme.onSurface,
           fixedSize: const Size.square(AppSize.tileSave),
           shape: const CircleBorder(),

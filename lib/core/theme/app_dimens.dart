@@ -17,9 +17,12 @@ abstract final class AppSpace {
   static const x10 = 40.0;
   static const x12 = 48.0;
 
-  // 12dp gutter and section gap (tight rhythm).
+  /// The screen's side margin.
   static const gutter = 12.0;
-  static const section = 12.0;
+
+  /// Between sections and between cards: a clear step, kept short so the
+  /// page stays close (D-19).
+  static const section = 16.0;
 
   /// Grouped section edge to row edge, and a row's own padding.
   static const groupInset = 4.0;
@@ -143,7 +146,7 @@ abstract final class AppSize {
   static const glyphXl = 24.0;
 
   /// A grouped row's leading photo, and its leading glyph circle.
-  static const rowMedia = 56.0;
+  static const rowMedia = 48.0;
   static const rowGlyphCircle = 40.0;
 
   /// A dense row's leading photo or glyph circle.

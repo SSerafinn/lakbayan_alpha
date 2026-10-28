@@ -10,10 +10,10 @@ import "../domain/saved_destinations.dart";
 
 /// Where the heart sits, which sets its size and surface.
 enum SaveHeartStyle {
-  /// A 48 white circle over hero photography.
+  /// A 48 glass circle over hero photography.
   hero,
 
-  /// A 32 white circle at the top-right of a media tile.
+  /// A 32 glass circle at the top-right of a media tile.
   tile,
 
   /// A bare glyph as a grouped row's trailing accessory, padded to 48.
@@ -51,16 +51,8 @@ class SaveHeart extends ConsumerWidget {
     );
 
     final (double size, double glyph, Color? fill) = switch (style) {
-      SaveHeartStyle.hero => (
-        AppSize.heroSave,
-        AppSize.glyphLg,
-        scheme.surface,
-      ),
-      SaveHeartStyle.tile => (
-        AppSize.tileSave,
-        AppSize.glyphSm,
-        scheme.surface,
-      ),
+      SaveHeartStyle.hero => (AppSize.heroSave, AppSize.glyphLg, brand.glass),
+      SaveHeartStyle.tile => (AppSize.tileSave, AppSize.glyphSm, brand.glass),
       SaveHeartStyle.row => (AppSize.minTouchTarget, AppSize.glyph, null),
       SaveHeartStyle.bar => (AppSize.symbolButton, AppSize.glyph, null),
     };

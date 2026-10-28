@@ -315,7 +315,7 @@ class _RouteLine extends ConsumerWidget {
           points: points,
           color: context.lakbayan.spatial,
           strokeWidth: AppStroke.mapRoute,
-          borderColor: Theme.of(context).colorScheme.surface,
+          borderColor: Theme.of(context).colorScheme.surfaceContainerLowest,
           borderStrokeWidth: AppStroke.regular,
         ),
       ],
@@ -460,7 +460,7 @@ class _Pin extends StatelessWidget {
                             child: Text(
                               destination.name,
                               style: AppTypography.labelMedium.copyWith(
-                                color: scheme.surface,
+                                color: scheme.surfaceContainerLowest,
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
@@ -500,7 +500,7 @@ class _Pin extends StatelessWidget {
                             color: saved ? scheme.primary : brand.spatial,
                             shape: CircleBorder(
                               side: BorderSide(
-                                color: scheme.surface,
+                                color: scheme.surfaceContainerLowest,
                                 width: _ring,
                               ),
                             ),
@@ -511,7 +511,7 @@ class _Pin extends StatelessWidget {
                                     width: AppSpace.x2,
                                     height: AppSpace.x2,
                                     decoration: ShapeDecoration(
-                                      color: scheme.surface,
+                                      color: scheme.surfaceContainerLowest,
                                       shape: const CircleBorder(),
                                     ),
                                   ),

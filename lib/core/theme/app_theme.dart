@@ -9,8 +9,11 @@ import "lakbayan_colors.dart";
 
 /// The Lakbayan Material 3 theme.
 ///
-/// Component themes are centralised here so stock widgets carry the design
-/// language without per-call-site overrides. See `docs/DESIGN_SYSTEM.md`.
+/// The page is paper (`surface`); a card is one step brighter
+/// (`surfaceContainerLowest`), and what sits inside a card takes the paper
+/// again (`surfaceContainerLow`). Component themes live here so stock widgets
+/// carry the design without per-call-site overrides. See
+/// `docs/DESIGN_SYSTEM.md`.
 ThemeData buildAppTheme() => _build(Brightness.light);
 
 ThemeData buildAppDarkTheme() => _build(Brightness.dark);
@@ -18,9 +21,8 @@ ThemeData buildAppDarkTheme() => _build(Brightness.dark);
 ThemeData _build(Brightness brightness) {
   final isDark = brightness == Brightness.dark;
   final scheme = isDark ? _darkScheme : _lightScheme;
-  final brand = isDark
-      ? LakbayanColors.dark(scheme)
-      : LakbayanColors.light(scheme);
+  final brand = isDark ? LakbayanColors.dark : LakbayanColors.light;
+  final card = scheme.surfaceContainerLowest;
 
   // The ramp carries no colour of its own; onSurface is applied here once.
   final textTheme = AppTypography.textTheme().apply(
@@ -28,8 +30,7 @@ ThemeData _build(Brightness brightness) {
     displayColor: scheme.onSurface,
   );
 
-  // Text buttons and links: /700 in light so AA holds on a pale surface,
-  // /300 in dark where the base would vanish.
+  // Text buttons and links: the darker emerald, so words hold AA on paper.
   final linkColor = brand.textOnLightGreen;
 
   return ThemeData(
@@ -38,6 +39,7 @@ ThemeData _build(Brightness brightness) {
     colorScheme: scheme,
     textTheme: textTheme,
     scaffoldBackgroundColor: scheme.surface,
+    canvasColor: scheme.surface,
     fontFamily: AppTypography.family,
     extensions: [brand],
     visualDensity: VisualDensity.standard,
@@ -61,21 +63,22 @@ ThemeData _build(Brightness brightness) {
       },
     ),
 
-    // Transparent; no scroll-under tint — pinned controls carry their own surface.
+    // On paper, with no tint when content scrolls under it: a large title
+    // collapses into this bar and the bar stays the page's own ground.
     appBarTheme: AppBarTheme(
       toolbarHeight: AppSize.appBarHeight,
       centerTitle: false,
       elevation: 0,
       scrolledUnderElevation: 0,
-      backgroundColor: Colors.transparent,
+      backgroundColor: scheme.surface,
       surfaceTintColor: Colors.transparent,
       foregroundColor: scheme.onSurface,
       titleTextStyle: textTheme.titleLarge,
       titleSpacing: AppSpace.x4,
     ),
 
-    // Primary: a capsule in the brand green, one per screen, taller than the
-    // touch minimum so it reads as the focal action.
+    // Primary: a capsule in emerald, one per screen, taller than the touch
+    // minimum so it reads as the focal action.
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
         backgroundColor: scheme.primary,
@@ -89,12 +92,12 @@ ThemeData _build(Brightness brightness) {
       ),
     ),
 
-    // Secondary: white with a hairline and ink text. Only the primary carries
-    // colour, so a row of two buttons has one focal point.
+    // Secondary: a card-white capsule with a hairline and ink text. Only the
+    // primary carries colour, so a row of two buttons has one focal point.
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
         foregroundColor: scheme.onSurface,
-        backgroundColor: scheme.surface,
+        backgroundColor: card,
         side: BorderSide(color: scheme.outlineVariant),
         minimumSize: const Size(AppSize.minTouchTarget, AppSize.minTouchTarget),
         padding: const EdgeInsets.symmetric(horizontal: AppSpace.x6),
@@ -103,7 +106,7 @@ ThemeData _build(Brightness brightness) {
       ),
     ),
 
-    // Tertiary: green text, no chrome.
+    // Tertiary: emerald words, no chrome.
     textButtonTheme: TextButtonThemeData(
       style: TextButton.styleFrom(
         foregroundColor: linkColor,
@@ -137,9 +140,9 @@ ThemeData _build(Brightness brightness) {
       iconSize: AppSize.glyphLg,
     ),
 
-    // A card is a tonal step up from the ground, nothing more.
+    // A card is the white step on paper, nothing more: no shadow, no tint.
     cardTheme: CardThemeData(
-      color: scheme.surfaceContainerLow,
+      color: card,
       surfaceTintColor: Colors.transparent,
       elevation: 0,
       margin: EdgeInsets.zero,
@@ -147,14 +150,13 @@ ThemeData _build(Brightness brightness) {
       shape: const RoundedRectangleBorder(borderRadius: AppRadii.mdAll),
     ),
 
-    // Capsule chips: a quiet grey at rest, solid green with white text when
-    // selected. Selection is the signature colour at full strength, the same
-    // as the navigation indicator.
+    // Capsule chips: card-white with a hairline at rest, solid emerald with
+    // white words when chosen, the same selection as the tab bar.
     // A theme labelStyle replaces Material's default outright and a chip
     // resolves only the label's colour per state, so set it here or the
     // label paints with none.
     chipTheme: ChipThemeData(
-      backgroundColor: scheme.surface,
+      backgroundColor: card,
       selectedColor: scheme.primary,
       disabledColor: scheme.surfaceContainerLow,
       side: WidgetStateBorderSide.resolveWith(
@@ -182,19 +184,17 @@ ThemeData _build(Brightness brightness) {
       pressElevation: 0,
     ),
 
-    // Draws nothing. Boundaries come from spacing and grouped surfaces; a
-    // hairline that survives here is a call site that has not migrated.
+    // Draws nothing. Boundaries come from spacing and cards; a hairline that
+    // survives here is a call site that has not migrated.
     dividerTheme: const DividerThemeData(
       color: Colors.transparent,
       thickness: 0,
       space: 0,
     ),
 
-    // White bar. The selected destination carries the signature: a solid
-    // green capsule with a white glyph, ink label under it.
     navigationBarTheme: NavigationBarThemeData(
       height: AppSize.bottomNav,
-      backgroundColor: scheme.surface,
+      backgroundColor: card,
       indicatorColor: scheme.primary,
       indicatorShape: capsule,
       elevation: 0,
@@ -218,7 +218,7 @@ ThemeData _build(Brightness brightness) {
     ),
 
     navigationRailTheme: NavigationRailThemeData(
-      backgroundColor: scheme.surface,
+      backgroundColor: card,
       indicatorColor: scheme.primary,
       indicatorShape: capsule,
       elevation: 0,
@@ -240,19 +240,19 @@ ThemeData _build(Brightness brightness) {
     ),
 
     navigationDrawerTheme: NavigationDrawerThemeData(
-      backgroundColor: scheme.surface,
+      backgroundColor: card,
       indicatorColor: scheme.primary,
       indicatorShape: capsule,
       elevation: 0,
       surfaceTintColor: Colors.transparent,
     ),
 
-    // A white field with a hairline; the hairline turns green on focus. No
-    // helper, no counter: the label is the placeholder and an error is a
-    // border plus a trailing glyph, never a line of text under the field.
+    // A card-white field with a hairline; the hairline turns emerald on
+    // focus. No helper, no counter: the label is the placeholder and an error
+    // is a border plus a trailing glyph, never a line of text under it.
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: scheme.surface,
+      fillColor: card,
       contentPadding: const EdgeInsets.symmetric(
         horizontal: AppSpace.x4,
         vertical: AppSpace.x4,
@@ -293,8 +293,8 @@ ThemeData _build(Brightness brightness) {
     ),
 
     // Emerges from its source, carries a handle, grows more opaque as it
-    // expands. Modal sheets get the barrier; parallel ones do not.
-    // A sheet is white so the grouped sections inside it keep their step.
+    // expands. Modal sheets get the barrier; parallel ones do not. A sheet is
+    // paper, so the cards inside it keep their white step.
     bottomSheetTheme: BottomSheetThemeData(
       backgroundColor: scheme.surface,
       modalBackgroundColor: scheme.surface,
@@ -312,17 +312,17 @@ ThemeData _build(Brightness brightness) {
     ),
 
     dialogTheme: DialogThemeData(
-      backgroundColor: scheme.surfaceContainerHigh,
+      backgroundColor: card,
       surfaceTintColor: Colors.transparent,
       elevation: 0,
       shape: const RoundedRectangleBorder(borderRadius: AppRadii.lgAll),
-      titleTextStyle: textTheme.titleMedium,
+      titleTextStyle: textTheme.titleLarge,
       contentTextStyle: textTheme.bodyMedium,
     ),
 
     listTileTheme: ListTileThemeData(
       contentPadding: const EdgeInsets.symmetric(horizontal: AppSpace.x4),
-      titleTextStyle: textTheme.labelLarge,
+      titleTextStyle: textTheme.titleSmall,
       subtitleTextStyle: textTheme.bodyMedium?.copyWith(
         color: scheme.onSurfaceVariant,
       ),
@@ -343,7 +343,7 @@ ThemeData _build(Brightness brightness) {
 
     segmentedButtonTheme: SegmentedButtonThemeData(
       style: SegmentedButton.styleFrom(
-        backgroundColor: scheme.surface,
+        backgroundColor: card,
         selectedBackgroundColor: scheme.primary,
         selectedForegroundColor: scheme.onPrimary,
         foregroundColor: scheme.onSurface,
@@ -351,6 +351,18 @@ ThemeData _build(Brightness brightness) {
         shape: capsule,
         textStyle: AppTypography.labelMedium,
       ),
+    ),
+
+    // On is emerald with a white knob; off is the hairline's tone. No
+    // outline either way.
+    switchTheme: SwitchThemeData(
+      thumbColor: const WidgetStatePropertyAll(Colors.white),
+      trackColor: WidgetStateProperty.resolveWith(
+        (states) => states.contains(WidgetState.selected)
+            ? scheme.primary
+            : scheme.outlineVariant,
+      ),
+      trackOutlineColor: const WidgetStatePropertyAll(Colors.transparent),
     ),
 
     progressIndicatorTheme: ProgressIndicatorThemeData(
@@ -372,77 +384,78 @@ const _collapsed = TextStyle(fontSize: 0, height: 0);
 /// land where the design system puts them and nowhere else.
 const _lightScheme = ColorScheme(
   brightness: Brightness.light,
-  primary: AppColors.green500,
-  onPrimary: Colors.white,
-  primaryContainer: AppColors.green100,
-  onPrimaryContainer: AppColors.green900,
-  secondary: AppColors.blue500,
-  onSecondary: Colors.white,
-  secondaryContainer: AppColors.blue100,
-  onSecondaryContainer: AppColors.blue700,
-  // Tertiary is deliberately a *neutral* container, not gold, so no Material
-  // widget can pick the accent up as an action colour.
+  primary: AppColors.emerald,
+  onPrimary: AppColors.white,
+  primaryContainer: AppColors.emeraldTint,
+  onPrimaryContainer: AppColors.emeraldText,
+  secondary: AppColors.blue,
+  onSecondary: AppColors.white,
+  secondaryContainer: AppColors.sky,
+  onSecondaryContainer: AppColors.ink,
+  // Tertiary is deliberately neutral, so no Material widget picks up a brand
+  // colour as an action colour.
   tertiary: AppColors.ink700,
-  onTertiary: Colors.white,
+  onTertiary: AppColors.white,
   tertiaryContainer: AppColors.surfaceContainerHighest,
   onTertiaryContainer: AppColors.ink,
   error: AppColors.error,
-  onError: Colors.white,
+  onError: AppColors.white,
   errorContainer: AppColors.errorContainer,
   onErrorContainer: AppColors.onErrorContainer,
-  surface: AppColors.surface,
+  surface: AppColors.paper,
   onSurface: AppColors.ink,
-  onSurfaceVariant: AppColors.grey600,
-  surfaceDim: AppColors.surfaceDim,
-  surfaceBright: AppColors.surfaceBright,
-  surfaceContainerLowest: AppColors.surfaceContainerLowest,
-  surfaceContainerLow: AppColors.surfaceContainerLow,
+  onSurfaceVariant: AppColors.sub,
+  surfaceDim: AppColors.surfaceContainerHigh,
+  surfaceBright: AppColors.white,
+  surfaceContainerLowest: AppColors.white,
+  surfaceContainerLow: AppColors.paper,
   surfaceContainer: AppColors.surfaceContainer,
   surfaceContainerHigh: AppColors.surfaceContainerHigh,
   surfaceContainerHighest: AppColors.surfaceContainerHighest,
   outline: AppColors.outline,
-  outlineVariant: AppColors.outlineVariant,
+  outlineVariant: AppColors.line,
   inverseSurface: AppColors.ink,
-  onInverseSurface: AppColors.surface,
-  inversePrimary: AppColors.green300,
+  onInverseSurface: AppColors.paper,
+  inversePrimary: AppColors.emeraldDark,
   shadow: Colors.transparent,
   scrim: Color(0x99111418),
 );
 
-/// Dark scheme. Interactive colour steps to the /300 tints.
+/// Warm charcoal. A card is still one step brighter than the page, so
+/// `surfaceContainerLowest` sits above `surface` here too.
 const _darkScheme = ColorScheme(
   brightness: Brightness.dark,
-  primary: AppColors.green300,
-  onPrimary: AppColors.green900,
-  primaryContainer: Color(0xFF14432A),
-  onPrimaryContainer: AppColors.green100,
-  secondary: AppColors.blue300,
-  onSecondary: AppColors.darkSurface,
-  secondaryContainer: Color(0xFF163A52),
-  onSecondaryContainer: AppColors.blue100,
-  tertiary: AppColors.darkOnSurfaceVariant,
-  onTertiary: AppColors.darkSurface,
-  tertiaryContainer: AppColors.darkSurfaceContainerHighest,
-  onTertiaryContainer: AppColors.darkOnSurface,
+  primary: AppColors.emeraldDark,
+  onPrimary: AppColors.onEmeraldDark,
+  primaryContainer: AppColors.emeraldTintDark,
+  onPrimaryContainer: AppColors.charcoalInk,
+  secondary: AppColors.blueDark,
+  onSecondary: AppColors.charcoal,
+  secondaryContainer: AppColors.skyDark,
+  onSecondaryContainer: AppColors.charcoalInk,
+  tertiary: AppColors.charcoalSub,
+  onTertiary: AppColors.charcoal,
+  tertiaryContainer: AppColors.charcoalHighest,
+  onTertiaryContainer: AppColors.charcoalInk,
   error: Color(0xFFF0A5A5),
   onError: Color(0xFF4A1F1F),
   errorContainer: Color(0xFF4A1F1F),
   onErrorContainer: Color(0xFFF0A5A5),
-  surface: AppColors.darkSurface,
-  onSurface: AppColors.darkOnSurface,
-  onSurfaceVariant: AppColors.darkOnSurfaceVariant,
-  surfaceDim: AppColors.darkSurfaceDim,
-  surfaceBright: AppColors.darkSurfaceBright,
-  surfaceContainerLowest: AppColors.darkSurfaceContainerLowest,
-  surfaceContainerLow: AppColors.darkSurfaceContainerLow,
-  surfaceContainer: AppColors.darkSurfaceContainer,
-  surfaceContainerHigh: AppColors.darkSurfaceContainerHigh,
-  surfaceContainerHighest: AppColors.darkSurfaceContainerHighest,
-  outline: AppColors.darkOutline,
-  outlineVariant: AppColors.darkOutlineVariant,
-  inverseSurface: AppColors.darkOnSurface,
-  onInverseSurface: AppColors.darkSurface,
-  inversePrimary: AppColors.green700,
+  surface: AppColors.charcoal,
+  onSurface: AppColors.charcoalInk,
+  onSurfaceVariant: AppColors.charcoalSub,
+  surfaceDim: AppColors.charcoalDim,
+  surfaceBright: AppColors.charcoalRaised,
+  surfaceContainerLowest: AppColors.charcoalCard,
+  surfaceContainerLow: AppColors.charcoal,
+  surfaceContainer: AppColors.charcoalRaised,
+  surfaceContainerHigh: AppColors.charcoalHigh,
+  surfaceContainerHighest: AppColors.charcoalHighest,
+  outline: AppColors.charcoalOutline,
+  outlineVariant: AppColors.charcoalLine,
+  inverseSurface: AppColors.charcoalInk,
+  onInverseSurface: AppColors.charcoal,
+  inversePrimary: AppColors.emerald,
   shadow: Colors.transparent,
   scrim: Color(0xB3000000),
 );

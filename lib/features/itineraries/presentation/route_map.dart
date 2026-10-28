@@ -144,7 +144,7 @@ class _RouteMapState extends ConsumerState<RouteMap>
                 strokeWidth: widget.expanded
                     ? AppStroke.mapRoute
                     : AppStroke.route,
-                borderColor: scheme.surface,
+                borderColor: scheme.surfaceContainerLowest,
                 borderStrokeWidth: AppStroke.regular,
               ),
             ],
@@ -221,7 +221,7 @@ class _RestCredit extends StatelessWidget {
         ),
         child: DecoratedBox(
           decoration: ShapeDecoration(
-            color: scheme.surface,
+            color: context.lakbayan.glass,
             shape: const StadiumBorder(),
           ),
           child: Padding(

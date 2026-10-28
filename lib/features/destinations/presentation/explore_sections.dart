@@ -268,7 +268,7 @@ class _GuideCard extends ConsumerWidget {
     return Pressable(
       enabled: uri != null,
       child: Material(
-        color: scheme.surfaceContainerLow,
+        color: scheme.surfaceContainerLowest,
         shape: const RoundedRectangleBorder(borderRadius: AppRadii.mdAll),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
@@ -329,7 +329,7 @@ class SwipeEntry extends StatelessWidget {
       child: GestureDetector(
         onHorizontalDragEnd: (_) => open(),
         child: Material(
-          color: scheme.surfaceContainerLow,
+          color: scheme.surfaceContainerLowest,
           shape: const RoundedRectangleBorder(borderRadius: AppRadii.mdAll),
           clipBehavior: Clip.antiAlias,
           child: InkWell(

@@ -384,6 +384,60 @@ twice, since they read `CupertinoTheme`. Their edge swipe fights Android's
 back gesture. Their sheets and alerts also rise from a fixed edge instead of
 from their source. So the feel is built from our own tokens.
 
+## D-19 · Design system 3.0: paper and white cards, emerald, Cabinet Grotesk, fewer words (2026-10-23) · PROPOSED
+
+**Status.** Proposed. Built on `refactor/ui-less-wordy` in small child
+branches (`ui-less-wordy/NN-name`), each reviewed into it, and merged to
+`staging` only once the team confirms this entry.
+
+**Why.** People using the app found it wordy (everything had a word
+describing it), its type too large, its lists of places walls of text, and
+the brand weak past the landing page. There was no room for galleries, and
+Profile and Settings did not read as finished screens.
+
+**Decision.**
+
+- **Surfaces.** The page is paper (`#F3F2EE`); a card is white on it
+  (`surfaceContainerLowest`); what sits inside a card takes paper again. Dark
+  is warm charcoal (`#262624`, cards `#30302E`), not black. Still no shadows,
+  and the hairline keeps its four uses. A control over a photo or a map sits
+  on glass: white at 90%, opaque, no blur.
+- **Colour.** Jade emerald `#00755A` (white on it 5.7:1; emerald words
+  `#005C45`) for the primary action, selection, links and focus. The landing
+  page's pastels (mint, sky, butter, blush) become each kind's surface and
+  the brand's quiet moments; ink sits on them and they are never a button.
+  Red stays the saved heart and destructive words. Blue narrows to the route
+  and your own position. Gold is gone, with the FEATURED badge.
+- **Type.** Cabinet Grotesk at 700 and 800 for headings, Satoshi at 550 and
+  650 for every other word (D-15's floor holds). A compact ramp: display 28,
+  hero 26, titles 20, 17 and 15, body 15 and 14, labels 15, 13 and 12.
+  Barabara stays on the landing page only, the wordmark and the greetings.
+- **Rhythm.** Tight inside a group, 16 between groups; the gutter stays 12.
+- **Words become signals.** Headings are one or two words, and headings,
+  labels, buttons and chips are Title Case. Cards carry no description; a
+  second line appears only when it is a decision fact. A status is a glyph
+  or position, not a badge word: the scan glyph on a photo, a verified
+  guide's seal, featured as the deck. No count stands alone.
+- **Structure.** Explore opens on its title, the kinds as photo pills and
+  the featured places as a deck; its towns hang from a river. A town opens
+  its own page. Search shows the places opened last, the towns and every
+  place as photos. Place detail gains segments (Overview, Photos, Nearby,
+  and Exhibits for a museum) with its facts in a collapsible Details.
+  Settings is the standard categorized list with no row glyphs. The tab
+  bar's chosen section shows its name, and the Itineraries tab is Trips.
+- **Motion.** Continuity first, on the existing springs (`AppMotion`) and the
+  `animations` package. No new dependency.
+- **Tokens.** The app's values live under `app.*` in `tokens.json`, which the
+  CMS generator does not read, so the CMS keeps D-17's look until it moves on
+  purpose.
+
+**What it reverses.** D-13's white ground and Satoshi-only hierarchy; from
+D-16, the glyph-only bar, gold FEATURED and the kinds as text chips.
+
+**For the team.** The Cabinet Grotesk font file is a new asset (Fontshare
+FFL, app embedding allowed). The Town page is a structure change against the
+wireframes. Barabara's licence is still unverified.
+
 ## D-18 · AR pilot: a native scan screen, image markers, a card and narration (2026-10-21) · ACCEPTED
 
 Phase 4 goes ahead as a pilot: one museum, recognised exhibits, tested in a
