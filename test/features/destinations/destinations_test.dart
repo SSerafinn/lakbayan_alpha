@@ -249,6 +249,40 @@ void main() {
       );
     });
 
+    testWidgets("names the kind beside the name: the subcategory first", (
+      tester,
+    ) async {
+      // A glyph by the name since D-19, its word on a long press and to a
+      // screen reader, rather than a "Waterfall in Peñablanca" line.
+      final semantics = tester.ensureSemantics();
+      final repo = FakeDestinationRepository([
+        testDestination(
+          id: "falls",
+          name: "Mapaso Falls",
+          subcategory: "waterfall",
+        ),
+        testDestination(id: "palaui", name: "Palaui Island"),
+      ]);
+
+      await pump(
+        tester,
+        const DestinationDetailScreen(id: "falls"),
+        repo: repo,
+      );
+      expect(find.byTooltip("Waterfall"), findsOneWidget);
+      // Read with the name, as one heading.
+      expect(find.bySemanticsLabel(RegExp("Waterfall")), findsOneWidget);
+
+      await pump(
+        tester,
+        const DestinationDetailScreen(id: "palaui"),
+        repo: repo,
+      );
+      // Without one, the kind's own word.
+      expect(find.byTooltip("Nature"), findsOneWidget);
+      semantics.dispose();
+    });
+
     testWidgets("handles a destination that is gone or unpublished", (
       tester,
     ) async {

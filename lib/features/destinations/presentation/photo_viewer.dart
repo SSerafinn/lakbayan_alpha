@@ -117,53 +117,61 @@ class _PhotoViewerState extends ConsumerState<PhotoViewer>
                       fallback: Theme.of(context).colorScheme.surface,
                     ),
                   ),
-                GestureDetector(
-                  onVerticalDragUpdate: (details) =>
-                      _pull.value = max(0, _pull.value + details.delta.dy),
-                  onVerticalDragEnd: _release,
-                  child: AnimatedBuilder(
-                    animation: _pull,
-                    child: PageView.builder(
-                      controller: _pages,
-                      itemCount: images.length,
-                      onPageChanged: (index) {
-                        setState(() => _page = index);
-                        widget.onPageChanged?.call(index);
-                      },
-                      itemBuilder: (context, index) {
-                        final photo = StorageImage(path: images[index]);
-                        return Center(
-                          child: AspectRatio(
-                            aspectRatio: 4 / 3,
-                            // Only the photo showing flies, back to its tile.
-                            child: index == page
-                                ? PhotoHero(
-                                    tag: widget.stage
-                                        ? (index == 0 && widget.tag != null
-                                              ? widget.tag!
-                                              : stageHeroTag(widget.id, index))
-                                        : index == widget.at &&
-                                              widget.tag != null
-                                        ? widget.tag!
-                                        : photoHeroTag(widget.id, index),
-                                    child: photo,
-                                  )
-                                : photo,
-                          ),
+                // Not until the photos are here: a PageView laid out with no
+                // pages settles on the first, and the photo it was opened on
+                // is lost (a deep link, or a restore after the OS ended the
+                // app, opens before the place has loaded).
+                if (images.isNotEmpty)
+                  GestureDetector(
+                    onVerticalDragUpdate: (details) =>
+                        _pull.value = max(0, _pull.value + details.delta.dy),
+                    onVerticalDragEnd: _release,
+                    child: AnimatedBuilder(
+                      animation: _pull,
+                      child: PageView.builder(
+                        controller: _pages,
+                        itemCount: images.length,
+                        onPageChanged: (index) {
+                          setState(() => _page = index);
+                          widget.onPageChanged?.call(index);
+                        },
+                        itemBuilder: (context, index) {
+                          final photo = StorageImage(path: images[index]);
+                          return Center(
+                            child: AspectRatio(
+                              aspectRatio: 4 / 3,
+                              // Only the photo showing flies, back to its tile.
+                              child: index == page
+                                  ? PhotoHero(
+                                      tag: widget.stage
+                                          ? (index == 0 && widget.tag != null
+                                                ? widget.tag!
+                                                : stageHeroTag(
+                                                    widget.id,
+                                                    index,
+                                                  ))
+                                          : index == widget.at &&
+                                                widget.tag != null
+                                          ? widget.tag!
+                                          : photoHeroTag(widget.id, index),
+                                      child: photo,
+                                    )
+                                  : photo,
+                            ),
+                          );
+                        },
+                      ),
+                      builder: (context, photos) {
+                        final pull = _pull.value;
+                        final shrink =
+                            1 - pull / MediaQuery.sizeOf(context).height / 2;
+                        return Transform.translate(
+                          offset: Offset(0, pull),
+                          child: Transform.scale(scale: shrink, child: photos),
                         );
                       },
                     ),
-                    builder: (context, photos) {
-                      final pull = _pull.value;
-                      final shrink =
-                          1 - pull / MediaQuery.sizeOf(context).height / 2;
-                      return Transform.translate(
-                        offset: Offset(0, pull),
-                        child: Transform.scale(scale: shrink, child: photos),
-                      );
-                    },
                   ),
-                ),
                 Positioned(
                   top: inset.top + AppSpace.x2,
                   left: inset.left + AppSpace.x2,
