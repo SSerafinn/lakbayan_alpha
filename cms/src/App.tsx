@@ -1,4 +1,4 @@
-import { Fragment, useState, type ReactNode } from "react";
+import { Fragment, useEffect, useRef, useState, type ReactNode } from "react";
 import {
   createBrowserRouter,
   Link,
@@ -90,8 +90,14 @@ function Gate({ children }: { children: ReactNode }) {
 
 function Shell() {
   const { user, signOut } = useAuth();
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
   const section = sectionFor(pathname);
+  // A list keeps its filters in its address. The breadcrumb on an item's page
+  // returns to them; the sidebar link stays the way to the whole list.
+  const lastList = useRef<Record<string, string>>({});
+  useEffect(() => {
+    if (section && pathname === section.to) lastList.current[section.to] = search;
+  }, [section, pathname, search]);
   // Set by a screen showing one item (the destination editor), so the bar can
   // name it. Cleared by that screen when it unmounts.
   const [crumb, setCrumb] = useState<string | null>(null);
@@ -132,7 +138,9 @@ function Shell() {
           <nav className="crumbs" aria-label="Breadcrumb">
             {crumb && section ? (
               <>
-                <Link to={section.to}>{section.label}</Link>
+                <Link to={section.to + (lastList.current[section.to] ?? "")}>
+                  {section.label}
+                </Link>
                 <span aria-hidden="true">/</span>
                 <span aria-current="page">{crumb}</span>
               </>

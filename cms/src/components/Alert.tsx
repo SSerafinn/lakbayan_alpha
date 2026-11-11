@@ -1,11 +1,14 @@
 import type { ReactNode } from "react";
 import {
+  ChevronDown,
+  ChevronUp,
   CircleAlert,
   CircleCheck,
   Info,
   TriangleAlert,
   type LucideIcon,
 } from "lucide-react";
+import { useStoredFlag } from "./useStoredFlag";
 
 /**
  * Status message, in shadcn's Alert shape: an icon rail, a title, a
@@ -60,6 +63,56 @@ export function Alert({
         {children && <div className="alert-desc">{children}</div>}
       </div>
       {actions && <div className="alert-actions">{actions}</div>}
+    </div>
+  );
+}
+
+/**
+ * A page's standing explanation: read once, then folded to its title.
+ *
+ * Guides, Bundles and Users each open on a paragraph a new admin needs and a
+ * daily one has read fifty times, and it pushed the table a hundred pixels
+ * down on every visit. Folded, not dismissed: the title stays where it was
+ * and opens again, because "this directory holds personal data" should not
+ * be something a person can lose for good. The choice is this browser's
+ * (`useStoredFlag`), under `id`.
+ */
+export function FoldingAlert({
+  id,
+  title,
+  children,
+}: {
+  /** Names the stored choice; unique across the CMS. */
+  id: string;
+  title: ReactNode;
+  children: ReactNode;
+}) {
+  const [folded, setFolded] = useStoredFlag(`folded:${id}`, false);
+  const descId = `alert-${id}`;
+  return (
+    <div className={folded ? "alert alert-info is-folded" : "alert alert-info"}>
+      <Info className="alert-icon" size={20} aria-hidden="true" />
+      <div className="alert-body">
+        <p className="alert-title">{title}</p>
+        {!folded && (
+          <div className="alert-desc" id={descId}>
+            {children}
+          </div>
+        )}
+      </div>
+      <button
+        className="alert-fold"
+        aria-expanded={!folded}
+        aria-controls={descId}
+        onClick={() => setFolded(!folded)}
+      >
+        {folded ? "Show" : "Hide"}
+        {folded ? (
+          <ChevronDown size={16} aria-hidden="true" />
+        ) : (
+          <ChevronUp size={16} aria-hidden="true" />
+        )}
+      </button>
     </div>
   );
 }
