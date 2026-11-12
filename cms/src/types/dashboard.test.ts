@@ -23,6 +23,9 @@ function place(id: string, over: Partial<Destination> = {}): Destination {
     slug: `place-${id}`,
     town: "Peñablanca",
     description: "A short description.",
+    // A placed pin: the province's centre, where a new place starts, does
+    // not count as a location.
+    coords: { lat: 17.7089, lng: 121.8226 },
     images: [`destinations/${id}/images/1.jpg`],
     status: "published",
     createdAt: at(1_000),
