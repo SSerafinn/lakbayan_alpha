@@ -17,8 +17,9 @@ type Draft = Omit<Destination, "id">;
 /**
  * A CMS free-text fact tidied for reading (D-19): times as "8 AM", a leading
  * PHP as ₱, the part after the first comma (or a closing "daily") on its own
- * quieter line, each line starting with a capital. Words stay the editor's;
- * nothing is added. Null when the field is empty.
+ * quieter line, each line starting with a capital. A comma that groups
+ * thousands ("₱1,500") is part of the number, not a break. Words stay the
+ * editor's; nothing is added. Null when the field is empty.
  */
 export function tidyFact(
   raw: string | null | undefined,
@@ -32,7 +33,7 @@ export function tidyFact(
         `${hour}${minute === undefined ? "" : `:${minute}`} ${half.toUpperCase()}`,
     )
     .replace(/^PHP\s*/i, "₱");
-  const cut = tidy.indexOf(",");
+  const cut = tidy.search(NOTE_COMMA);
   let value = cut < 0 ? tidy : tidy.slice(0, cut).trim();
   let note = cut < 0 ? "" : tidy.slice(cut + 1).trim();
   if (note === "" && /\s+daily$/i.test(value)) {
@@ -41,6 +42,12 @@ export function tidyFact(
   }
   return { value: capital(value), note: note === "" ? null : capital(note) };
 }
+
+/**
+ * Any comma but a thousands separator: one between a digit and exactly three
+ * more ("1,500", "1,000,000"), which would otherwise leave "₱1".
+ */
+const NOTE_COMMA = /(?<!\d),|,(?!\d{3}\b)/;
 
 function capital(text: string): string {
   return text === "" ? text : text[0].toUpperCase() + text.slice(1);

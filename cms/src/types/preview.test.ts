@@ -18,6 +18,33 @@ describe("tidyFact, as the app tidies the editor's words", () => {
     });
   });
 
+  it("keeps a thousands separator in the number", () => {
+    expect(tidyFact("PHP 1,000")).toEqual({ value: "₱1,000", note: null });
+    expect(tidyFact("PHP 1,500 per boat")).toEqual({
+      value: "₱1,500 per boat",
+      note: null,
+    });
+    expect(tidyFact("PHP 1,500, children free")).toEqual({
+      value: "₱1,500",
+      note: "Children free",
+    });
+    expect(tidyFact("PHP 1,000,000")).toEqual({
+      value: "₱1,000,000",
+      note: null,
+    });
+  });
+
+  it("still breaks at a comma that is not grouping thousands", () => {
+    expect(tidyFact("PHP 50,children free")).toEqual({
+      value: "₱50",
+      note: "Children free",
+    });
+    expect(tidyFact("PHP 50, 100 with a guide")).toEqual({
+      value: "₱50",
+      note: "100 with a guide",
+    });
+  });
+
   it("moves a closing daily to the second line", () => {
     expect(tidyFact("8am to 5pm daily")).toEqual({
       value: "8 AM to 5 PM",
@@ -33,15 +60,27 @@ describe("tidyFact, as the app tidies the editor's words", () => {
 
 describe("entryPrice", () => {
   it("is Free, or short words with a number", () => {
+    expect(entryPrice("Free")).toBe("Free");
     expect(entryPrice("free")).toBe("Free");
     expect(entryPrice("PHP 20")).toBe("₱20");
     expect(entryPrice("PHP 50, children free")).toBe("₱50");
   });
 
-  it("is nothing for a sentence or words that are not a price", () => {
-    expect(entryPrice("Boat hire")).toBeNull();
+  it("keeps the thousands of a fee whole", () => {
+    expect(entryPrice("PHP 1,000")).toBe("₱1,000");
+    expect(entryPrice("PHP 1,500, children free")).toBe("₱1,500");
+  });
+
+  it("is nothing when the fee is too long for a photo", () => {
+    // "₱1,500 per boat" is 15 characters; once it was cut to "₱1".
+    expect(entryPrice("PHP 1,500 per boat")).toBeNull();
     expect(entryPrice("₱50 for adults and ₱20 for children")).toBeNull();
+  });
+
+  it("is nothing for words that are not a price", () => {
+    expect(entryPrice("Boat hire")).toBeNull();
     expect(entryPrice("")).toBeNull();
+    expect(entryPrice(undefined)).toBeNull();
   });
 });
 
