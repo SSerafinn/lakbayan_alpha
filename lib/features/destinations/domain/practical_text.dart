@@ -2,7 +2,8 @@ import "../../../core/models/destination.dart";
 
 /// A CMS free-text fact tidied for reading (D-19): times as "8 AM", a
 /// leading PHP as ₱, the part after the first comma (or a closing "daily")
-/// on its own quieter line, each line starting with a capital. Words stay
+/// on its own quieter line, each line starting with a capital. A comma that
+/// groups thousands ("₱1,500") is part of the number, not a break. Words stay
 /// the editor's; nothing is added. Null when the field is empty.
 ({String value, String? note})? tidyFact(String? raw) {
   final text = raw?.trim() ?? "";
@@ -15,7 +16,7 @@ import "../../../core/models/destination.dart";
             "${time[3]!.toUpperCase()}",
       )
       .replaceFirst(_peso, "₱");
-  final cut = tidy.indexOf(",");
+  final cut = tidy.indexOf(_noteComma);
   var value = cut < 0 ? tidy : tidy.substring(0, cut).trim();
   var note = cut < 0 ? "" : tidy.substring(cut + 1).trim();
   if (note.isEmpty && _daily.hasMatch(value)) {
@@ -31,6 +32,10 @@ final _time = RegExp(
 );
 final _peso = RegExp(r"^PHP\s*", caseSensitive: false);
 final _daily = RegExp(r"\s+daily$", caseSensitive: false);
+
+/// Any comma but a thousands separator: one between a digit and exactly
+/// three more ("1,500", "1,000,000"), which would otherwise leave "₱1".
+final _noteComma = RegExp(r"(?<!\d),|,(?!\d{3}\b)");
 
 String capital(String text) =>
     text.isEmpty ? text : text[0].toUpperCase() + text.substring(1);
