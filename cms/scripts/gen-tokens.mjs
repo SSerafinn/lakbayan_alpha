@@ -155,6 +155,30 @@ for (const [name, token] of entries(tokens.type)) {
   push(`${css}-tracking`, `${v.letterSpacing ?? 0}px`);
 }
 
+// ---- the app's own, 3.0 -----------------------------------------------------
+// The CMS stays on 2.3 (D-17). These are for one thing: the editor's preview of
+// a place as the app draws it, which has to use the app's colours and type or
+// it previews nothing. Under `app-` so no CMS screen picks one up by accident.
+
+lines.push("");
+lines.push("  /* the app's 3.0 colours (light), for the in-app preview only */");
+for (const [name, token] of entries(tokens.app.light)) {
+  push(`app-${kebab(name)}`, deref(token.$value));
+}
+
+lines.push("");
+lines.push("  /* the app's 3.0 type ramp, for the in-app preview only */");
+push("app-font-heading", `'Cabinet Grotesk', '${tokens.app.font.body.$value}', system-ui, sans-serif`);
+push("app-font-body", `'${tokens.app.font.body.$value}', system-ui, sans-serif`);
+for (const [name, token] of entries(tokens.app.type)) {
+  const v = token.$value;
+  const css = `app-type-${kebab(name)}`;
+  push(`${css}-size`, toPx(v.fontSize));
+  push(`${css}-weight`, v.fontWeight);
+  push(`${css}-height`, v.lineHeight);
+  push(`${css}-tracking`, `${v.letterSpacing ?? 0}px`);
+}
+
 lines.push("}");
 
 mkdirSync(dirname(OUT), { recursive: true });

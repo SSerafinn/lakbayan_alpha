@@ -31,6 +31,26 @@
   font-style: italic;
   font-display: swap;
 }
+/* The app's heading face and icon font, for the editor's preview of a place
+   as the app draws it (`AppPreview`) and nothing else. A font is fetched only
+   when something on screen uses it, so no other page pays for these. */
+@font-face {
+  font-family: "Cabinet Grotesk";
+  src: url("../../../assets/fonts/CabinetGrotesk/Fonts/TTF/CabinetGrotesk-Variable.ttf")
+    format("truetype");
+  font-weight: 100 900;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Phosphor";
+  src: url("../../../assets/fonts/Phosphor/Phosphor.ttf") format("truetype");
+  font-display: block;
+}
+@font-face {
+  font-family: "Phosphor Fill";
+  src: url("../../../assets/fonts/Phosphor/Phosphor-Fill.ttf") format("truetype");
+  font-display: block;
+}
 
 * {
   box-sizing: border-box;
@@ -1954,4 +1974,265 @@ table.data .tag-row {
 .size-choice button:disabled {
   color: var(--lk-on-surface-variant);
   cursor: default;
+}
+
+/* ---- a place as the app draws it (`AppPreview`) ---------------------------
+   Design system 3.0, the app's, not the CMS's 2.3: every value here is an
+   `--lk-app-*` token or a size from the Dart it mirrors (MediaTile, PhotoPill,
+   MediaScrim, FeaturedDeck, the place page's title). */
+
+.app-preview {
+  display: flex;
+  flex-direction: column;
+  gap: var(--lk-space-3);
+}
+.ap-switch {
+  display: flex;
+  gap: var(--lk-space-1);
+}
+.ap-switch button {
+  min-height: 32px;
+  padding: 0 var(--lk-space-3);
+  border: 1px solid var(--lk-outline-variant);
+  border-radius: var(--lk-shape-capsule);
+  background: var(--lk-surface);
+  color: var(--lk-on-surface);
+  font: inherit;
+  font-size: var(--lk-type-label-medium-size);
+  font-weight: 650;
+  cursor: pointer;
+}
+.ap-switch button.on {
+  border-color: var(--lk-role-primary);
+  background: var(--lk-role-primary);
+  color: var(--lk-on-primary);
+}
+/* A slice of the phone: the app's paper behind the photo. */
+.ap-stage {
+  padding: var(--lk-space-3);
+  border-radius: 20px;
+  background: var(--lk-app-page);
+  color: var(--lk-app-ink);
+  font-family: var(--lk-app-font-body);
+}
+.ap-stage p {
+  margin: 0;
+}
+
+.ap-glyph {
+  font-family: "Phosphor";
+  font-style: normal;
+  font-weight: normal;
+  font-size: 16px;
+  line-height: 1;
+}
+.ap-glyph.fill {
+  font-family: "Phosphor Fill";
+}
+
+.ap-photo {
+  position: relative;
+  overflow: hidden;
+  border-radius: 16px;
+  background: var(--lk-app-container-highest);
+}
+.ap-photo.featured {
+  border-radius: 24px;
+}
+.ap-cover {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.ap-cover.empty {
+  display: grid;
+  place-items: center;
+  color: var(--lk-app-sub);
+  font-size: var(--lk-app-type-label-medium-size);
+  font-weight: 650;
+}
+
+/* Pills and the heart, top leading and trailing, on one centred line. */
+.ap-top {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  right: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--lk-space-2);
+}
+.ap-pills {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+.ap-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 24px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: var(--lk-app-glass);
+  color: var(--lk-app-ink);
+  font-size: var(--lk-app-type-label-medium-size);
+  font-weight: var(--lk-app-type-label-medium-weight);
+  line-height: var(--lk-app-type-label-medium-height);
+  white-space: nowrap;
+}
+.ap-pill.round {
+  padding: 6px;
+}
+.ap-heart {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--lk-app-glass);
+  color: var(--lk-app-ink);
+}
+.ap-heart .ap-glyph {
+  font-size: 18px;
+}
+.ap-heart.large {
+  width: 40px;
+  height: 40px;
+}
+.ap-heart.large .ap-glyph {
+  font-size: 22px;
+}
+
+/* MediaScrim: transparent to the scrim at 70%, with room above the words. */
+.ap-scrim {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 48px 16px 16px;
+  background: linear-gradient(to bottom, rgb(17 20 24 / 0), rgb(17 20 24 / 0.7));
+  color: #fff;
+}
+.ap-scrim .ap-pills {
+  margin-bottom: 6px;
+}
+.ap-title-large,
+.ap-display,
+.ap-hero {
+  font-family: var(--lk-app-font-heading);
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+.ap-title-large {
+  font-size: var(--lk-app-type-title-large-size);
+  font-weight: var(--lk-app-type-title-large-weight);
+  line-height: var(--lk-app-type-title-large-height);
+  letter-spacing: var(--lk-app-type-title-large-tracking);
+}
+.ap-display {
+  font-size: var(--lk-app-type-display-size);
+  font-weight: var(--lk-app-type-display-weight);
+  line-height: var(--lk-app-type-display-height);
+  letter-spacing: var(--lk-app-type-display-tracking);
+}
+.ap-label {
+  font-size: var(--lk-app-type-label-medium-size);
+  font-weight: var(--lk-app-type-label-medium-weight);
+  line-height: var(--lk-app-type-label-medium-height);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+.ap-empty {
+  opacity: 0.55;
+  font-style: italic;
+}
+
+/* The place's page: the photo stage, then its name and what it is. */
+.ap-photo.stage {
+  border-radius: 16px;
+}
+.ap-dots {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 10px;
+  display: flex;
+  justify-content: center;
+  gap: 5px;
+}
+.ap-dots i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgb(255 255 255 / 0.55);
+}
+.ap-dots i.on {
+  background: #fff;
+}
+.ap-page-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 4px 4px;
+}
+.ap-page-title {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--lk-space-2);
+}
+.ap-hero {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--lk-app-type-hero-size);
+  font-weight: var(--lk-app-type-hero-weight);
+  line-height: var(--lk-app-type-hero-height);
+  letter-spacing: var(--lk-app-type-hero-tracking);
+}
+.ap-facts {
+  display: inline-flex;
+  gap: 4px;
+  padding-top: 2px;
+}
+.ap-fact {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--lk-app-card);
+  color: var(--lk-app-ink);
+}
+.ap-fact .ap-glyph {
+  font-size: 18px;
+}
+.ap-about {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+  font-size: var(--lk-app-type-body-large-size);
+  font-weight: var(--lk-app-type-body-large-weight);
+  line-height: var(--lk-app-type-body-large-height);
+}
+.ap-about strong {
+  font-weight: var(--lk-app-type-title-small-weight);
+}
+.ap-more {
+  color: var(--lk-app-primary-text);
+  font-size: var(--lk-app-type-label-large-size);
+  font-weight: var(--lk-app-type-label-large-weight);
 }
