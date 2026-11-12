@@ -33,6 +33,8 @@ import { PageHeader } from "../components/PageHeader";
 import { Dialog } from "../components/Dialog";
 import { Field, Section, Toggle } from "../components/Form";
 import { useInView } from "../components/useInView";
+import { useDraftRecovery } from "../components/useDraftRecovery";
+import { applyRecovery, recoveryKey, type Recovery } from "../types/recovery";
 import { useToast } from "../components/toast-context";
 import { ImageThumb } from "../components/ImageThumb";
 import { AudioGuideTab } from "./AudioGuideTab";
@@ -119,6 +121,15 @@ export function DestinationEditorPage() {
   const [exhibits, setExhibits] = useState<ExhibitDraft[]>([]);
   const [savedExhibits, setSavedExhibits] = useState<ExhibitDraft[]>([]);
 
+  /**
+   * Which place everything on screen was loaded for, once all of it has
+   * landed (the audio guide and exhibits come after the document). Recovery
+   * compares a stored copy with that, and would misread a half-loaded page.
+   */
+  const [loadedFor, setLoadedFor] = useState<string | null>(
+    isNew ? "new" : null,
+  );
+
   const [tab, setTab] = useState<Tab>("details");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -181,6 +192,7 @@ export function DestinationEditorPage() {
       setSavedSegments(stops);
       setExhibits(items);
       setSavedExhibits(items);
+      setLoadedFor(id);
     })();
   }, [id]);
 
@@ -266,6 +278,27 @@ export function DestinationEditorPage() {
 
   const headRef = useRef<HTMLDivElement>(null);
   const headInView = useInView(headRef, draft !== null);
+
+  // Unsaved edits kept in this browser against a crash or a closed tab.
+  const placeKey = isNew ? "new" : (docId ?? null);
+  const current = useMemo(
+    () => (draft ? { draft, segments, exhibits } : null),
+    [draft, segments, exhibits],
+  );
+  const loaded = useMemo(
+    () =>
+      saved && placeKey !== null && loadedFor === placeKey
+        ? { draft: saved, segments: savedSegments, exhibits: savedExhibits }
+        : null,
+    [saved, savedSegments, savedExhibits, placeKey, loadedFor],
+  );
+  const recovery = useDraftRecovery({
+    key: user && placeKey ? recoveryKey(user.uid, placeKey) : null,
+    loaded,
+    current,
+    dirty,
+    basedOn: () => (isNew ? 0 : versionRef.current),
+  });
 
   if (error && !draft) {
     return (
@@ -482,6 +515,24 @@ export function DestinationEditorPage() {
     setSegments(savedSegments);
     setExhibits(savedExhibits);
   };
+
+  /**
+   * Puts a recovered copy back on screen as unsaved edits. The save is then
+   * checked against the version those edits started from, so if someone has
+   * saved since, it asks before replacing theirs (the conflict dialog).
+   */
+  function restore(r: Recovery) {
+    setDraft((d) => (d ? applyRecovery(d, r) : d));
+    setSegments(r.segments);
+    setExhibits(r.exhibits);
+    if (!isNew && r.basedOn) versionRef.current = r.basedOn;
+    recovery.dismiss();
+    toast.toast({
+      variant: "info",
+      title: "Edits restored",
+      description: "They are not saved yet.",
+    });
+  }
   const actionButtons = (
     <>
       <span className={dirty ? "save-state dirty" : "save-state"}>
@@ -606,6 +657,33 @@ export function DestinationEditorPage() {
         >
           Anything on screen is all that is left of it, and there is nothing to
           save it to. Copy what you need before you leave.
+        </Alert>
+      )}
+
+      {recovery.offer && (
+        <Alert
+          variant="warning"
+          title={`Unsaved edits, last changed ${whenSaid(recovery.offer.at)}`}
+          actions={
+            <>
+              <button className="btn-quiet sm" onClick={recovery.dismiss}>
+                Discard them
+              </button>
+              <button
+                className="btn-secondary sm"
+                onClick={() => recovery.offer && restore(recovery.offer)}
+              >
+                Restore
+              </button>
+            </>
+          }
+        >
+          This page closed before they were saved. Restore them to carry on,
+          or discard them to keep what is saved.
+          {!isNew &&
+            recovery.offer.basedOn > 0 &&
+            recovery.offer.basedOn < versionOf(saved?.updatedAt) &&
+            " This place has been saved since; restoring is safe, and saving will ask before replacing that version."}
         </Alert>
       )}
 
@@ -753,6 +831,12 @@ export function DestinationEditorPage() {
       )}
     </section>
   );
+}
+
+/** "just now", "12 minutes ago", "yesterday", or "on 1 Sep" for a date. */
+function whenSaid(at: number): string {
+  const when = relativeTime(at, Date.now());
+  return /^\d/.test(when) ? `on ${when}` : when;
 }
 
 type SetField = <K extends keyof Draft>(k: K, v: Draft[K]) => void;
