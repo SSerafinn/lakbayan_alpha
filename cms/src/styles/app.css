@@ -199,6 +199,15 @@ code {
   cursor: not-allowed;
 }
 
+/* An action that takes something away (Delete, Remove, Revoke) says so in
+   red words, as the app's Sign Out and Delete do. Green is "go"; a column of
+   green Deletes read as the safe thing to press. The error red, not the
+   brighter `closed`: it is the one that passes AA as small text on white. */
+.btn-quiet.danger:not(:disabled),
+.btn-secondary.danger:not(:disabled) {
+  color: var(--lk-role-error);
+}
+
 .btn-secondary.sm,
 .btn-quiet.sm,
 .btn-primary.sm {
@@ -349,6 +358,36 @@ code {
   display: flex;
   align-items: center;
   gap: var(--lk-space-2);
+}
+
+/* A page's standing explanation, folded to its title once it has been read
+   (`FoldingAlert`). */
+.alert.is-folded {
+  align-items: center;
+  padding-block: var(--lk-space-2);
+}
+.alert.is-folded .alert-icon {
+  margin-top: 0;
+}
+.alert-fold {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--lk-space-1);
+  min-height: 32px;
+  padding: 0 var(--lk-space-2);
+  border: none;
+  border-radius: var(--lk-shape-capsule);
+  background: transparent;
+  color: var(--lk-on-surface-variant);
+  font: inherit;
+  font-size: var(--lk-type-label-medium-size);
+  font-weight: 650;
+  cursor: pointer;
+}
+.alert-fold:hover {
+  background: var(--lk-surface-container-high);
+  color: var(--lk-on-surface);
 }
 
 .alert-info .alert-icon {
@@ -1012,6 +1051,14 @@ table.data tbody tr:hover td {
 }
 table.data tr.on td {
   background: var(--lk-surface-container-low);
+}
+/* A row that opens its item from anywhere on it (`onRowClick`). */
+table.data tr.opens {
+  cursor: pointer;
+}
+table.data tr.opens .tick,
+table.data tr.opens input {
+  cursor: default;
 }
 /* A row's name is the way into it, in ink: green links across a whole column
    turn the table into a wall of colour, and blue is spatial. */

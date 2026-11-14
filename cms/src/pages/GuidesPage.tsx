@@ -8,11 +8,14 @@ import {
   setVerified,
   updateGuide,
 } from "../lib/guides";
-import { Alert } from "../components/Alert";
+import { Alert, FoldingAlert } from "../components/Alert";
 import { PageHeader } from "../components/PageHeader";
 import { Dialog } from "../components/Dialog";
 import { Field, Section, Toggle } from "../components/Form";
+import { SelectAll } from "../components/SelectAll";
+import { onRowClick } from "../components/row-click";
 import { useToast } from "../components/toast-context";
+import { selectionState, toggleAll } from "../types/list";
 import { ConflictDialog } from "../components/ConflictDialog";
 import { ConflictError } from "../lib/versioned";
 import { versionOf, type Conflict } from "../types/conflict";
@@ -92,6 +95,13 @@ export function GuidesPage() {
         (verified === "all" || r.verified === (verified === "yes")),
     );
   }, [rows, search, town, verified]);
+
+  // A bulk action reaches only the ticked rows on screen, as on Destinations.
+  const visibleIds = useMemo(() => filtered.map((g) => g.id), [filtered]);
+  const ticked = useMemo(
+    () => visibleIds.filter((id) => selected.has(id)),
+    [visibleIds, selected],
+  );
 
   const hasFilters =
     search.trim() !== "" || town !== "all" || verified !== "all";
@@ -219,7 +229,7 @@ export function GuidesPage() {
   async function bulkVerify(next: boolean) {
     setBusy(true);
     try {
-      await Promise.all([...selected].map((id) => setVerified(id, next)));
+      await Promise.all(ticked.map((id) => setVerified(id, next)));
       setSelected(new Set());
       await reload();
     } finally {
@@ -262,11 +272,11 @@ export function GuidesPage() {
 
       {/* Stated once, at the top, rather than as a warning on the delete
           dialogue where it would arrive too late to inform the decision. */}
-      <Alert variant="info" title="This directory holds personal data">
+      <FoldingAlert id="guides-personal-data" title="This directory holds personal data">
         Every row is a real person's contact details, readable by anyone signed
         in to the app. Add someone only once they have agreed to be listed, and
         remove them promptly if they withdraw.
-      </Alert>
+      </FoldingAlert>
 
       <ConflictDialog
         conflict={conflict}
@@ -328,9 +338,9 @@ export function GuidesPage() {
 
         <span className="spacer" />
 
-        {selected.size > 0 && (
+        {ticked.length > 0 && (
           <>
-            <span className="hint">{selected.size} selected</span>
+            <span className="hint">{ticked.length} selected</span>
             <button
               className="btn-secondary sm"
               disabled={busy}
@@ -373,7 +383,13 @@ export function GuidesPage() {
         <table className="data">
           <thead>
             <tr>
-              <th className="tick" />
+              <th className="tick">
+                <SelectAll
+                  state={selectionState(visibleIds, selected)}
+                  onToggle={() => setSelected(toggleAll(visibleIds, selected))}
+                  noun="guides"
+                />
+              </th>
               <th>Guide</th>
               <th>Specialties</th>
               <th>Contact</th>
@@ -384,7 +400,11 @@ export function GuidesPage() {
           </thead>
           <tbody>
             {filtered.map((g) => (
-              <tr key={g.id} className={selected.has(g.id) ? "on" : undefined}>
+              <tr
+                key={g.id}
+                className={selected.has(g.id) ? "opens on" : "opens"}
+                onClick={onRowClick(() => openEdit(g))}
+              >
                 <td className="tick">
                   <input
                     type="checkbox"
@@ -437,7 +457,7 @@ export function GuidesPage() {
                 </td>
                 <td className="row actions-cell">
                   <button
-                    className="btn-quiet sm"
+                    className="btn-quiet sm danger"
                     onClick={() => setConfirmDelete(g)}
                   >
                     Remove
@@ -465,7 +485,7 @@ export function GuidesPage() {
               Keep them listed
             </button>
             <button
-              className="btn-secondary"
+              className="btn-secondary danger"
               disabled={busy}
               onClick={() => confirmDelete && void doDelete(confirmDelete)}
             >

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { ShieldCheck } from "lucide-react";
 import { useAuth } from "../auth/auth-context";
-import { Alert } from "../components/Alert";
+import { Alert, FoldingAlert } from "../components/Alert";
 import { PageHeader } from "../components/PageHeader";
 import { formatDate } from "../types/format";
 import { Dialog } from "../components/Dialog";
@@ -135,14 +135,17 @@ export function UsersPage() {
     <section className="page">
       <PageHeader title="Users & roles" meta={`${adminCount} · ${userCount}`} />
 
-      <Alert variant="info" title="Admin is an account setting, not a document">
+      <FoldingAlert
+        id="users-admin-claim"
+        title="Admin is an account setting, not a document"
+      >
         The admin claim is what lets someone publish content. It is set on the
         Auth account by a Cloud Function, and it reaches the person on their
         next sign-in — after granting or revoking, ask them to sign out and
         back in. The first admin on a fresh project is still created with{" "}
         <code>scripts/grant-admin.mjs</code>; everyone after that is added
         here.
-      </Alert>
+      </FoldingAlert>
 
       {/* ---- Admin team ------------------------------------------------ */}
 
@@ -199,7 +202,7 @@ export function UsersPage() {
                               </span>
                             ) : (
                               <button
-                                className="btn-quiet sm"
+                                className="btn-quiet sm danger"
                                 disabled={busy}
                                 onClick={() => setConfirmRevoke(a)}
                               >
@@ -356,7 +359,7 @@ export function UsersPage() {
               Keep them
             </button>
             <button
-              className="btn-secondary"
+              className="btn-secondary danger"
               disabled={busy}
               onClick={() => confirmRevoke && void revoke(confirmRevoke)}
             >

@@ -1,9 +1,14 @@
-import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useState, type MouseEvent } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { listDestinations, setStatus } from "../lib/destinations";
+import { listSegments } from "../lib/segments";
+import { listExhibits } from "../lib/exhibits";
 import { Alert } from "../components/Alert";
 import { PageHeader } from "../components/PageHeader";
 import { ImageThumb } from "../components/ImageThumb";
+import { SelectAll } from "../components/SelectAll";
+import { onRowClick } from "../components/row-click";
+import { useToast } from "../components/toast-context";
 import { relativeTime } from "../types/dashboard";
 import { Plus } from "lucide-react";
 import {
@@ -13,32 +18,20 @@ import {
   type Destination,
   type Status,
 } from "../types/destination";
-
-/**
- * Saved views across the top of the table, after Polaris's index pages.
- *
- * They replace the status dropdown: "what is still a draft?" and "what has
- * no photo?" are the two questions this screen gets asked most, and a view
- * answers each with one click and a count. "Needs a photo" is the most common
- * reason a draft cannot be published.
- */
-type View = "all" | "published" | "draft" | "no-photo";
-
-const VIEWS: { id: View; label: string; test: (d: Destination) => boolean }[] =
-  [
-    { id: "all", label: "All", test: () => true },
-    {
-      id: "published",
-      label: "Published",
-      test: (d) => d.status === "published",
-    },
-    { id: "draft", label: "Drafts", test: (d) => d.status === "draft" },
-    {
-      id: "no-photo",
-      label: "Needs a photo",
-      test: (d) => d.images.length === 0,
-    },
-  ];
+import {
+  DESTINATION_VIEWS,
+  NO_FILTERS,
+  applyFilters,
+  bulkStatusMessage,
+  planBulkStatus,
+  readFilters,
+  selectionState,
+  toggleAll,
+  writeFilters,
+  type BulkStatusPlan,
+  type DestinationFilters,
+  type Subcollections,
+} from "../types/list";
 
 /**
  * Admin wireframe screen 3 — Destinations list.
@@ -47,16 +40,24 @@ const VIEWS: { id: View; label: string; test: (d: Destination) => boolean }[] =
  * Content and Users: search, then filters, then bulk actions once rows are
  * selected, sorted by last-updated descending. Keep that shape when the later
  * screens reuse it.
+ *
+ * What the list is showing (the view, the search, the two filters) lives in
+ * its address, not in state: a place opens on its own page, and Back has to
+ * return to the list as it was left rather than to "All" with nothing typed.
  */
 export function DestinationsListPage() {
   const navigate = useNavigate();
+  const toast = useToast();
   const [rows, setRows] = useState<Destination[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const [search, setSearch] = useState("");
-  const [town, setTown] = useState("all");
-  const [category, setCategory] = useState<Category | "all">("all");
-  const [view, setView] = useState<View>("all");
+  const [params, setParams] = useSearchParams();
+  const filters = useMemo(() => readFilters(params), [params]);
+  // Replaced, not pushed: each keystroke in the search box would otherwise be
+  // a step that Back has to walk through.
+  const setFilters = (patch: Partial<DestinationFilters>) =>
+    setParams(writeFilters({ ...filters, ...patch }), { replace: true });
+
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState(false);
 
@@ -81,26 +82,28 @@ export function DestinationsListPage() {
     [rows],
   );
 
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return (rows ?? []).filter(
-      (r) =>
-        (!q ||
-          r.name.toLowerCase().includes(q) ||
-          r.town.toLowerCase().includes(q)) &&
-        (town === "all" || r.town === town) &&
-        (category === "all" || r.category === category) &&
-        VIEWS.find((v) => v.id === view)!.test(r),
-    );
-  }, [rows, search, town, category, view]);
+  const filtered = useMemo(
+    () => applyFilters(rows ?? [], filters),
+    [rows, filters],
+  );
+
+  // A bulk action reaches only the ticked rows on screen. A row ticked and
+  // then filtered away keeps its tick, but publishing something nobody can
+  // see would be a surprise.
+  const visibleIds = useMemo(() => filtered.map((d) => d.id), [filtered]);
+  const ticked = useMemo(
+    () => visibleIds.filter((id) => selected.has(id)),
+    [visibleIds, selected],
+  );
 
   // The view is not a filter to clear: it is which list you are looking at.
-  const hasFilters = search.trim() !== "" || town !== "all" || category !== "all";
+  const hasFilters =
+    filters.search.trim() !== "" ||
+    filters.town !== "all" ||
+    filters.category !== "all";
 
   function clearFilters() {
-    setSearch("");
-    setTown("all");
-    setCategory("all");
+    setFilters({ ...NO_FILTERS, view: filters.view });
   }
 
   function toggle(id: string) {
@@ -112,11 +115,70 @@ export function DestinationsListPage() {
     });
   }
 
+  function open(id: string, e: MouseEvent) {
+    const to = `/destinations/${id}`;
+    if (e.metaKey || e.ctrlKey) window.open(to, "_blank", "noopener");
+    else navigate(to);
+  }
+
   async function bulkSetStatus(next: Status) {
+    if (!rows) return;
     setBusy(true);
     try {
-      await Promise.all([...selected].map((id) => setStatus(id, next)));
-      setSelected(new Set());
+      const ids = new Set(ticked);
+      // Publishing asks what the editor's Publish asks, and two of its
+      // questions are about the audio guide and the exhibits, which a list
+      // never loads. Fetched only for the places about to go live.
+      const subcollections = new Map<string, Subcollections>();
+      if (next === "published") {
+        await Promise.all(
+          rows
+            .filter((d) => ids.has(d.id) && d.status !== "published")
+            .map(async (d) => {
+              const [segments, exhibits] = await Promise.all([
+                listSegments(d.id),
+                listExhibits(d.id),
+              ]);
+              subcollections.set(d.id, { segments, exhibits });
+            }),
+        );
+      }
+      const plan = planBulkStatus(rows, ids, next, subcollections);
+      await Promise.all(plan.change.map((c) => setStatus(c.id, next)));
+      // What could not be published stays ticked, so it is easy to find.
+      setSelected(new Set(plan.blocked.map((b) => b.id)));
+      await reload();
+      toast.toast({
+        variant: plan.blocked.length > 0 ? "warning" : "success",
+        ...bulkStatusMessage(plan, next),
+        action:
+          plan.change.length > 0
+            ? { label: "Undo", onClick: () => void undo(plan.change) }
+            : undefined,
+      });
+    } catch (err) {
+      toast.error(
+        "That didn't go through",
+        err instanceof Error ? err.message : String(err),
+      );
+      await reload();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  /** Puts each place back to the status it had before the bulk action. */
+  async function undo(change: BulkStatusPlan["change"]) {
+    setBusy(true);
+    try {
+      await Promise.all(change.map((c) => setStatus(c.id, c.from)));
+      await reload();
+      toast.success("Change undone");
+    } catch (err) {
+      toast.error(
+        "Could not undo that",
+        err instanceof Error ? err.message : String(err),
+      );
       await reload();
     } finally {
       setBusy(false);
@@ -152,12 +214,12 @@ export function DestinationsListPage() {
       )}
 
       <nav className="tabs views" aria-label="Views">
-        {VIEWS.map((v) => (
+        {DESTINATION_VIEWS.map((v) => (
           <button
             key={v.id}
-            className={view === v.id ? "tab on" : "tab"}
-            aria-pressed={view === v.id}
-            onClick={() => setView(v.id)}
+            className={filters.view === v.id ? "tab on" : "tab"}
+            aria-pressed={filters.view === v.id}
+            onClick={() => setFilters({ view: v.id })}
           >
             {v.label}
             {rows && (
@@ -171,20 +233,30 @@ export function DestinationsListPage() {
         <input
           className="search"
           placeholder="Search by name or town"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          value={filters.search}
+          onChange={(e) => setFilters({ search: e.target.value })}
         />
-        <select value={town} onChange={(e) => setTown(e.target.value)}>
+        <select
+          value={filters.town}
+          onChange={(e) => setFilters({ town: e.target.value })}
+        >
           <option value="all">Town: All</option>
           {towns.map((t) => (
             <option key={t} value={t}>
               {t}
             </option>
           ))}
+          {/* A town from a link that no place uses any more still has to be
+              an option, or the select would show "All" while filtering. */}
+          {filters.town !== "all" && !towns.includes(filters.town) && (
+            <option value={filters.town}>{filters.town}</option>
+          )}
         </select>
         <select
-          value={category}
-          onChange={(e) => setCategory(e.target.value as Category | "all")}
+          value={filters.category}
+          onChange={(e) =>
+            setFilters({ category: e.target.value as Category | "all" })
+          }
         >
           <option value="all">Category: All</option>
           {CATEGORIES.map((c) => (
@@ -201,9 +273,9 @@ export function DestinationsListPage() {
 
         <span className="spacer" />
 
-        {selected.size > 0 && (
+        {ticked.length > 0 && (
           <>
-            <span className="hint">{selected.size} selected</span>
+            <span className="hint">{ticked.length} selected</span>
             <button
               className="btn-secondary sm"
               disabled={busy}
@@ -241,9 +313,9 @@ export function DestinationsListPage() {
               <p>
                 {hasFilters
                   ? "Nothing matches those filters."
-                  : view === "no-photo"
+                  : filters.view === "no-photo"
                     ? "Every place has a photo."
-                    : view === "draft"
+                    : filters.view === "draft"
                       ? "No drafts — everything is published."
                       : "Nothing here yet."}
               </p>
@@ -259,7 +331,13 @@ export function DestinationsListPage() {
         <table className="data">
           <thead>
             <tr>
-              <th className="tick" />
+              <th className="tick">
+                <SelectAll
+                  state={selectionState(visibleIds, selected)}
+                  onToggle={() => setSelected(toggleAll(visibleIds, selected))}
+                  noun="places"
+                />
+              </th>
               <th className="thumb-cell" aria-label="Photo" />
               <th>Name</th>
               <th>Category</th>
@@ -269,7 +347,11 @@ export function DestinationsListPage() {
           </thead>
           <tbody>
             {filtered.map((d) => (
-              <tr key={d.id} className={selected.has(d.id) ? "on" : undefined}>
+              <tr
+                key={d.id}
+                className={selected.has(d.id) ? "opens on" : "opens"}
+                onClick={onRowClick((e) => open(d.id, e))}
+              >
                 <td className="tick">
                   <input
                     type="checkbox"
@@ -287,7 +369,8 @@ export function DestinationsListPage() {
                 </td>
                 {/* The name opens the place, so there is no separate Edit
                     column; the town is the name's second line rather than a
-                    column of its own. */}
+                    column of its own. The rest of the row opens it too
+                    (`onRowClick`), but the name is the link. */}
                 <td>
                   <div className="cell-title">
                     <span>

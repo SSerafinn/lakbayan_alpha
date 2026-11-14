@@ -19,6 +19,7 @@ import {
 import { listDestinations } from "../lib/destinations";
 import { Alert } from "../components/Alert";
 import { PageHeader } from "../components/PageHeader";
+import { onRowClick } from "../components/row-click";
 import { relativeTime } from "../types/dashboard";
 import { Dialog } from "../components/Dialog";
 import { Field, Section, Toggle } from "../components/Form";
@@ -349,7 +350,11 @@ export function ToursPage() {
                 .slice(0, 3)
                 .join(" → ");
               return (
-                <tr key={t.id}>
+                <tr
+                  key={t.id}
+                  className="opens"
+                  onClick={onRowClick(() => openEdit(t))}
+                >
                   <td className="thumb-cell">
                     {t.coverImg ? (
                       <ImageThumb path={t.coverImg} className="row-thumb" />
@@ -398,7 +403,7 @@ export function ToursPage() {
                   </td>
                   <td className="row actions-cell">
                     <button
-                      className="btn-quiet sm"
+                      className="btn-quiet sm danger"
                       onClick={() => setConfirmDelete(t)}
                     >
                       Delete
@@ -422,7 +427,7 @@ export function ToursPage() {
               Keep it
             </button>
             <button
-              className="btn-secondary"
+              className="btn-secondary danger"
               disabled={busy}
               onClick={() => confirmDelete && void doDelete(confirmDelete)}
             >

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Package, RefreshCw } from "lucide-react";
-import { Alert } from "../components/Alert";
+import { Alert, FoldingAlert } from "../components/Alert";
 import { PageHeader } from "../components/PageHeader";
 import { formatDate } from "../types/format";
 import { useToast } from "../components/toast-context";
@@ -119,14 +119,17 @@ export function BundlesPage() {
         }
       />
 
-      <Alert variant="info" title="A bundle is a manifest, not an archive">
+      <FoldingAlert
+        id="bundles-manifest"
+        title="A bundle is a manifest, not an archive"
+      >
         Building one records which destinations a town contains, how large the
         download is, and a version. The phone reads it and fetches the files
         itself. A bundle is <strong>ready</strong> only when every photo,
         recording and the map pack are in Storage — the map pack is rendered
         separately with <code>tools/tiles</code> and uploaded to{" "}
         <code>tiles/&lt;townId&gt;/pack.pmtiles</code>.
-      </Alert>
+      </FoldingAlert>
 
       {error && (
         <Alert variant="destructive" title="Could not load bundles">

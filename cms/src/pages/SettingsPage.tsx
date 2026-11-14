@@ -198,6 +198,11 @@ export function SettingsPage() {
   }, []);
 
   const current = { taxonomy, app, policies }[tab];
+  const unsavedDefaults =
+    tab === "taxonomy" &&
+    taxonomy.draft !== null &&
+    !taxonomy.exists &&
+    !taxonomy.dirty;
   const anyDirty = taxonomy.dirty || app.dirty || policies.dirty;
 
   // The same guards as the destination editor: closing the tab, and leaving
@@ -389,6 +394,22 @@ export function SettingsPage() {
             disabled={current.busy}
           >
             Save
+          </button>
+        </div>
+      )}
+      {/* The built-in town list on a project that has never saved one. The
+          Towns card says "Save to make it the province's", and with no edit
+          to make there was no Save to press. Not "dirty": there is nothing
+          to lose, so leaving does not ask. */}
+      {unsavedDefaults && (
+        <div className="savebar" role="region" aria-label="Not saved yet">
+          <span className="save-state">Not saved yet</span>
+          <button
+            className="btn-primary"
+            onClick={() => void saveCurrent()}
+            disabled={current.busy}
+          >
+            Save this list
           </button>
         </div>
       )}
@@ -945,7 +966,7 @@ function TagsSection({
                       Rename
                     </button>
                     <button
-                      className="btn-quiet sm"
+                      className="btn-quiet sm danger"
                       onClick={() => setAction({ kind: "remove", ...u })}
                     >
                       Remove

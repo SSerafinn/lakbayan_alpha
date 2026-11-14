@@ -90,6 +90,9 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   );
 }
 
+/** The least a toast with an action (Undo) stays up. */
+const ACTION_TTL = 8000;
+
 /** Must match the toast-out animation in app.css. */
 const EXIT_MS = 160;
 
@@ -106,10 +109,15 @@ function ToastItem({
   // Two stages, because a toast removed from the DOM the instant its timer
   // fires cannot animate out — it just vanishes. Mark it leaving, let the
   // animation play, then unmount.
+  // One with an action stays longer: three seconds is enough to read
+  // "Saved", and not enough to notice a mistake and reach for Undo.
+  const ttl = toast.action
+    ? Math.max(TTL[toast.variant], ACTION_TTL)
+    : TTL[toast.variant];
   useEffect(() => {
-    const timer = setTimeout(() => setLeaving(true), TTL[toast.variant]);
+    const timer = setTimeout(() => setLeaving(true), ttl);
     return () => clearTimeout(timer);
-  }, [toast.variant]);
+  }, [ttl]);
 
   useEffect(() => {
     if (!leaving) return;
