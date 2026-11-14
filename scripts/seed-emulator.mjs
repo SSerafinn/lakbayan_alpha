@@ -353,7 +353,9 @@ const DESTINATIONS = [
     history:
       "The collection covers the valley's prehistory through the Spanish period, "
       + "including material recovered from the Peñablanca cave systems.",
-    coords: { lat: 17.6132, lng: 121.727 },
+    // The intake sheet's (TUG-001). Not 17.6132, 121.727: that is where a
+    // new place's pin starts in the CMS, and it counts as not placed.
+    coords: { lat: 17.61165, lng: 121.73078 },
     colour: [92, 60, 110],
     popular: false,
     featured: false,
