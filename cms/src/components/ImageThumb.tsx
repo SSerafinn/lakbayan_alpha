@@ -1,5 +1,4 @@
-import { useEffect, useState } from "react";
-import { imageUrl } from "../lib/destinations";
+import { useImageUrl } from "./useImageUrl";
 
 /**
  * Renders a Storage **path** as an image.
@@ -18,20 +17,9 @@ export function ImageThumb({
   className?: string;
 }) {
   const cls = className ? `thumb ${className}` : "thumb";
-  const [url, setUrl] = useState<string | null>(null);
-  const [failed, setFailed] = useState(false);
+  const url = useImageUrl(path);
 
-  useEffect(() => {
-    let cancelled = false;
-    imageUrl(path)
-      .then((u) => !cancelled && setUrl(u))
-      .catch(() => !cancelled && setFailed(true));
-    return () => {
-      cancelled = true;
-    };
-  }, [path]);
-
-  if (failed) return <div className={`${cls} missing`}>unavailable</div>;
+  if (url === "failed") return <div className={`${cls} missing`}>unavailable</div>;
   if (!url) return <div className={`${cls} skeleton`} />;
   return <img className={cls} src={url} alt="" loading="lazy" />;
 }

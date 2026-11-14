@@ -35,6 +35,7 @@ import { Field, Section, Toggle } from "../components/Form";
 import { useInView } from "../components/useInView";
 import { useToast } from "../components/toast-context";
 import { ImageThumb } from "../components/ImageThumb";
+import { AppPreview } from "../components/AppPreview";
 import { PinMap } from "../components/PinMap";
 import { AudioGuideTab } from "./AudioGuideTab";
 import { ArExhibitsTab } from "./ArExhibitsTab";
@@ -717,6 +718,14 @@ export function DestinationEditorPage() {
         </div>
 
         <aside className="editor-rail" aria-label="About this destination">
+          {/* First in the rail, so it is beside the name and description
+              while they are typed, and stays in view on every tab. */}
+          <Section title="In the app" single>
+            <AppPreview
+              draft={draft}
+              hasAR={museumHasAR(draft.isMuseum, exhibits)}
+            />
+          </Section>
           <StatusCard
             status={draft.status}
             checklist={checklist}
@@ -1083,13 +1092,13 @@ function PlacementCard({ draft, set }: { draft: Draft; set: SetField }) {
       <div className="toggles">
         <Toggle
           label="Popular places"
-          hint="The rail on Explore."
+          hint="In Popular Destinations on Explore, with the flame on its photo."
           on={draft.popular}
           onChange={(v) => set("popular", v)}
         />
         <Toggle
           label="Featured"
-          hint="Adds the FEATURED badge."
+          hint="Leads Explore's deck, tagged Popular This Season."
           on={draft.featured}
           onChange={(v) => set("featured", v)}
         />
