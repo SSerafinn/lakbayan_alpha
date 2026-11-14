@@ -35,6 +35,7 @@ import { Field, Section, Toggle } from "../components/Form";
 import { useInView } from "../components/useInView";
 import { useToast } from "../components/toast-context";
 import { ImageThumb } from "../components/ImageThumb";
+import { PinMap } from "../components/PinMap";
 import { AudioGuideTab } from "./AudioGuideTab";
 import { ArExhibitsTab } from "./ArExhibitsTab";
 import { formatCoord, searchPlaces, type GeocodeResult } from "../lib/geocode";
@@ -49,6 +50,7 @@ import {
   CATEGORY_LABELS,
   MAX_DESCRIPTION,
   emptyDestination,
+  pinUnset,
   publishBlockers,
   readiness,
   slugify,
@@ -1213,8 +1215,6 @@ function LocationTab({
   set: <K extends keyof Draft>(k: K, v: Draft[K]) => void;
 }) {
   const { lat, lng } = draft.coords;
-  // A 0.02-degree box around the pin — roughly 2 km, enough to recognise a spot.
-  const bbox = `${lng - 0.01},${lat - 0.01},${lng + 0.01},${lat + 0.01}`;
 
   return (
     <Section
@@ -1245,26 +1245,18 @@ function LocationTab({
       </Field>
 
       <Field
-        label="Preview"
+        label="Map"
         wide
-        hint="Confirms the pin lands where you expect."
+        hint={
+          pinUnset(draft.coords)
+            ? "Not placed yet. Click the map where the place is; it starts on the whole province."
+            : "Drag the pin to nudge it, or click somewhere else on the map. Click into the map to zoom with the wheel."
+        }
       >
-        <iframe
-          title="Location preview"
-          className="map-preview"
-          src={`https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&marker=${lat},${lng}`}
+        <PinMap
+          coords={draft.coords}
+          onMove={(c) => set("coords", c)}
         />
-        <p className="hint">
-          Need coordinates?{" "}
-          <a
-            href={`https://www.openstreetmap.org/#map=15/${lat}/${lng}`}
-            target="_blank"
-            rel="noreferrer"
-          >
-            Open in OpenStreetMap
-          </a>{" "}
-          — right-click a spot and choose “Show address” to read them off.
-        </p>
       </Field>
     </Section>
   );
