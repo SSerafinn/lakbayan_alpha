@@ -81,6 +81,23 @@ export const MAX_DESCRIPTION = 140;
 export const CAGAYAN_CENTRE = { lat: 17.6132, lng: 121.727 };
 
 /**
+ * Nobody has placed the pin yet: a new destination starts at the province's
+ * centre, and an old document or a cleared field can hold 0,0 or no number.
+ *
+ * The centre used to count as a location, so a new place passed "Location"
+ * before anyone touched its map, and could go live pinned to the middle of
+ * the province.
+ */
+export function pinUnset({ lat, lng }: { lat: number; lng: number }): boolean {
+  return (
+    !Number.isFinite(lat) ||
+    !Number.isFinite(lng) ||
+    (lat === 0 && lng === 0) ||
+    (lat === CAGAYAN_CENTRE.lat && lng === CAGAYAN_CENTRE.lng)
+  );
+}
+
+/**
  * URL-safe slug from a name.
  *
  * Strips diacritics first so "Peñablanca" becomes "penablanca" rather than
@@ -192,12 +209,9 @@ export function readiness(
     },
     {
       label: "Location",
-      ok:
-        Number.isFinite(d.coords.lat) &&
-        Number.isFinite(d.coords.lng) &&
-        !(d.coords.lat === 0 && d.coords.lng === 0),
+      ok: !pinUnset(d.coords),
       tab: "location",
-      why: "Set the coordinates.",
+      why: "Place the pin on the map.",
     },
     {
       label: "At least one photo",

@@ -1675,12 +1675,54 @@ input[type="checkbox"] {
   background: var(--lk-surface-container-low);
 }
 
-.map-preview {
+/* The place's pin (`PinMap`). Leaflet stacks its panes up to z-index 1000;
+   isolated here so none of them can rise over the savebar or a dialog. */
+.pin-map {
+  position: relative;
+  z-index: 0;
+  isolation: isolate;
   width: 100%;
-  height: 320px;
-  border: none;
+  height: 360px;
   border-radius: var(--lk-shape-sm);
   background: var(--lk-surface-container);
+  font: inherit;
+}
+.pin-map:focus-visible {
+  outline: 2px solid var(--lk-role-primary);
+  outline-offset: 2px;
+}
+/* The app's pin: an emerald drop with a white heart, its point on the spot. */
+.pin-icon {
+  background: none;
+  border: none;
+}
+.pin-head {
+  position: absolute;
+  left: 1px;
+  top: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  transform-origin: center;
+  background: var(--lk-app-primary, #00755a);
+  border: 3px solid #fff;
+  cursor: grab;
+}
+.pin-head::after {
+  content: "";
+  position: absolute;
+  inset: 7px;
+  border-radius: 50%;
+  background: #fff;
+}
+.leaflet-dragging .pin-head {
+  cursor: grabbing;
+}
+/* Not placed yet: the pin waits at the province's centre, faded, so it does
+   not read as an answer. */
+.pin-icon.is-unset .pin-head {
+  opacity: 0.45;
 }
 
 .media {
