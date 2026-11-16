@@ -9,6 +9,15 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+// The JVM target for Kotlin, alongside compileOptions' Java 17 below. This is
+// the `kotlin { compilerOptions }` DSL; the old `android { kotlinOptions }`
+// block it replaces is deprecated in Kotlin 2.x.
+kotlin {
+    compilerOptions {
+        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17
+    }
+}
+
 android {
     namespace = "ph.gov.cagayan.lakbayan"
     compileSdk = flutter.compileSdkVersion
@@ -17,10 +26,6 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
-    }
-
-    kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_17.toString()
     }
 
     defaultConfig {
