@@ -45,6 +45,7 @@ export function UsersPage() {
   const [busy, setBusy] = useState(false);
   const [confirmRevoke, setConfirmRevoke] = useState<AdminMember | null>(null);
   const [search, setSearch] = useState("");
+  const [view, setView] = useState<"admins" | "users">("admins");
 
   async function reloadAdmins() {
     try {
@@ -147,202 +148,227 @@ export function UsersPage() {
         here.
       </FoldingAlert>
 
-      {/* ---- Admin team ------------------------------------------------ */}
+      <nav className="tabs" aria-label="Users sections">
+        <button
+          className={view === "admins" ? "tab on" : "tab"}
+          onClick={() => setView("admins")}
+        >
+          Admin team{" "}
+          {admins && <span className="tab-count">{admins.length}</span>}
+        </button>
+        <button
+          className={view === "users" ? "tab on" : "tab"}
+          onClick={() => setView("users")}
+        >
+          App users{" "}
+          {users && <span className="tab-count">{users.length}</span>}
+        </button>
+      </nav>
 
-      <div className="editor-card">
-        <div className="editor-panel">
-          <Section
-            title="Admin team"
-            hint="Everyone who can edit and publish content in this CMS."
-          >
-            {adminsError && (
-              <Alert variant="destructive" title="Could not load the admin team">
-                {adminsError}. Is the functions emulator running? It starts
-                with <code>docker compose up emulators</code> and needs a few
-                seconds longer than Firestore.
-              </Alert>
-            )}
+      {view === "admins" && (
+        <>
+        {/* ---- Admin team ------------------------------------------------ */}
 
-            {admins === null && !adminsError ? (
-              <div className="skeleton" />
-            ) : admins && admins.length === 0 ? (
-              <div className="empty">
-                <p>No admins found — which should be impossible if you are seeing this.</p>
-              </div>
-            ) : (
-              admins && (
-                <table className="data">
-                  <thead>
-                    <tr>
-                      <th>Name</th>
-                      <th>Email</th>
-                      <th />
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {admins.map((a) => {
-                      const isMe = a.uid === me?.uid;
-                      return (
-                        <tr key={a.uid}>
-                          <td>
-                            <span className="row">
-                              <ShieldCheck size={14} aria-hidden="true" />
-                              {a.displayName ?? <span className="hint">—</span>}
-                              {isMe && <span className="badge">you</span>}
-                            </span>
-                          </td>
-                          <td className="hint">{a.email ?? a.uid}</td>
-                          <td className="row">
-                            {/* Not a disabled button: one that looks pressable
-                                and does nothing, with the reason in a tooltip,
-                                is the least helpful way to say no. */}
-                            {isMe ? (
-                              <span className="hint">
-                                Another admin can revoke yours
-                              </span>
-                            ) : (
-                              <button
-                                className="btn-quiet sm danger"
-                                disabled={busy}
-                                onClick={() => setConfirmRevoke(a)}
-                              >
-                                Revoke
-                              </button>
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              )
-            )}
-
-            <Field
-              label="Add an admin"
-              hint="They must have signed in to the app or this CMS at least once."
-              wide
+        <div className="editor-card">
+          <div className="editor-panel">
+            <Section
+              title="Admin team"
+              hint="Everyone who can edit and publish content in this CMS."
             >
-              <form
-                className="row"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  void grant(grantEmail);
-                }}
+              {adminsError && (
+                <Alert variant="destructive" title="Could not load the admin team">
+                  {adminsError}. Is the functions emulator running? It starts
+                  with <code>docker compose up emulators</code> and needs a few
+                  seconds longer than Firestore.
+                </Alert>
+              )}
+
+              {admins === null && !adminsError ? (
+                <div className="skeleton" />
+              ) : admins && admins.length === 0 ? (
+                <div className="empty">
+                  <p>No admins found — which should be impossible if you are seeing this.</p>
+                </div>
+              ) : (
+                admins && (
+                  <table className="data">
+                    <thead>
+                      <tr>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th />
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {admins.map((a) => {
+                        const isMe = a.uid === me?.uid;
+                        return (
+                          <tr key={a.uid}>
+                            <td>
+                              <span className="row">
+                                <ShieldCheck size={14} aria-hidden="true" />
+                                {a.displayName ?? <span className="hint">—</span>}
+                                {isMe && <span className="badge">you</span>}
+                              </span>
+                            </td>
+                            <td className="hint">{a.email ?? a.uid}</td>
+                            <td className="row">
+                              {/* Not a disabled button: one that looks pressable
+                                  and does nothing, with the reason in a tooltip,
+                                  is the least helpful way to say no. */}
+                              {isMe ? (
+                                <span className="hint">
+                                  Another admin can revoke yours
+                                </span>
+                              ) : (
+                                <button
+                                  className="btn-quiet sm danger"
+                                  disabled={busy}
+                                  onClick={() => setConfirmRevoke(a)}
+                                >
+                                  Revoke
+                                </button>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                )
+              )}
+
+              <Field
+                label="Add an admin"
+                hint="They must have signed in to the app or this CMS at least once."
+                wide
               >
-                <input
-                  type="email"
-                  value={grantEmail}
-                  onChange={(e) => setGrantEmail(e.target.value)}
-                  placeholder="colleague@tourism.cagayan.gov.ph"
-                  disabled={busy}
-                />
-                <button
-                  type="submit"
-                  className="btn-primary"
-                  disabled={busy || !grantEmail.trim()}
+                <form
+                  className="row"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    void grant(grantEmail);
+                  }}
                 >
-                  Grant admin
-                </button>
-              </form>
-            </Field>
-          </Section>
+                  <input
+                    type="email"
+                    value={grantEmail}
+                    onChange={(e) => setGrantEmail(e.target.value)}
+                    placeholder="colleague@tourism.cagayan.gov.ph"
+                    disabled={busy}
+                  />
+                  <button
+                    type="submit"
+                    className="btn-primary"
+                    disabled={busy || !grantEmail.trim()}
+                  >
+                    Grant admin
+                  </button>
+                </form>
+              </Field>
+            </Section>
+          </div>
         </div>
-      </div>
-
-      {/* ---- App users ------------------------------------------------- */}
-
-      <div className="toolbar">
-        <input
-          className="search"
-          placeholder="Search app users by name or email"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-        <span className="spacer" />
-        {search.trim() && (
-          <button className="btn-quiet" onClick={() => setSearch("")}>
-            Clear
-          </button>
-        )}
-      </div>
-
-      {usersError && (
-        <Alert variant="destructive" title="Could not load app users">
-          {usersError}. Is the emulator running, and do you still have the
-          admin claim?
-        </Alert>
+        </>
       )}
 
-      {users === null && !usersError ? (
-        <table className="data">
-          <tbody>
-            {Array.from({ length: 4 }, (_, i) => (
-              <tr key={i}>
-                <td colSpan={6}>
-                  <div className="skeleton" />
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      ) : users && filteredUsers.length === 0 ? (
-        <div className="empty">
-          <p>
-            {users.length === 0
-              ? "Nobody has signed in to the app yet."
-              : "Nothing matches that search."}
-          </p>
+      {view === "users" && (
+        <>
+        {/* ---- App users ------------------------------------------------- */}
+
+        <div className="toolbar">
+          <input
+            className="search"
+            placeholder="Search app users by name or email"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+          <span className="spacer" />
+          {search.trim() && (
+            <button className="btn-quiet" onClick={() => setSearch("")}>
+              Clear
+            </button>
+          )}
         </div>
-      ) : (
-        users && (
+
+        {usersError && (
+          <Alert variant="destructive" title="Could not load app users">
+            {usersError}. Is the emulator running, and do you still have the
+            admin claim?
+          </Alert>
+        )}
+
+        {users === null && !usersError ? (
           <table className="data">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Email</th>
-                <th>Joined</th>
-                <th>Saved tours</th>
-                <th>Downloaded towns</th>
-                <th />
-              </tr>
-            </thead>
             <tbody>
-              {filteredUsers.map((u) => {
-                const isAdmin = adminUids.has(u.uid);
-                return (
-                  <tr key={u.uid}>
-                    <td>
-                      {u.displayName ?? <span className="hint">—</span>}{" "}
-                      {isAdmin && (
-                        <span className="badge ok">
-                          <ShieldCheck size={12} aria-hidden="true" /> admin
-                        </span>
-                      )}
-                    </td>
-                    <td className="hint">{u.email ?? "—"}</td>
-                    <td className="hint">
-                      {formatDate(u.createdAt)}
-                    </td>
-                    <td>{u.savedTourIds?.length ?? 0}</td>
-                    <td>{u.downloadedTownIds?.length ?? 0}</td>
-                    <td className="row">
-                      {!isAdmin && u.email && (
-                        <button
-                          className="btn-quiet sm"
-                          disabled={busy}
-                          onClick={() => void grant(u.email!)}
-                        >
-                          Make admin
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
+              {Array.from({ length: 4 }, (_, i) => (
+                <tr key={i}>
+                  <td colSpan={6}>
+                    <div className="skeleton" />
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
-        )
+        ) : users && filteredUsers.length === 0 ? (
+          <div className="empty">
+            <p>
+              {users.length === 0
+                ? "Nobody has signed in to the app yet."
+                : "Nothing matches that search."}
+            </p>
+          </div>
+        ) : (
+          users && (
+            <table className="data">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Joined</th>
+                  <th>Saved tours</th>
+                  <th>Downloaded towns</th>
+                  <th />
+                </tr>
+              </thead>
+              <tbody>
+                {filteredUsers.map((u) => {
+                  const isAdmin = adminUids.has(u.uid);
+                  return (
+                    <tr key={u.uid}>
+                      <td>
+                        {u.displayName ?? <span className="hint">—</span>}{" "}
+                        {isAdmin && (
+                          <span className="badge ok">
+                            <ShieldCheck size={12} aria-hidden="true" /> admin
+                          </span>
+                        )}
+                      </td>
+                      <td className="hint">{u.email ?? "—"}</td>
+                      <td className="hint">
+                        {formatDate(u.createdAt)}
+                      </td>
+                      <td>{u.savedTourIds?.length ?? 0}</td>
+                      <td>{u.downloadedTownIds?.length ?? 0}</td>
+                      <td className="row">
+                        {!isAdmin && u.email && (
+                          <button
+                            className="btn-quiet sm"
+                            disabled={busy}
+                            onClick={() => void grant(u.email!)}
+                          >
+                            Make admin
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )
+        )}
+        </>
       )}
 
       <Dialog
