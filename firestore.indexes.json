@@ -48,14 +48,6 @@
         { "fieldPath": "popular", "order": "DESCENDING" },
         { "fieldPath": "name", "order": "ASCENDING" }
       ]
-    },
-    {
-      "__comment": "Audio guide player: segments in sequence. Collection group so a segment can be resolved without knowing its parent - the offline bundle builder needs that.",
-      "collectionGroup": "segments",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        { "fieldPath": "order", "order": "ASCENDING" }
-      ]
     }
   ],
   "fieldOverrides": []
