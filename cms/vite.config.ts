@@ -16,6 +16,8 @@ export default defineConfig({
         searchForWorkspaceRoot(process.cwd()),
         '../assets/fonts',
         '../assets/images/EndlessFunCagayan.png',
+        // The icons a category added in Settings may use, shared with the app.
+        '../design/category-glyphs.json',
       ],
     },
   },

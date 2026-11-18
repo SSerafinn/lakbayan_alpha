@@ -1,3 +1,4 @@
+import { allCategories, categoryInfo, categoryName } from "../types/categories";
 import {
   useEffect,
   useMemo,
@@ -49,8 +50,6 @@ import { relativeTime } from "../types/dashboard";
 import { CircleAlert, CircleCheck, ImagePlus } from "lucide-react";
 import type { Timestamp } from "firebase/firestore";
 import {
-  CATEGORIES,
-  CATEGORY_LABELS,
   MAX_DESCRIPTION,
   emptyDestination,
   pinUnset,
@@ -58,7 +57,6 @@ import {
   readiness,
   slugify,
   validate,
-  type Category,
   type Destination,
   type ReadinessItem,
 } from "../types/destination";
@@ -84,6 +82,7 @@ type Tab = "details" | "location" | "media" | "audio" | "ar";
  */
 export function DestinationEditorPage() {
   const { id } = useParams<{ id: string }>();
+  const { categories } = useTaxonomy();
   const navigate = useNavigate();
 
   /**
@@ -584,7 +583,7 @@ export function DestinationEditorPage() {
             </span>
           }
           meta={
-            [draft.town.trim(), CATEGORY_LABELS[draft.category]]
+            [draft.town.trim(), categoryName(draft.category, categories)]
               .filter(Boolean)
               .join(" · ") || undefined
           }
@@ -1020,7 +1019,7 @@ function OrganisationCard({
   set: SetField;
 }) {
   // The province's lists from Settings, or the built-in towns until saved.
-  const { towns, subcategories } = useTaxonomy();
+  const { towns, subcategories, categories } = useTaxonomy();
   const town = draft.town.trim();
   // A town not on the list is usually a misspelling of one that is.
   const townMatch =
@@ -1074,7 +1073,7 @@ function OrganisationCard({
         <select
           value={draft.category}
           onChange={(e) => {
-            const c = e.target.value as Category;
+            const c = e.target.value;
             set("category", c);
             // A subcategory belongs to its category; one that does not
             // exist under the new category would be meaningless there.
@@ -1086,11 +1085,33 @@ function OrganisationCard({
             }
           }}
         >
-          {CATEGORIES.map((c) => (
-            <option key={c} value={c}>
-              {CATEGORY_LABELS[c]}
-            </option>
-          ))}
+          {(() => {
+            const all = allCategories(categories);
+            const added = all.filter((c) => !c.builtIn);
+            return (
+              <>
+                {all.filter((c) => c.builtIn).map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+                {added.length > 0 && (
+                  <optgroup label="Added in Settings">
+                    {added.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
+              </>
+            );
+          })()}
+          {!categoryInfo(draft.category, categories) && (
+            // A category since removed in Settings: keep it selectable so
+            // the field shows the truth until someone picks another.
+            <option value={draft.category}>{draft.category} (removed)</option>
+          )}
         </select>
       </Field>
 
@@ -1099,7 +1120,7 @@ function OrganisationCard({
         hint={
           subOptions.length || staleSub
             ? "Optional — a finer kind within the category."
-            : `None set up under ${CATEGORY_LABELS[draft.category]} yet — add them in Settings.`
+            : `None set up under ${categoryName(draft.category, categories)} yet — add them in Settings.`
         }
       >
         <select

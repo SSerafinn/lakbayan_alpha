@@ -1,7 +1,6 @@
 import {
   CATEGORIES,
   readiness,
-  type Category,
   type Destination,
   type Status,
 } from "./destination";
@@ -38,7 +37,8 @@ export type DestinationFilters = {
   view: DestinationView;
   search: string;
   town: string;
-  category: Category | "all";
+  /** A category id, or "all". */
+  category: string;
 };
 
 export const NO_FILTERS: DestinationFilters = {
@@ -56,7 +56,11 @@ export const NO_FILTERS: DestinationFilters = {
  * linked to. Anything unrecognised reads as "no filter": an old or mistyped
  * link shows everything rather than an empty table.
  */
-export function readFilters(params: URLSearchParams): DestinationFilters {
+export function readFilters(
+  params: URLSearchParams,
+  /** Every category id there is, added ones included. */
+  categoryIds: readonly string[] = CATEGORIES,
+): DestinationFilters {
   const view = params.get("view");
   const category = params.get("category");
   return {
@@ -65,9 +69,7 @@ export function readFilters(params: URLSearchParams): DestinationFilters {
       : "all",
     search: params.get("q") ?? "",
     town: params.get("town") || "all",
-    category: (CATEGORIES as readonly string[]).includes(category ?? "")
-      ? (category as Category)
-      : "all",
+    category: category && categoryIds.includes(category) ? category : "all",
   };
 }
 

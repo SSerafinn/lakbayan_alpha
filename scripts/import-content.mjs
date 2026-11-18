@@ -240,7 +240,23 @@ function validateDestinations(rows) {
     const category = text(r.category).toLowerCase();
     if (!category) err(...where, "category is required.");
     else if (!CATEGORIES.includes(category)) {
-      err(...where, `category "${category}" is not one of ${CATEGORIES.join(", ")}.`);
+      // A category added in the CMS (Settings → Categories) is stored by its
+      // id, a slug. A dry run never connects, so it cannot check the id
+      // exists: say so, and refuse anything that could not be an id at all.
+      if (/^[a-z0-9]+(-[a-z0-9]+)*$/.test(category)) {
+        warn(
+          ...where,
+          `category "${category}" is not one of the six built in (${CATEGORIES.join(", ")}). ` +
+            "It must already be added in the CMS under Settings → Categories with this id, " +
+            "or the app shows these places as Other.",
+        );
+      } else {
+        err(
+          ...where,
+          `category "${category}" is not one of ${CATEGORIES.join(", ")}, ` +
+            "nor the id of an added category (lowercase letters, digits and hyphens).",
+        );
+      }
     }
 
     const description = text(r.short_description);

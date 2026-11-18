@@ -43,7 +43,11 @@ export type Destination = {
   name: string;
   slug: string;
   town: string;
-  category: Category;
+  /**
+   * One of the six built-in ids, or the `id` of a category added in
+   * Settings (`settings/taxonomy.categories`). See types/categories.ts.
+   */
+  category: string;
   /**
    * A finer kind within the category, from Settings → Taxonomy. Null for
    * none — never undefined, which Firestore refuses to write.

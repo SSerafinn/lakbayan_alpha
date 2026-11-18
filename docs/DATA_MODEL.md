@@ -8,7 +8,8 @@ destinations/{id}                                              // schemaVersion 
   name          string    required
   slug          string    required   // auto from name; used in deep links
   town          string    required   // municipality, e.g. "Peñablanca"
-  category      string    required   // enum below
+  category      string    required   // one of the six (enum below), or the id
+                                     // of a category added in settings/taxonomy
   subcategory   string?              // finer kind within `category`, e.g. "Waterfall"
                                      // under nature; one of settings/taxonomy's
                                      // list for that category, or null
@@ -117,7 +118,7 @@ users/{uid}/itineraries/{id}                  // tours somebody built themselves
   // earn the cost of a per-field rule — but it does mean this list is kept by
   // hand. `startDate`/`endDate` reached Firestore before they reached here.
 
-settings/{taxonomy | app | policies}           // schemaVersion 1 — province-wide, CMS screen 11
+settings/{taxonomy | app | policies}           // schemaVersion 2 — province-wide, CMS screen 11
   // Three fixed documents, not one: the app reads `app` at startup and has no
   // reason to pull pages of policy text with it, and each is saved (and
   // version-checked) on its own. Rules allow exactly these three ids.
@@ -133,11 +134,19 @@ settings/{taxonomy | app | policies}           // schemaVersion 1 — province-w
     towns       string[]  required   // the municipality list the CMS offers for
                                      // `town`; display names exactly as written
                                      // on destinations, since `town` groups
-                                     // offline bundles. Categories are NOT here:
-                                     // the app draws a glyph and colour per
-                                     // kind, so a new one is an app release.
-    subcategories map?               // { [category]: string[] } — finer kinds the
-                                     // province adds under each fixed category.
+                                     // offline bundles.
+    categories  list?                // categories beyond the six, in the order
+                                     // added: [{ id, name, plural, glyph, look }].
+                                     // `id` is a slug of the first name and never
+                                     // changes (destinations store it); `name` is
+                                     // one place ("Resort"), `plural` the chip
+                                     // ("Resorts"); `glyph` is a name from
+                                     // design/category-glyphs.json; `look` is one
+                                     // of the six, whose colours it takes. So the
+                                     // app draws a new one with no release. The
+                                     // CMS refuses to remove one a place uses.
+    subcategories map?               // { [category id]: string[] } — finer kinds the
+                                     // province adds under any category.
                                      // They borrow their category's glyph and
                                      // colour, so adding one needs no release.
   app:
@@ -177,7 +186,9 @@ read a `role` document, so admin checks cost no extra read and `firestore.rules`
 rejected outright. Because the claim lives on the Auth account, the set of
 admins and the set of `users/` documents are different lists — see D-12.
 
-Enums: `category` = church | nature | heritage | museum | food | landmark.
+Enums: `category` = church | nature | heritage | museum | food | landmark, or an
+added category's `id` (settings/taxonomy `categories`). A client that cannot
+place one shows it as Other.
 
 **A tour's document id is `slugify(title)`, not a random one.** Destinations get
 random ids and carry a `slug` field; tours put the slug in the id instead, and
@@ -215,6 +226,15 @@ system rather than from a spreadsheet, that is a schema change.
 **schemaVersion 4** (destinations). Bump it here and in
 `destinationSchemaVersion` together with any shape change, so a client reading a
 cached document written by an older build can tell.
+
+### Settings v2 (2026-11-18)
+
+`settings/taxonomy` gains `categories`: categories the province adds beyond the
+six, each with an icon from a fixed list (`design/category-glyphs.json`, shared
+by the CMS and the app) and the colours of one of the six. A destination's
+`category` may now hold one of their ids. The destination document's shape is
+unchanged, so its schemaVersion stays 4; clients older than this read an added
+category as `unknown` (Other), as they always have for values they do not know.
 
 ### Changes in v4 (2026-10-21)
 

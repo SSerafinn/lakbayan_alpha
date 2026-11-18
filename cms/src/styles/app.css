@@ -2325,3 +2325,104 @@ table.data .tag-row {
   font-size: var(--lk-app-type-label-large-size);
   font-weight: var(--lk-app-type-label-large-weight);
 }
+
+/* ---- Settings: categories ------------------------------------------------
+   An added category's icon on its colours, as the app's kind rail draws it:
+   a Phosphor glyph from the app's own font on one of the kind washes. */
+.kind-dot {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  font-family: "Phosphor";
+  font-size: 16px;
+  line-height: 1;
+  color: var(--lk-app-ink, #1b1d1c);
+  flex: none;
+}
+.cat-name {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--lk-space-3);
+  font-weight: 600;
+}
+.cat-table td {
+  vertical-align: middle;
+}
+.cat-form {
+  display: grid;
+  gap: var(--lk-space-4);
+  padding: var(--lk-space-5);
+  margin-bottom: var(--lk-space-5);
+  border: 1px solid var(--lk-outline-variant, #dcdcd6);
+  border-radius: 16px;
+  background: var(--lk-surface, #fff);
+}
+.cat-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--lk-space-4);
+}
+.glyph-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, 44px);
+  gap: var(--lk-space-2);
+}
+.glyph-choice {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  border: 1px solid var(--lk-outline-variant, #dcdcd6);
+  background: var(--lk-surface, #fff);
+  font-family: "Phosphor";
+  font-size: 20px;
+  line-height: 1;
+  color: inherit;
+  cursor: pointer;
+}
+.glyph-choice:hover {
+  border-color: var(--lk-outline, #9a9a94);
+}
+.glyph-choice.on {
+  border: 2px solid var(--lk-role-primary);
+  background: var(--lk-app-tint, #eef6f2);
+}
+.look-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--lk-space-2);
+}
+.look-choice {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--lk-space-2);
+  min-height: 40px;
+  padding: 0 var(--lk-space-3);
+  border-radius: 999px;
+  border: 1px solid var(--lk-outline-variant, #dcdcd6);
+  background: var(--lk-surface, #fff);
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+.look-choice.on {
+  border: 2px solid var(--lk-role-primary);
+}
+.look-swatch {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1px solid rgb(0 0 0 / 0.08);
+}
+.cat-form-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--lk-space-3);
+}
+.cat-preview {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--lk-space-3);
+}

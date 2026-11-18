@@ -1,3 +1,5 @@
+import { allCategories, categoryName } from "../types/categories";
+import { useTaxonomy } from "../components/useTaxonomy";
 import { useEffect, useMemo, useState, type MouseEvent } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { listDestinations, setStatus } from "../lib/destinations";
@@ -12,9 +14,6 @@ import { useToast } from "../components/toast-context";
 import { relativeTime } from "../types/dashboard";
 import { Plus } from "lucide-react";
 import {
-  CATEGORIES,
-  CATEGORY_LABELS,
-  type Category,
   type Destination,
   type Status,
 } from "../types/destination";
@@ -52,7 +51,15 @@ export function DestinationsListPage() {
   const [error, setError] = useState<string | null>(null);
 
   const [params, setParams] = useSearchParams();
-  const filters = useMemo(() => readFilters(params), [params]);
+  const { categories } = useTaxonomy();
+  const categoryIds = useMemo(
+    () => allCategories(categories).map((c) => c.id),
+    [categories],
+  );
+  const filters = useMemo(
+    () => readFilters(params, categoryIds),
+    [params, categoryIds],
+  );
   // Replaced, not pushed: each keystroke in the search box would otherwise be
   // a step that Back has to walk through.
   const setFilters = (patch: Partial<DestinationFilters>) =>
@@ -255,15 +262,32 @@ export function DestinationsListPage() {
         <select
           value={filters.category}
           onChange={(e) =>
-            setFilters({ category: e.target.value as Category | "all" })
+            setFilters({ category: e.target.value })
           }
         >
           <option value="all">Category: All</option>
-          {CATEGORIES.map((c) => (
-            <option key={c} value={c}>
-              {CATEGORY_LABELS[c]}
-            </option>
-          ))}
+          {(() => {
+            const all = allCategories(categories);
+            const added = all.filter((c) => !c.builtIn);
+            return (
+              <>
+                {all.filter((c) => c.builtIn).map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+                {added.length > 0 && (
+                  <optgroup label="Added in Settings">
+                    {added.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
+              </>
+            );
+          })()}
         </select>
         {hasFilters && (
           <button className="btn-quiet" onClick={clearFilters}>
@@ -387,7 +411,7 @@ export function DestinationsListPage() {
                   </div>
                 </td>
                 <td>
-                  {CATEGORY_LABELS[d.category] ?? d.category}
+                  {categoryName(d.category, categories)}
                   {d.subcategory && (
                     <span className="hint"> · {d.subcategory}</span>
                   )}

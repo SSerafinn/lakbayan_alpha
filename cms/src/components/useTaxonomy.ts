@@ -9,6 +9,7 @@ let cache: Promise<TaxonomySettings> | null = null;
 
 const BUILT_IN: TaxonomySettings = {
   towns: [...CAGAYAN_TOWNS],
+  categories: [],
   subcategories: {},
 };
 
@@ -16,6 +17,7 @@ function load(): Promise<TaxonomySettings> {
   cache ??= getSettings<TaxonomySettings>("taxonomy")
     .then(({ data }) => ({
       towns: data?.towns?.length ? data.towns : BUILT_IN.towns,
+      categories: data?.categories ?? [],
       subcategories: data?.subcategories ?? {},
     }))
     .catch(() => {
@@ -31,7 +33,7 @@ export function refreshTaxonomy() {
 }
 
 /**
- * The town list and subcategories to offer in the destination editor: the
+ * The town list, added categories and subcategories to offer in the destination editor: the
  * province's, from Settings, or the built-in towns and no subcategories
  * until anyone has saved them.
  */

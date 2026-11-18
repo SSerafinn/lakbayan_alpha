@@ -1,7 +1,9 @@
 import { useLayoutEffect, useRef, useState } from "react";
-import type { Category, Destination } from "../types/destination";
+import { categoryInfo, OTHER_GLYPH } from "../types/categories";
+import type { Destination } from "../types/destination";
 import { placeTags, type PlaceTag } from "../types/preview";
 import { useImageUrl } from "./useImageUrl";
+import { useTaxonomy } from "./useTaxonomy";
 
 type Draft = Omit<Destination, "id">;
 type View = "photo" | "featured" | "page";
@@ -70,16 +72,6 @@ const GLYPH = {
   popular: { code: 0xe242, fill: true },
   heart: { code: 0xe2a8, fill: false },
 } as const;
-
-/** `AppIcons.kind`: the same codepoint in both weights. */
-const KIND_GLYPH: Record<Category, number> = {
-  nature: 0xe7ae,
-  food: 0xe262,
-  church: 0xecea,
-  heritage: 0xe9d0,
-  museum: 0xe0b4,
-  landmark: 0xe244,
-};
 
 function Glyph({ code, fill = false }: { code: number; fill?: boolean }) {
   return (
@@ -178,6 +170,8 @@ function FeaturedFace({ draft, hasAR }: { draft: Draft; hasAR: boolean }) {
  * and the description leading the history, cut at three lines with Read More.
  */
 function PageTop({ draft }: { draft: Draft }) {
+  const { categories } = useTaxonomy();
+  const kind = categoryInfo(draft.category, categories);
   const lead = draft.description.trim();
   const rest = draft.history?.trim() ?? "";
   const about = useRef<HTMLParagraphElement>(null);
@@ -207,8 +201,8 @@ function PageTop({ draft }: { draft: Draft }) {
             <Words value={draft.name} empty="Name" />
           </p>
           <span className="ap-facts">
-            <span className="ap-fact" title={draft.subcategory || draft.category}>
-              <Glyph code={KIND_GLYPH[draft.category]} />
+            <span className="ap-fact" title={draft.subcategory || kind?.name || "Other"}>
+              <Glyph code={kind?.codepoint ?? OTHER_GLYPH} />
             </span>
             {draft.popular && (
               <span className="ap-fact" title="Popular">

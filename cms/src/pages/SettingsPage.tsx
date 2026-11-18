@@ -28,6 +28,18 @@ import { ConflictError } from "../lib/versioned";
 import type { Conflict } from "../types/conflict";
 import { relativeTime } from "../types/dashboard";
 import {
+  CATEGORY_GLYPHS,
+  MAX_CUSTOM_CATEGORIES,
+  allCategories,
+  categoryIdFor,
+  categoryProblem,
+  categoryUsage,
+  cleanCategories,
+  suggestPlural,
+  type CategoryInfo,
+  type CustomCategory,
+} from "../types/categories";
+import {
   CATEGORIES,
   CATEGORY_LABELS,
   type Category,
@@ -171,8 +183,12 @@ export function SettingsPage() {
 
   const taxonomy = useSettingsDoc<TaxonomySettings>(
     "taxonomy",
-    () => ({ towns: [...CAGAYAN_TOWNS], subcategories: {} }),
-    (raw) => ({ towns: raw.towns ?? [], subcategories: raw.subcategories ?? {} }),
+    () => ({ towns: [...CAGAYAN_TOWNS], categories: [], subcategories: {} }),
+    (raw) => ({
+      towns: raw.towns ?? [],
+      categories: raw.categories ?? [],
+      subcategories: raw.subcategories ?? {},
+    }),
   );
   const app = useSettingsDoc<AppSettings>("app", emptyApp, (raw) => ({
     contact: raw.contact ?? {},
@@ -231,7 +247,13 @@ export function SettingsPage() {
           {
             data: {
               towns,
-              subcategories: cleanSubcategories(taxonomy.draft.subcategories),
+              categories: cleanCategories(taxonomy.draft.categories),
+              subcategories: cleanSubcategories(
+                taxonomy.draft.subcategories,
+                allCategories(cleanCategories(taxonomy.draft.categories)).map(
+                  (c) => c.id,
+                ),
+              ),
             },
           },
           { force },
@@ -459,8 +481,14 @@ function TaxonomyTab({
         update={update}
         onDestinationsChanged={onDestinationsChanged}
       />
+      <CategoriesSection
+        value={value.categories}
+        destinations={destinations}
+        update={update}
+      />
       <SubcategoriesSection
         value={value.subcategories}
+        categories={value.categories}
         destinations={destinations}
         update={update}
         onDestinationsChanged={onDestinationsChanged}
@@ -713,6 +741,319 @@ function TownsSection({
   );
 }
 
+/** The colours of each built-in category, as `kindWash` in the app. */
+const LOOK_WASH: Record<Category, string> = {
+  nature: "var(--lk-app-mint)",
+  museum: "var(--lk-app-sky)",
+  landmark: "var(--lk-app-sky)",
+  church: "var(--lk-app-butter)",
+  heritage: "var(--lk-app-butter)",
+  food: "var(--lk-app-blush)",
+};
+
+function KindDot({ codepoint, look }: { codepoint: number; look: Category }) {
+  return (
+    <span
+      className="kind-dot"
+      style={{ background: LOOK_WASH[look] }}
+      aria-hidden="true"
+    >
+      {String.fromCodePoint(codepoint)}
+    </span>
+  );
+}
+
+const EMPTY_CATEGORY: CustomCategory = {
+  id: "",
+  name: "",
+  plural: "",
+  glyph: "",
+  look: "nature",
+};
+
+/**
+ * The six built-in categories, and the ones the province adds.
+ *
+ * An added one takes an icon from the app's own set and the colours of one
+ * of the six, so the app can draw it without a release. Its id is made from
+ * its first name and never changes, because places store it; renaming only
+ * changes what people read. One in use cannot be removed: its places would
+ * fall back to "Other" in the app.
+ */
+function CategoriesSection({
+  value,
+  destinations,
+  update,
+}: {
+  value: CustomCategory[];
+  destinations: Destination[] | null;
+  update: TaxonomyUpdate;
+}) {
+  const toast = useToast();
+  const usage = useMemo(
+    () => categoryUsage(destinations ?? []),
+    [destinations],
+  );
+  /** null: closed. An id: editing that one. "": adding. */
+  const [editing, setEditing] = useState<string | null>(null);
+  const [form, setForm] = useState<CustomCategory>(EMPTY_CATEGORY);
+  const [pluralTouched, setPluralTouched] = useState(false);
+  const [tried, setTried] = useState(false);
+
+  const isNew = editing === "";
+  const candidate: CustomCategory = {
+    ...form,
+    id: isNew ? categoryIdFor(form.name) : form.id,
+  };
+  const problem = categoryProblem(
+    candidate,
+    value.filter((c) => c.id !== editing),
+  );
+  const pickedGlyph = CATEGORY_GLYPHS.find((g) => g.name === form.glyph);
+
+  function open(c: CustomCategory | null) {
+    setEditing(c ? c.id : "");
+    setForm(c ?? EMPTY_CATEGORY);
+    setPluralTouched(c !== null);
+    setTried(false);
+  }
+
+  function commit() {
+    setTried(true);
+    if (problem) return;
+    const tidy = {
+      ...candidate,
+      name: candidate.name.trim(),
+      plural: candidate.plural.trim(),
+    };
+    update((v) => ({
+      ...v,
+      categories: isNew
+        ? [...v.categories, tidy]
+        : v.categories.map((c) => (c.id === tidy.id ? tidy : c)),
+    }));
+    setEditing(null);
+  }
+
+  function remove(c: CustomCategory) {
+    const at = value.findIndex((x) => x.id === c.id);
+    update((v) => ({
+      ...v,
+      categories: v.categories.filter((x) => x.id !== c.id),
+    }));
+    toast.toast({
+      variant: "info",
+      title: `${c.name} removed`,
+      description: "Save to keep the change.",
+      action: {
+        label: "Undo",
+        onClick: () =>
+          update((v) => {
+            if (v.categories.some((x) => x.id === c.id)) return v;
+            const next = [...v.categories];
+            next.splice(Math.min(at, next.length), 0, c);
+            return { ...v, categories: next };
+          }),
+      },
+    });
+  }
+
+  const full = value.length >= MAX_CUSTOM_CATEGORIES;
+
+  return (
+    <Section
+      title="Categories"
+      hint="The six built in are fixed. Add more here: each takes an icon from the app's set and the colours of one of the six, so it needs no app release."
+      action={
+        editing === null ? (
+          <button
+            className="btn-secondary"
+            onClick={() => open(null)}
+            disabled={full}
+            title={
+              full ? `Up to ${MAX_CUSTOM_CATEGORIES} added categories` : undefined
+            }
+          >
+            <Plus size={16} aria-hidden="true" />
+            Add a category
+          </button>
+        ) : undefined
+      }
+    >
+      {editing !== null && (
+        <div className="f wide cat-form">
+          <div className="cat-form-grid">
+            <Field
+              label="Name"
+              required
+              hint="One place, as the app reads it: “Resort in Santa Ana”."
+            >
+              <input
+                value={form.name}
+                placeholder="e.g. Resort"
+                autoFocus
+                onChange={(e) => {
+                  const name = e.target.value;
+                  setForm((f) => ({
+                    ...f,
+                    name,
+                    plural: pluralTouched ? f.plural : suggestPlural(name),
+                  }));
+                }}
+              />
+            </Field>
+            <Field label="Plural" required hint="On the app's filter chips.">
+              <input
+                value={form.plural}
+                placeholder="e.g. Resorts"
+                onChange={(e) => {
+                  setPluralTouched(true);
+                  setForm((f) => ({ ...f, plural: e.target.value }));
+                }}
+              />
+            </Field>
+          </div>
+
+          <Field label="Icon" required>
+            <div className="glyph-grid" role="radiogroup" aria-label="Icon">
+              {CATEGORY_GLYPHS.map((g) => (
+                <button
+                  key={g.name}
+                  type="button"
+                  role="radio"
+                  aria-checked={form.glyph === g.name}
+                  aria-label={g.label}
+                  title={g.label}
+                  className={
+                    form.glyph === g.name ? "glyph-choice on" : "glyph-choice"
+                  }
+                  onClick={() => setForm((f) => ({ ...f, glyph: g.name }))}
+                >
+                  {String.fromCodePoint(g.codepoint)}
+                </button>
+              ))}
+            </div>
+          </Field>
+
+          <Field
+            label="Colours"
+            required
+            hint="It takes the colours of one of the six."
+          >
+            <div className="look-row" role="radiogroup" aria-label="Colours">
+              {CATEGORIES.map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  role="radio"
+                  aria-checked={form.look === c}
+                  className={form.look === c ? "look-choice on" : "look-choice"}
+                  onClick={() => setForm((f) => ({ ...f, look: c }))}
+                >
+                  <span
+                    className="look-swatch"
+                    style={{ background: LOOK_WASH[c] }}
+                  />
+                  Like {CATEGORY_LABELS[c]}
+                </button>
+              ))}
+            </div>
+          </Field>
+
+          <div className="cat-form-foot">
+            <span className="cat-preview" aria-label="Preview">
+              {pickedGlyph && (
+                <KindDot codepoint={pickedGlyph.codepoint} look={form.look} />
+              )}
+              <span>
+                <strong>{form.plural.trim() || "Plural"}</strong>
+                <span className="hint">
+                  {" "}
+                  · {form.name.trim() || "Name"} in Peñablanca
+                </span>
+              </span>
+            </span>
+            {tried && problem && (
+              <span className="field-error" role="alert">
+                {problem}
+              </span>
+            )}
+            <span className="spacer" />
+            <button className="btn-quiet" onClick={() => setEditing(null)}>
+              Cancel
+            </button>
+            <button className="btn-primary" onClick={commit}>
+              {isNew ? "Add category" : "Done"}
+            </button>
+          </div>
+          <p className="hint">
+            {isNew
+              ? "It joins the list below; Save writes it."
+              : "Its id stays the same, so its places keep it."}
+          </p>
+        </div>
+      )}
+
+      <div className="f wide">
+        <table className="data cat-table">
+          <thead>
+            <tr>
+              <th>Category</th>
+              <th>On the app's chips</th>
+              <th>Places</th>
+              <th aria-label="Actions" />
+            </tr>
+          </thead>
+          <tbody>
+            {allCategories(value).map((c) => {
+              const n = usage.get(c.id) ?? 0;
+              const custom = value.find((x) => x.id === c.id);
+              return (
+                <tr key={c.id}>
+                  <td>
+                    <span className="cat-name">
+                      <KindDot codepoint={c.codepoint} look={c.look} />
+                      {c.name}
+                    </span>
+                  </td>
+                  <td>{c.plural}</td>
+                  <td>{destinations ? n : "…"}</td>
+                  <td className="actions-cell">
+                    {custom ? (
+                      <>
+                        <button
+                          className="btn-quiet"
+                          onClick={() => open(custom)}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          className="btn-quiet danger"
+                          disabled={n > 0 || destinations === null}
+                          title={
+                            n > 0
+                              ? `${n} place${n === 1 ? " uses" : "s use"} it. Move ${n === 1 ? "it" : "them"} to another category first.`
+                              : undefined
+                          }
+                          onClick={() => remove(custom)}
+                        >
+                          Remove
+                        </button>
+                      </>
+                    ) : (
+                      <span className="hint">Built in</span>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </Section>
+  );
+}
+
 /**
  * Finer kinds under the six fixed categories.
  *
@@ -724,11 +1065,13 @@ function TownsSection({
  */
 function SubcategoriesSection({
   value,
+  categories,
   destinations,
   update,
   onDestinationsChanged,
 }: {
   value: TaxonomySettings["subcategories"];
+  categories: CustomCategory[];
   destinations: Destination[] | null;
   update: TaxonomyUpdate;
   onDestinationsChanged: () => void;
@@ -743,11 +1086,11 @@ function SubcategoriesSection({
     [value],
   );
   const [confirm, setConfirm] = useState<
-    { category: Category; name: string; count: number } | null
+    { category: CategoryInfo; name: string; count: number } | null
   >(null);
   const [busy, setBusy] = useState(false);
 
-  const setList = (category: Category, fn: (list: string[]) => string[]) =>
+  const setList = (category: string, fn: (list: string[]) => string[]) =>
     update((v) => ({
       ...v,
       subcategories: {
@@ -756,16 +1099,16 @@ function SubcategoriesSection({
       },
     }));
 
-  function remove(category: Category, name: string) {
-    setList(category, (list) => list.filter((x) => x !== name));
+  function remove(category: CategoryInfo, name: string) {
+    setList(category.id, (list) => list.filter((x) => x !== name));
     toast.toast({
       variant: "info",
-      title: `${name} taken off ${CATEGORY_LABELS[category]}`,
+      title: `${name} taken off ${category.name}`,
       description: "Save to keep the change.",
       action: {
         label: "Undo",
         onClick: () =>
-          setList(category, (list) => normalizeTowns([...list, name])),
+          setList(category.id, (list) => normalizeTowns([...list, name])),
       },
     });
   }
@@ -774,8 +1117,10 @@ function SubcategoriesSection({
     if (!confirm) return;
     setBusy(true);
     try {
-      const n = await clearSubcategory(confirm.category, confirm.name);
-      setList(confirm.category, (list) => list.filter((x) => x !== confirm.name));
+      const n = await clearSubcategory(confirm.category.id, confirm.name);
+      setList(confirm.category.id, (list) =>
+        list.filter((x) => x !== confirm.name),
+      );
       toast.success(
         `${confirm.name} taken off ${n} place${n === 1 ? "" : "s"}`,
         "Save to take it off the list too.",
@@ -794,8 +1139,8 @@ function SubcategoriesSection({
 
   return (
     <Section
-      title="Categories and subcategories"
-      hint="The six categories are fixed — the app draws a glyph and a colour for each. Add finer kinds under them; each takes its category's look, so it needs no app release."
+      title="Subcategories"
+      hint="Finer kinds under each category. Each takes its category's icon and colours, so it needs no app release."
     >
       <div className="f wide">
         <p className="hint">
@@ -803,19 +1148,19 @@ function SubcategoriesSection({
           app reads it as “Waterfall in Peñablanca”.
         </p>
         <div className="subcats">
-          {CATEGORIES.map((c) => (
-            <div className="subcat-row" key={c}>
-              <span className="subcat-name">{CATEGORY_LABELS[c]}</span>
+          {allCategories(categories).map((c) => (
+            <div className="subcat-row" key={c.id}>
+              <span className="subcat-name">{c.name}</span>
               <div className="tag-row">
-                {(value[c] ?? []).map((s) => {
-                  const n = usage.get(`${c}/${s}`) ?? 0;
+                {(value[c.id] ?? []).map((s) => {
+                  const n = usage.get(`${c.id}/${s}`) ?? 0;
                   return (
                     <span key={s} className="badge">
                       {s}
                       {n ? <span className="chip-count">{n}</span> : null}
                       <button
                         className="tag-x"
-                        aria-label={`Remove ${s} from ${CATEGORY_LABELS[c]}`}
+                        aria-label={`Remove ${s} from ${c.name}`}
                         onClick={() =>
                           n
                             ? setConfirm({ category: c, name: s, count: n })
@@ -828,13 +1173,13 @@ function SubcategoriesSection({
                   );
                 })}
                 <SuggestInput
-                  label={`Add a subcategory under ${CATEGORY_LABELS[c]}`}
+                  label={`Add a subcategory under ${c.name}`}
                   placeholder="Add"
                   candidates={everyName}
-                  existing={value[c] ?? []}
+                  existing={value[c.id] ?? []}
                   normalizeNew={capitalise}
                   onPick={(s) =>
-                    setList(c, (list) => normalizeTowns([...list, s]))
+                    setList(c.id, (list) => normalizeTowns([...list, s]))
                   }
                 />
               </div>
@@ -847,9 +1192,7 @@ function SubcategoriesSection({
         open={confirm !== null}
         onDismiss={() => setConfirm(null)}
         variant="warning"
-        title={`Take ${confirm?.name ?? ""} off ${
-          confirm ? CATEGORY_LABELS[confirm.category] : ""
-        }?`}
+        title={`Take ${confirm?.name ?? ""} off ${confirm?.category.name ?? ""}?`}
         actions={
           <>
             <button className="btn-quiet" onClick={() => setConfirm(null)}>
@@ -868,7 +1211,7 @@ function SubcategoriesSection({
       >
         {confirm?.count} place{confirm?.count === 1 ? " uses" : "s use"} it.
         It comes off them now, leaving them with just{" "}
-        {confirm ? CATEGORY_LABELS[confirm.category] : ""}; anyone editing one
+        {confirm?.category.name ?? ""}; anyone editing one
         of them is told.
       </Dialog>
     </Section>

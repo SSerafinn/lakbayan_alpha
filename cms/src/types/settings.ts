@@ -1,12 +1,14 @@
 import type { Timestamp } from "firebase/firestore";
-import { slugify, type Category, type Destination } from "./destination";
+import type { CustomCategory } from "./categories";
+export { cleanCategories } from "./categories";
+import { slugify, type Destination } from "./destination";
 
 /**
  * `settings/{taxonomy | app | policies}` — mirrors `docs/DATA_MODEL.md` and
  * `lib/core/models/app_settings.dart`. Three fixed documents; the rules allow
  * no others.
  */
-export const SETTINGS_SCHEMA_VERSION = 1;
+export const SETTINGS_SCHEMA_VERSION = 2;
 
 export type SettingsId = "taxonomy" | "app" | "policies";
 
@@ -19,8 +21,10 @@ export type Stamped = {
 
 export type TaxonomySettings = {
   towns: string[];
-  /** Finer kinds under each fixed category; a category with none is absent. */
-  subcategories: Partial<Record<Category, string[]>>;
+  /** Categories beyond the six built in, in the order they were added. */
+  categories: CustomCategory[];
+  /** Finer kinds under each category, by id; a category with none is absent. */
+  subcategories: Partial<Record<string, string[]>>;
 };
 
 export type OfficeContact = {
@@ -120,12 +124,17 @@ export function subcategoryUsage(
   return counts;
 }
 
-/** Drop empty lists and tidy each, so the stored map only holds what is used. */
+/**
+ * Drop empty lists, and lists for categories that no longer exist, and tidy
+ * each, so the stored map only holds what is used. `ids` is every category.
+ */
 export function cleanSubcategories(
   map: TaxonomySettings["subcategories"],
+  ids: readonly string[],
 ): TaxonomySettings["subcategories"] {
   const out: TaxonomySettings["subcategories"] = {};
-  for (const [category, list] of Object.entries(map) as [Category, string[]][]) {
+  for (const [category, list] of Object.entries(map) as [string, string[]][]) {
+    if (!ids.includes(category)) continue;
     const tidy = normalizeTowns(list ?? []); // same rules: trimmed, no near-dupes, sorted
     if (tidy.length) out[category] = tidy;
   }
