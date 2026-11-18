@@ -28,12 +28,11 @@ class FakeDestinationRepository implements DestinationRepository {
       Stream.value(_published.where((d) => d.featured).take(limit).toList());
 
   @override
-  Stream<List<Destination>> watchAll({DestinationCategory? category}) =>
-      Stream.value(
-        category == null
-            ? _published
-            : _published.where((d) => d.category == category).toList(),
-      );
+  Stream<List<Destination>> watchAll({String? category}) => Stream.value(
+    category == null
+        ? _published
+        : _published.where((d) => d.kindKey == category).toList(),
+  );
 
   @override
   Stream<Destination?> watchById(String id) =>

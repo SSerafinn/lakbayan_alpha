@@ -18,6 +18,7 @@ import "../../../core/widgets/motion/page_transitions.dart";
 import "../../offline/domain/offline_providers.dart";
 import "../../offline/presentation/town_download_button.dart";
 import "../domain/destination_providers.dart";
+import "../domain/place_kind.dart";
 import "place_photo.dart";
 
 /// One town. **Job:** pick a place in a town you are in or going to.
@@ -55,19 +56,21 @@ class TownScreen extends ConsumerWidget {
   }
 }
 
-class _TownPage extends StatefulWidget {
+class _TownPage extends ConsumerStatefulWidget {
   const _TownPage({required this.town, required this.from});
 
   final Town town;
   final HeroSource? from;
 
   @override
-  State<_TownPage> createState() => _TownPageState();
+  ConsumerState<_TownPage> createState() => _TownPageState();
 }
 
-class _TownPageState extends State<_TownPage> {
+class _TownPageState extends ConsumerState<_TownPage> {
   final _scroll = ScrollController();
-  DestinationCategory? _kind;
+
+  /// A [PlaceKind.key]; null for All.
+  String? _kind;
 
   /// About this much of the screen goes to the photo.
   static const _share = 0.32;
@@ -118,13 +121,18 @@ class _TownPageState extends State<_TownPage> {
                           selected: kind == null,
                           onTap: () => setState(() => _kind = null),
                         ),
-                        for (final each in town.byKind.keys)
+                        for (final each in town.byKind.keys.map(
+                          (key) => kindForKey(
+                            key,
+                            ref.watch(addedCategoriesProvider),
+                          ),
+                        ))
                           KindRailItem(
                             label: each.label,
-                            glyph: AppIcons.kind(each),
-                            selectedGlyph: AppIcons.kind(each, filled: true),
-                            selected: kind == each,
-                            onTap: () => setState(() => _kind = each),
+                            glyph: each.glyph(),
+                            selectedGlyph: each.glyph(filled: true),
+                            selected: kind == each.key,
+                            onTap: () => setState(() => _kind = each.key),
                           ),
                       ],
                     ),
