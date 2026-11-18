@@ -38,9 +38,11 @@ import "../../maps/domain/tile_source.dart";
 import "../../maps/presentation/map_view.dart"
     show Basemap, StillMapCredit, showDirections;
 import "../domain/destination_providers.dart";
+import "../domain/photo_credit.dart";
 import "../domain/place_share.dart";
 import "../domain/practical_text.dart";
 import "../domain/recently_viewed.dart";
+import "photo_credit_label.dart";
 import "place_photo.dart";
 import "save_heart.dart";
 
@@ -203,7 +205,8 @@ class _ContentState extends State<_Content> {
 /// The photos, clean and pageable when there are several; a tap opens the
 /// one showing full screen. The page's rounded edge sits over their foot,
 /// carrying the dots, so the page reads as rising over the photo. As the page
-/// scrolls up over it, the photo drifts at half speed.
+/// scrolls up over it, the photo drifts at half speed. The photo showing
+/// carries its credit, where one was recorded (`photoCreditLine`).
 class _PhotoStage extends StatefulWidget {
   const _PhotoStage({
     required this.destination,
@@ -252,6 +255,9 @@ class _PhotoStageState extends State<_PhotoStage> {
     final images = destination.images;
     final from = widget.from;
     final scheme = Theme.of(context).colorScheme;
+    final credit = _page < images.length
+        ? photoCreditLine(destination.creditFor(images[_page]))
+        : null;
 
     final Widget photos = images.isEmpty
         ? const ImagePlaceholder(borderRadius: BorderRadius.zero)
@@ -326,6 +332,27 @@ class _PhotoStageState extends State<_PhotoStage> {
                 onPhoto: true,
               ),
             ),
+            // The credit of the photo showing, at its foot's trailing corner,
+            // where the map keeps its own. Over the dots when there are any,
+            // rather than beside them: a long credit would reach them.
+            if (credit != null)
+              Positioned(
+                left: AppSpace.x2,
+                right: AppSpace.x2,
+                bottom:
+                    _PhotoStage.edge +
+                    (images.length > 1
+                        ? AppSpace.x3 + AppSize.pageDot + AppSpace.x2
+                        : AppSpace.x2),
+                child: Align(
+                  alignment: Alignment.bottomRight,
+                  child: FadeSwap(
+                    id: credit,
+                    alignment: Alignment.bottomRight,
+                    child: PhotoCreditLabel(credit, onPhoto: true),
+                  ),
+                ),
+              ),
             Positioned(
               left: 0,
               right: 0,

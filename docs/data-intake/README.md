@@ -141,8 +141,8 @@ the player, and the CMS will refuse to publish the destination until it is fixed
 | `filename` | **Required.** Must match the actual file sent. |
 | `use_as_cover_yes_no` | Exactly one `yes` per destination — that is the card photo. |
 | `caption` | Optional. |
-| `photographer_or_credit` | Who took it. |
-| `licence_or_permission` | **Required.** See point 1 above. Without it we cannot ship the photo. |
+| `photographer_or_credit` | Who took it, or who owns it. Shown on the photo in the app ("Photo: …"). **Required** when the licence is Creative Commons (other than CC0): those licences let the photo be shown only with its author's name. |
+| `licence_or_permission` | **Required.** See point 1 above. Without it we cannot ship the photo. A public licence ("CC BY-SA 4.0") is shown after the credit; a permission note ("Province-owned; approved for the app") is kept as the record but not shown. |
 | `year_taken`, `notes` | *(intake only)* |
 
 Landscape orientation is much better than portrait — cards crop to 16:9. Send
@@ -185,7 +185,7 @@ Three properties worth knowing:
   it as many times as you like.
 
 It refuses to import a guide without consent, a photo without a licence, a
-description over 140 characters, a category outside the six, a stop with
+Creative Commons photo with no one credited, a description over 140 characters, a category outside the six, a stop with
 neither script nor recording, and coordinates outside Cagayan.
 
 ## Where the first wave stands (2026-10-21)

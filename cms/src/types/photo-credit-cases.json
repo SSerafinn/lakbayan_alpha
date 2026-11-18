@@ -1,0 +1,50 @@
+{
+  "//": "Shared contract for the line a photo carries in the app. Asserted from both implementations: cms/src/types/photo-credit.test.ts (the CMS's preview of the line) and test/features/destinations/photo_credit_test.dart (the app). If they drift, the CMS shows an editor one credit and the app shows visitors another. `line` null means the photo carries no credit line at all.",
+  "cases": [
+    { "//": "The first wave's Commons photos, as first-wave-photos.md records them.",
+      "credit": "Patrickroque01", "licence": "CC BY-SA 4.0",
+      "line": "Photo: Patrickroque01 / CC BY-SA 4.0" },
+    { "credit": "mkirader", "licence": "CC BY 2.0",
+      "line": "Photo: mkirader / CC BY 2.0" },
+    { "credit": "JmKissme (changes by Rabanus Flavus)", "licence": "CC BY-SA 4.0",
+      "line": "Photo: JmKissme (changes by Rabanus Flavus) / CC BY-SA 4.0" },
+
+    { "//": "A permission note is how a photo was cleared, not a notice for a visitor: the credit stands alone.",
+      "credit": "Cagayan Provincial Tourism Office",
+      "licence": "Province-owned; approved for the app",
+      "line": "Photo: Cagayan Provincial Tourism Office" },
+    { "credit": "J. Reyes", "licence": "Photographer permission on file, credit required",
+      "line": "Photo: J. Reyes" },
+    { "credit": "Provincial Tourism Office",
+      "licence": "Owned by the province — cleared for public use",
+      "line": "Photo: Provincial Tourism Office" },
+
+    { "//": "Other ways of writing a public licence.",
+      "credit": "A. Photographer", "licence": "cc-by-sa-4.0",
+      "line": "Photo: A. Photographer / cc-by-sa-4.0" },
+    { "credit": "A. Photographer", "licence": "Creative Commons Attribution 4.0",
+      "line": "Photo: A. Photographer / Creative Commons Attribution 4.0" },
+    { "credit": "A. Photographer", "licence": "CC0 1.0",
+      "line": "Photo: A. Photographer / CC0 1.0" },
+    { "credit": "Library of Congress", "licence": "Public domain",
+      "line": "Photo: Library of Congress / Public domain" },
+    { "credit": "Library of Congress", "licence": "public-domain",
+      "line": "Photo: Library of Congress / public-domain" },
+
+    { "//": "Only a word that starts with CC is a licence; a word that merely starts with the letters is not.",
+      "credit": "A. Photographer", "licence": "CCTV still, with permission",
+      "line": "Photo: A. Photographer" },
+
+    { "//": "Either half alone. A public licence with no name still says something; a permission note alone says nothing a visitor needs.",
+      "credit": "", "licence": "CC0 1.0", "line": "Photo: CC0 1.0" },
+    { "credit": "Cagayan Provincial Tourism Office", "licence": "",
+      "line": "Photo: Cagayan Provincial Tourism Office" },
+    { "credit": "", "licence": "Province-owned; approved for the app", "line": null },
+
+    { "//": "Whitespace is tidied, and blank is the same as absent.",
+      "credit": "  Elmer Domingo ", "licence": " CC BY-SA 4.0  ",
+      "line": "Photo: Elmer Domingo / CC BY-SA 4.0" },
+    { "credit": "   ", "licence": "  ", "line": null },
+    { "line": null }
+  ]
+}
