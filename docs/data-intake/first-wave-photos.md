@@ -15,10 +15,16 @@ permission for the latter is still to be filed. Photos from other sites
 Each was resized to at most 1600px and stored at
 `destinations/{id}/images/{ref}-01.jpg`.
 
-> **Attribution is owed.** The Commons photos are CC BY / CC BY-SA: the
-> photographer must be credited wherever the photo is shown. The app has no
-> photo-credit field or credits screen yet; until it does, this list is the
-> record, and the app needs one before a public release.
+> **Credits are on the photos.** The Commons photos are CC BY / CC BY-SA: the
+> photographer must be credited wherever the photo is shown. Since 2026-11-19
+> each Credit and Licence below is also on its destination as `imageCredits`
+> (schema v5, PR #158), backfilled into the live project from this table. The
+> app shows it on Place detail's photo and in the full-screen viewer:
+> "Photo: Patrickroque01 / CC BY-SA 4.0". It leaves off a permission note such
+> as "Province-owned; approved for the app", so those read "Photo: Cagayan
+> Provincial Tourism Office". A build from before #158 shows no credit, so
+> public releases need one from after it. Cards, Keep or Skip and the Photos
+> grid carry no credit yet. This table stays the record of each photo's source.
 
 > **Re-importing unpublishes.** `import-content.mjs` writes every row as a
 > draft, so running the first-wave sheet through it again takes these places

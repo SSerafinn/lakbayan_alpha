@@ -219,7 +219,8 @@ emptied; the rest validates.
 **Imported live on 2026-11-18:** all 31 destinations, 19 of them published,
 with 20 cleared photos. [first-wave-photos.md](first-wave-photos.md) records
 what is live, each photo's source, credit and licence, and why the rest are
-still drafts.
+still drafts. The credits are on the destinations too (`imageCredits`, written
+2026-11-19), and the app shows them on the photos.
 
 ## What happens to it afterwards
 
