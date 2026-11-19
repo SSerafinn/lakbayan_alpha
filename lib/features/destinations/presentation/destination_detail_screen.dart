@@ -39,6 +39,7 @@ import "../../maps/presentation/map_view.dart"
     show Basemap, StillMapCredit, showDirections;
 import "../domain/destination_providers.dart";
 import "../domain/photo_credit.dart";
+import "../domain/place_kind.dart";
 import "../domain/place_share.dart";
 import "../domain/practical_text.dart";
 import "../domain/recently_viewed.dart";
@@ -403,23 +404,22 @@ const _gap = AppSpace.x3;
 /// a long press and to a screen reader. Nothing the page says again: the
 /// town is on the Location card, the fee in Details, the exhibits are their
 /// own part.
-class _Title extends StatelessWidget {
+class _Title extends ConsumerWidget {
   const _Title({required this.destination});
 
   final Destination destination;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
     final place = destination;
-    final kind = place.subcategory?.trim();
+    final kind = ref.watch(placeKindProvider(place.kindKey));
+    final sub = place.subcategory?.trim();
     final facts = [
-      if (place.category != DestinationCategory.unknown)
+      if (!kind.isOther)
         (
-          glyph: AppIcons.kind(place.category),
-          word: kind == null || kind.isEmpty
-              ? _kindName(place.category)
-              : capital(kind),
+          glyph: kind.glyph(),
+          word: sub == null || sub.isEmpty ? kind.name : capital(sub),
         ),
       if (place.popular) (glyph: AppIcons.popular, word: "Popular"),
     ];
@@ -473,18 +473,6 @@ class _Title extends StatelessWidget {
     );
   }
 }
-
-/// A kind as one of it ("Church"), for the line under a place's name; the
-/// kinds' own labels are the plural headings of their lists.
-String _kindName(DestinationCategory kind) => switch (kind) {
-  DestinationCategory.church => "Church",
-  DestinationCategory.nature => "Nature",
-  DestinationCategory.heritage => "Heritage",
-  DestinationCategory.museum => "Museum",
-  DestinationCategory.food => "Food",
-  DestinationCategory.landmark => "Landmark",
-  DestinationCategory.unknown => "",
-};
 
 /// Back alone on its circle at the leading top; share and the heart on one
 /// glass capsule at the trailing top (PREFERENCES: symbols over a photo

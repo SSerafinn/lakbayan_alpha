@@ -56,6 +56,13 @@ abstract class Destination with _$Destination {
     @JsonKey(unknownEnumValue: DestinationCategory.unknown)
     required DestinationCategory category,
 
+    /// `category` as stored, kept because [category] reads a category the
+    /// province added in the CMS as [DestinationCategory.unknown]: this is
+    /// its id, to look up in `settings/taxonomy`. See `PlaceKind`.
+    @JsonKey(readValue: _rawCategory, includeToJson: false)
+    @Default("")
+    String categoryKey,
+
     /// A finer kind within [category], e.g. "Waterfall" under nature, named
     /// in the CMS's Settings. It takes its category's glyph and colour, so a
     /// new one needs no release. Null for none.
@@ -108,6 +115,12 @@ abstract class Destination with _$Destination {
 
   /// The Storage path of the card image, if there is one.
   String? get coverImage => images.isEmpty ? null : images.first;
+
+  /// The id its kind is chosen and grouped by: a built-in category's name,
+  /// or the id of one the province added (`PlaceKind.key`).
+  String get kindKey => category != DestinationCategory.unknown
+      ? category.name
+      : (categoryKey.isEmpty ? DestinationCategory.unknown.name : categoryKey);
 
   /// The credit for the photo at [path], if one was recorded. Only paths in
   /// [images] are asked for, which is what makes a stale key harmless.
@@ -166,6 +179,9 @@ class ImageCreditsConverter
 
   static String? _stringOrNull(Object? value) => value is String ? value : null;
 }
+
+Object? _rawCategory(Map<dynamic, dynamic> json, String _) =>
+    json["category"] is String ? json["category"] : null;
 
 /// `destinations/{id}/segments/{sid}` — one stop in the audio guide.
 ///

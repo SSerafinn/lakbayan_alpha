@@ -1,9 +1,11 @@
 import "dart:async";
 
 import "package:flutter/material.dart";
+
+import "../../destinations/domain/place_kind.dart";
+
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
-import "../../../core/models/destination.dart";
 import "../../../core/theme/app_dimens.dart";
 import "../../../core/theme/app_icons.dart";
 import "../../../core/theme/app_typography.dart";
@@ -25,8 +27,9 @@ class MapTopControls extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final category = ref.watch(browseCategoryProvider);
     final savedOnly = ref.watch(mapShowsSavedProvider);
+    final kinds = ref.watch(placeKindsProvider);
 
-    void choose(DestinationCategory? kind, {bool saved = false}) {
+    void choose(String? kind, {bool saved = false}) {
       ref.read(browseCategoryProvider.notifier).select(kind);
       ref.read(mapShowsSavedProvider.notifier).set(saved);
     }
@@ -46,13 +49,12 @@ class MapTopControls extends ConsumerWidget {
               selected: category == null && !savedOnly,
               onTap: () => choose(null),
             ),
-            for (final kind in DestinationCategory.values)
-              if (kind != DestinationCategory.unknown)
-                FilterChipItem(
-                  label: kind.label,
-                  selected: category == kind && !savedOnly,
-                  onTap: () => choose(kind),
-                ),
+            for (final kind in kinds)
+              FilterChipItem(
+                label: kind.label,
+                selected: category == kind.key && !savedOnly,
+                onTap: () => choose(kind.key),
+              ),
             FilterChipItem(
               label: "Saved",
               selected: savedOnly,

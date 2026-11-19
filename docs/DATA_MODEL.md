@@ -277,7 +277,8 @@ and `licence_or_permission` columns.
 six, each with an icon from a fixed list (`design/category-glyphs.json`, shared
 by the CMS and the app) and the colours of one of the six. A destination's
 `category` may now hold one of their ids. The destination document's shape is
-unchanged, so its schemaVersion stays 4; clients older than this read an added
+unchanged, so this did not bump its schemaVersion (4 then; v5 is `imageCredits`,
+above); clients older than this read an added
 category as `unknown` (Other), as they always have for values they do not know.
 
 ### Changes in v4 (2026-10-21)

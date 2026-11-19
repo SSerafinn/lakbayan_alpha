@@ -6,7 +6,6 @@ import "../../../core/errors/local_first.dart";
 import "../../../core/models/destination.dart";
 import "../../../core/router/app_router.dart";
 import "../../../core/theme/app_dimens.dart";
-import "../../../core/theme/app_icons.dart";
 import "../../../core/theme/app_typography.dart";
 import "../../../core/widgets/chrome/floating_tab_bar.dart";
 import "../../../core/widgets/content/quiet_note.dart";
@@ -17,6 +16,7 @@ import "../../../core/widgets/motion/motion.dart";
 import "../../explore/domain/home_tab.dart";
 import "../../profile/presentation/user_avatar.dart";
 import "../domain/destination_providers.dart";
+import "../domain/place_kind.dart";
 import "explore_sections.dart";
 import "featured_deck.dart";
 import "places_list_screen.dart";
@@ -127,27 +127,34 @@ class _Me extends ConsumerWidget {
 class _Kinds extends ConsumerWidget {
   const _Kinds();
 
-  static const _kinds = [
-    DestinationCategory.nature,
-    DestinationCategory.food,
-    DestinationCategory.church,
-    DestinationCategory.heritage,
-    DestinationCategory.museum,
-    DestinationCategory.landmark,
+  /// The six in Explore's order, food among the first.
+  static const _builtIns = [
+    PlaceKind.builtIn(DestinationCategory.nature),
+    PlaceKind.builtIn(DestinationCategory.food),
+    PlaceKind.builtIn(DestinationCategory.church),
+    PlaceKind.builtIn(DestinationCategory.heritage),
+    PlaceKind.builtIn(DestinationCategory.museum),
+    PlaceKind.builtIn(DestinationCategory.landmark),
   ];
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final chosen = ref.watch(homeCategoryProvider);
+    final kinds = [
+      ..._builtIns,
+      // Then the province's own, in the order they were added.
+      for (final c in ref.watch(addedCategoriesProvider)) PlaceKind.added(c),
+    ];
     return KindRail(
       items: [
-        for (final kind in _kinds)
+        for (final kind in kinds)
           KindRailItem(
             label: kind.label,
-            glyph: AppIcons.kind(kind),
-            selectedGlyph: AppIcons.kind(kind, filled: true),
-            selected: chosen == kind,
-            onTap: () => ref.read(homeCategoryProvider.notifier).toggle(kind),
+            glyph: kind.glyph(),
+            selectedGlyph: kind.glyph(filled: true),
+            selected: chosen == kind.key,
+            onTap: () =>
+                ref.read(homeCategoryProvider.notifier).toggle(kind.key),
           ),
       ],
     );
@@ -159,7 +166,8 @@ class _Kinds extends ConsumerWidget {
 class _Matches extends ConsumerWidget {
   const _Matches({required this.category});
 
-  final DestinationCategory category;
+  /// A [PlaceKind.key].
+  final String category;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -171,7 +179,9 @@ class _Matches extends ConsumerWidget {
             order: 1,
             child: Padding(
               padding: const EdgeInsets.only(bottom: AppSpace.near),
-              child: SectionHeading(category.label),
+              child: SectionHeading(
+                ref.watch(placeKindProvider(category)).label,
+              ),
             ),
           ),
         ),
