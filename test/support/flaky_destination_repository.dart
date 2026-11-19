@@ -58,7 +58,7 @@ class FlakyDestinationRepository extends FakeDestinationRepository {
   int segmentReads = 0;
 
   @override
-  Stream<List<Destination>> watchAll({DestinationCategory? category}) {
+  Stream<List<Destination>> watchAll({String? category}) {
     allReads++;
     if (liveAll case final live?) return live.stream;
     if (holdAll) return StreamController<List<Destination>>().stream;

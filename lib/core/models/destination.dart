@@ -8,7 +8,7 @@ part "destination.g.dart";
 /// Current shape of `destinations` and `segments`. Bump alongside
 /// `docs/DATA_MODEL.md` whenever the schema changes, so a client reading a
 /// document cached by an older build can detect the mismatch.
-const destinationSchemaVersion = 4;
+const destinationSchemaVersion = 5;
 
 /// What kind of place this is. Drives the filter chips on Explore.
 ///
@@ -56,6 +56,13 @@ abstract class Destination with _$Destination {
     @JsonKey(unknownEnumValue: DestinationCategory.unknown)
     required DestinationCategory category,
 
+    /// `category` as stored, kept because [category] reads a category the
+    /// province added in the CMS as [DestinationCategory.unknown]: this is
+    /// its id, to look up in `settings/taxonomy`. See `PlaceKind`.
+    @JsonKey(readValue: _rawCategory, includeToJson: false)
+    @Default("")
+    String categoryKey,
+
     /// A finer kind within [category], e.g. "Waterfall" under nature, named
     /// in the CMS's Settings. It takes its category's glyph and colour, so a
     /// new one needs no release. Null for none.
@@ -68,6 +75,13 @@ abstract class Destination with _$Destination {
     @Default("") String slug,
     String? history,
     @Default(<String>[]) List<String> images,
+
+    /// Who to credit for a photo in [images], keyed by its path there (v5).
+    /// Read through [ImageCreditsConverter], so a malformed entry is dropped
+    /// rather than costing the whole place. Look one up with [creditFor].
+    @ImageCreditsConverter()
+    @Default(<String, ImageCredit>{})
+    Map<String, ImageCredit> imageCredits,
     @Default(false) bool popular,
     @Default(false) bool featured,
 
@@ -101,7 +115,73 @@ abstract class Destination with _$Destination {
 
   /// The Storage path of the card image, if there is one.
   String? get coverImage => images.isEmpty ? null : images.first;
+
+  /// The id its kind is chosen and grouped by: a built-in category's name,
+  /// or the id of one the province added (`PlaceKind.key`).
+  String get kindKey => category != DestinationCategory.unknown
+      ? category.name
+      : (categoryKey.isEmpty ? DestinationCategory.unknown.name : categoryKey);
+
+  /// The credit for the photo at [path], if one was recorded. Only paths in
+  /// [images] are asked for, which is what makes a stale key harmless.
+  ImageCredit? creditFor(String path) => imageCredits[path];
 }
+
+/// One photo's credit, `imageCredits[path]` on a destination (v5). Both free
+/// text, as an editor or the intake sheet wrote them.
+///
+/// What a visitor sees is decided by `photoCreditLine`, which leaves out a
+/// [licence] that is a permission note rather than a public licence.
+@freezed
+abstract class ImageCredit with _$ImageCredit {
+  const factory ImageCredit({
+    /// Who to name: the photographer ("Patrickroque01") or the owner
+    /// ("Cagayan Provincial Tourism Office").
+    String? credit,
+
+    /// The licence ("CC BY-SA 4.0"), or how the photo was cleared
+    /// ("Province-owned; approved for the app").
+    String? licence,
+  }) = _ImageCredit;
+
+  factory ImageCredit.fromJson(Map<String, dynamic> json) =>
+      _$ImageCreditFromJson(json);
+}
+
+/// Reads `imageCredits` one entry at a time, keeping what it can.
+///
+/// A credit is a line under a photo; a malformed one must not make the
+/// repository drop the whole destination, which is what a throwing
+/// `fromJson` does (`decodeOrSkip`). So anything that is not a map of
+/// `{credit?, licence?}` maps is skipped, and a field that is not a string
+/// reads as absent.
+class ImageCreditsConverter
+    implements JsonConverter<Map<String, ImageCredit>, Object?> {
+  const ImageCreditsConverter();
+
+  @override
+  Map<String, ImageCredit> fromJson(Object? json) {
+    if (json is! Map) return const {};
+    return {
+      for (final MapEntry(:key, :value) in json.entries)
+        if (key is String && value is Map)
+          key: ImageCredit(
+            credit: _stringOrNull(value["credit"]),
+            licence: _stringOrNull(value["licence"]),
+          ),
+    };
+  }
+
+  @override
+  Object? toJson(Map<String, ImageCredit> credits) => {
+    for (final MapEntry(:key, :value) in credits.entries) key: value.toJson(),
+  };
+
+  static String? _stringOrNull(Object? value) => value is String ? value : null;
+}
+
+Object? _rawCategory(Map<dynamic, dynamic> json, String _) =>
+    json["category"] is String ? json["category"] : null;
 
 /// `destinations/{id}/segments/{sid}` — one stop in the audio guide.
 ///

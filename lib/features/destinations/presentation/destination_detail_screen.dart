@@ -38,9 +38,12 @@ import "../../maps/domain/tile_source.dart";
 import "../../maps/presentation/map_view.dart"
     show Basemap, StillMapCredit, showDirections;
 import "../domain/destination_providers.dart";
+import "../domain/photo_credit.dart";
+import "../domain/place_kind.dart";
 import "../domain/place_share.dart";
 import "../domain/practical_text.dart";
 import "../domain/recently_viewed.dart";
+import "photo_credit_label.dart";
 import "place_photo.dart";
 import "save_heart.dart";
 
@@ -203,7 +206,8 @@ class _ContentState extends State<_Content> {
 /// The photos, clean and pageable when there are several; a tap opens the
 /// one showing full screen. The page's rounded edge sits over their foot,
 /// carrying the dots, so the page reads as rising over the photo. As the page
-/// scrolls up over it, the photo drifts at half speed.
+/// scrolls up over it, the photo drifts at half speed. The photo showing
+/// carries its credit, where one was recorded (`photoCreditLine`).
 class _PhotoStage extends StatefulWidget {
   const _PhotoStage({
     required this.destination,
@@ -252,6 +256,9 @@ class _PhotoStageState extends State<_PhotoStage> {
     final images = destination.images;
     final from = widget.from;
     final scheme = Theme.of(context).colorScheme;
+    final credit = _page < images.length
+        ? photoCreditLine(destination.creditFor(images[_page]))
+        : null;
 
     final Widget photos = images.isEmpty
         ? const ImagePlaceholder(borderRadius: BorderRadius.zero)
@@ -326,6 +333,27 @@ class _PhotoStageState extends State<_PhotoStage> {
                 onPhoto: true,
               ),
             ),
+            // The credit of the photo showing, at its foot's trailing corner,
+            // where the map keeps its own. Over the dots when there are any,
+            // rather than beside them: a long credit would reach them.
+            if (credit != null)
+              Positioned(
+                left: AppSpace.x2,
+                right: AppSpace.x2,
+                bottom:
+                    _PhotoStage.edge +
+                    (images.length > 1
+                        ? AppSpace.x3 + AppSize.pageDot + AppSpace.x2
+                        : AppSpace.x2),
+                child: Align(
+                  alignment: Alignment.bottomRight,
+                  child: FadeSwap(
+                    id: credit,
+                    alignment: Alignment.bottomRight,
+                    child: PhotoCreditLabel(credit, onPhoto: true),
+                  ),
+                ),
+              ),
             Positioned(
               left: 0,
               right: 0,
@@ -376,23 +404,22 @@ const _gap = AppSpace.x3;
 /// a long press and to a screen reader. Nothing the page says again: the
 /// town is on the Location card, the fee in Details, the exhibits are their
 /// own part.
-class _Title extends StatelessWidget {
+class _Title extends ConsumerWidget {
   const _Title({required this.destination});
 
   final Destination destination;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
     final place = destination;
-    final kind = place.subcategory?.trim();
+    final kind = ref.watch(placeKindProvider(place.kindKey));
+    final sub = place.subcategory?.trim();
     final facts = [
-      if (place.category != DestinationCategory.unknown)
+      if (!kind.isOther)
         (
-          glyph: AppIcons.kind(place.category),
-          word: kind == null || kind.isEmpty
-              ? _kindName(place.category)
-              : capital(kind),
+          glyph: kind.glyph(),
+          word: sub == null || sub.isEmpty ? kind.name : capital(sub),
         ),
       if (place.popular) (glyph: AppIcons.popular, word: "Popular"),
     ];
@@ -446,18 +473,6 @@ class _Title extends StatelessWidget {
     );
   }
 }
-
-/// A kind as one of it ("Church"), for the line under a place's name; the
-/// kinds' own labels are the plural headings of their lists.
-String _kindName(DestinationCategory kind) => switch (kind) {
-  DestinationCategory.church => "Church",
-  DestinationCategory.nature => "Nature",
-  DestinationCategory.heritage => "Heritage",
-  DestinationCategory.museum => "Museum",
-  DestinationCategory.food => "Food",
-  DestinationCategory.landmark => "Landmark",
-  DestinationCategory.unknown => "",
-};
 
 /// Back alone on its circle at the leading top; share and the heart on one
 /// glass capsule at the trailing top (PREFERENCES: symbols over a photo
