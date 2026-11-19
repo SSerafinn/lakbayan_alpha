@@ -53,6 +53,9 @@ export function GuidesPage() {
 
   /** `null` = editor closed. A string id = editing. "new" = adding. */
   const [editing, setEditing] = useState<string | null>(null);
+  /** While a form is open, true shows the list in its place. */
+  const [peek, setPeek] = useState(false);
+  const showEditor = editing !== null && !peek;
   const [draft, setDraft] = useState<GuideDraft>(emptyGuide());
   const [confirmDelete, setConfirmDelete] = useState<Guide | null>(null);
 
@@ -113,11 +116,13 @@ export function GuidesPage() {
   }
 
   function openNew() {
+    setPeek(false);
     setDraft(emptyGuide());
     setEditing("new");
   }
 
   function openEdit(g: Guide) {
+    setPeek(false);
     const {
       id: _drop,
       createdAt: _c,
@@ -278,6 +283,31 @@ export function GuidesPage() {
         remove them promptly if they withdraw.
       </FoldingAlert>
 
+      <nav className="tabs" aria-label="Guides sections">
+        <button
+          className={showEditor ? "tab" : "tab on"}
+          onClick={() => setPeek(true)}
+        >
+          All guides{" "}
+          {rows && <span className="tab-count">{rows.length}</span>}
+        </button>
+        {editing !== null ? (
+          <button
+            className={showEditor ? "tab on" : "tab"}
+            onClick={() => setPeek(false)}
+          >
+            {editing === "new"
+              ? "New guide"
+              : draft.name.trim() || "Untitled guide"}
+            {peek && <span className="tab-dot" aria-label="Open, not saved" />}
+          </button>
+        ) : (
+          <button className="tab" onClick={openNew}>
+            New guide
+          </button>
+        )}
+      </nav>
+
       <ConflictDialog
         conflict={conflict}
         noun="guide"
@@ -294,7 +324,7 @@ export function GuidesPage() {
         onDismiss={() => setConflict(null)}
       />
 
-      {editing !== null && (
+      {showEditor && (
         <GuideEditor
           draft={draft}
           isNew={editing === "new"}
@@ -305,172 +335,177 @@ export function GuidesPage() {
         />
       )}
 
-      <div className="toolbar">
-        <input
-          className="search"
-          placeholder="Search by name, town or specialty"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-        <select value={town} onChange={(e) => setTown(e.target.value)}>
-          <option value="all">Town: All</option>
-          {towns.map((t) => (
-            <option key={t} value={t}>
-              {t}
-            </option>
-          ))}
-        </select>
-        <select
-          value={verified}
-          onChange={(e) =>
-            setVerifiedFilter(e.target.value as "all" | "yes" | "no")
-          }
-        >
-          <option value="all">Accreditation: All</option>
-          <option value="yes">Accredited</option>
-          <option value="no">Not accredited</option>
-        </select>
-        {hasFilters && (
-          <button className="btn-quiet" onClick={clearFilters}>
-            Clear filters
-          </button>
-        )}
-
-        <span className="spacer" />
-
-        {ticked.length > 0 && (
-          <>
-            <span className="hint">{ticked.length} selected</span>
-            <button
-              className="btn-secondary sm"
-              disabled={busy}
-              onClick={() => void bulkVerify(true)}
-            >
-              Mark accredited
+      {!showEditor && (
+        <>
+        <div className="toolbar">
+          <input
+            className="search"
+            placeholder="Search by name, town or specialty"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+          <select value={town} onChange={(e) => setTown(e.target.value)}>
+            <option value="all">Town: All</option>
+            {towns.map((t) => (
+              <option key={t} value={t}>
+                {t}
+              </option>
+            ))}
+          </select>
+          <select
+            value={verified}
+            onChange={(e) =>
+              setVerifiedFilter(e.target.value as "all" | "yes" | "no")
+            }
+          >
+            <option value="all">Accreditation: All</option>
+            <option value="yes">Accredited</option>
+            <option value="no">Not accredited</option>
+          </select>
+          {hasFilters && (
+            <button className="btn-quiet" onClick={clearFilters}>
+              Clear filters
             </button>
-            <button
-              className="btn-quiet"
-              disabled={busy}
-              onClick={() => void bulkVerify(false)}
-            >
-              Remove accreditation
-            </button>
-          </>
-        )}
-      </div>
+          )}
 
-      {rows === null ? (
-        <TableSkeleton />
-      ) : filtered.length === 0 ? (
-        <div className="empty">
-          {rows.length === 0 ? (
+          <span className="spacer" />
+
+          {ticked.length > 0 && (
             <>
-              <p>No guides listed yet.</p>
-              <button className="btn-primary" onClick={openNew}>
-                Add your first
+              <span className="hint">{ticked.length} selected</span>
+              <button
+                className="btn-secondary sm"
+                disabled={busy}
+                onClick={() => void bulkVerify(true)}
+              >
+                Mark accredited
               </button>
-            </>
-          ) : (
-            <>
-              <p>Nothing matches those filters.</p>
-              <button className="btn-quiet" onClick={clearFilters}>
-                Clear filters
+              <button
+                className="btn-quiet"
+                disabled={busy}
+                onClick={() => void bulkVerify(false)}
+              >
+                Remove accreditation
               </button>
             </>
           )}
         </div>
-      ) : (
-        <table className="data">
-          <thead>
-            <tr>
-              <th className="tick">
-                <SelectAll
-                  state={selectionState(visibleIds, selected)}
-                  onToggle={() => setSelected(toggleAll(visibleIds, selected))}
-                  noun="guides"
-                />
-              </th>
-              <th>Guide</th>
-              <th>Specialties</th>
-              <th>Contact</th>
-              <th>Accredited</th>
-              <th>Featured</th>
-              <th />
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map((g) => (
-              <tr
-                key={g.id}
-                className={selected.has(g.id) ? "opens on" : "opens"}
-                onClick={onRowClick(() => openEdit(g))}
-              >
-                <td className="tick">
-                  <input
-                    type="checkbox"
-                    checked={selected.has(g.id)}
-                    onChange={() => toggle(g.id)}
-                    aria-label={`Select ${g.name}`}
+
+        {rows === null ? (
+          <TableSkeleton />
+        ) : filtered.length === 0 ? (
+          <div className="empty">
+            {rows.length === 0 ? (
+              <>
+                <p>No guides listed yet.</p>
+                <button className="btn-primary" onClick={openNew}>
+                  Add your first
+                </button>
+              </>
+            ) : (
+              <>
+                <p>Nothing matches those filters.</p>
+                <button className="btn-quiet" onClick={clearFilters}>
+                  Clear filters
+                </button>
+              </>
+            )}
+          </div>
+        ) : (
+          <table className="data">
+            <thead>
+              <tr>
+                <th className="tick">
+                  <SelectAll
+                    state={selectionState(visibleIds, selected)}
+                    onToggle={() => setSelected(toggleAll(visibleIds, selected))}
+                    noun="guides"
                   />
-                </td>
-                {/* Name, then town: the name opens the guide, so there is no
-                    separate Edit button. */}
-                <td>
-                  <div className="cell-title">
-                    <button className="link-button" onClick={() => openEdit(g)}>
-                      {g.name}
-                    </button>
-                    <span className="hint">{g.town}</span>
-                  </div>
-                </td>
-                <td>
-                  {g.specialties.length === 0 ? (
-                    <span className="hint">—</span>
-                  ) : (
-                    <div className="tag-row">
-                      {g.specialties.map((s) => (
-                        <span key={s} className="badge">
-                          {s}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </td>
-                <td className="hint">{g.contact}</td>
-                <td>
-                  {g.verified ? (
-                    <span className="badge ok">
-                      <BadgeCheck size={12} aria-hidden="true" /> Accredited
-                    </span>
-                  ) : (
-                    <span className="badge draft">Not yet</span>
-                  )}
-                </td>
-                <td>
-                  {g.featured ? (
-                    <span className="badge">
-                      <Star size={12} aria-hidden="true" /> Featured
-                    </span>
-                  ) : (
-                    <span className="hint">—</span>
-                  )}
-                </td>
-                <td className="row actions-cell">
-                  <button
-                    className="btn-quiet sm danger"
-                    onClick={() => setConfirmDelete(g)}
-                  >
-                    Remove
-                  </button>
-                </td>
+                </th>
+                <th>Guide</th>
+                <th>Specialties</th>
+                <th>Contact</th>
+                <th>Accredited</th>
+                <th>Featured</th>
+                <th />
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {filtered.map((g) => (
+                <tr
+                  key={g.id}
+                  className={selected.has(g.id) ? "opens on" : "opens"}
+                  onClick={onRowClick(() => openEdit(g))}
+                >
+                  <td className="tick">
+                    <input
+                      type="checkbox"
+                      checked={selected.has(g.id)}
+                      onChange={() => toggle(g.id)}
+                      aria-label={`Select ${g.name}`}
+                    />
+                  </td>
+                  {/* Name, then town: the name opens the guide, so there is no
+                      separate Edit button. */}
+                  <td>
+                    <div className="cell-title">
+                      <button className="link-button" onClick={() => openEdit(g)}>
+                        {g.name}
+                      </button>
+                      <span className="hint">{g.town}</span>
+                    </div>
+                  </td>
+                  <td>
+                    {g.specialties.length === 0 ? (
+                      <span className="hint">—</span>
+                    ) : (
+                      <div className="tag-row">
+                        {g.specialties.map((s) => (
+                          <span key={s} className="badge">
+                            {s}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </td>
+                  <td className="hint">{g.contact}</td>
+                  <td>
+                    {g.verified ? (
+                      <span className="badge ok">
+                        <BadgeCheck size={12} aria-hidden="true" /> Accredited
+                      </span>
+                    ) : (
+                      <span className="badge draft">Not yet</span>
+                    )}
+                  </td>
+                  <td>
+                    {g.featured ? (
+                      <span className="badge">
+                        <Star size={12} aria-hidden="true" /> Featured
+                      </span>
+                    ) : (
+                      <span className="hint">—</span>
+                    )}
+                  </td>
+                  <td className="row actions-cell">
+                    <button
+                      className="btn-quiet sm danger"
+                      onClick={() => setConfirmDelete(g)}
+                    >
+                      Remove
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+
+        {/* Modal, unlike the editor: this one is irreversible and it concerns a
+            real person, so it should stop everything until it is answered. */}
+        </>
       )}
 
-      {/* Modal, unlike the editor: this one is irreversible and it concerns a
-          real person, so it should stop everything until it is answered. */}
       <Dialog
         open={confirmDelete !== null}
         onDismiss={() => setConfirmDelete(null)}

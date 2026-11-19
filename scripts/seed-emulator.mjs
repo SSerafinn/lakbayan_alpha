@@ -46,7 +46,7 @@ import { slugify } from "./lib/slug.mjs";
 import { toneWav } from "./lib/tone.mjs";
 
 const PROJECT_ID = "demo-lakbayan";
-const SCHEMA_VERSION = 4;
+const SCHEMA_VERSION = 5;
 
 /** Emulator-only credentials. Safe to hardcode; see the guard below. */
 const ADMIN_EMAIL = process.argv[2] ?? "test@gmail.com";
@@ -237,6 +237,7 @@ const DESTINATIONS = [
     name: "Callao Cave",
     town: "Peñablanca",
     category: "nature",
+    photoCredit: { credit: "Seeded photographer", licence: "CC BY-SA 4.0" },
     description:
       "A seven-chamber limestone cave, one chamber fitted as a chapel, reached by a stairway up from the Pinacanauan river.",
     history:
@@ -325,6 +326,10 @@ const DESTINATIONS = [
     name: "Palaui Island",
     town: "Santa Ana",
     category: "nature",
+    photoCredit: {
+      credit: "Seeded tourism office",
+      licence: "Province-owned; approved for the app",
+    },
     description:
       "A protected island off the northeastern tip of Luzon, with the Cape Engaño lighthouse on its headland.",
     history:
@@ -463,6 +468,11 @@ for (const d of DESTINATIONS) {
     history: d.history,
     coords: d.coords,
     images: [imagePath],
+    // The photo's credit (v5), on two places so both kinds of line can be
+    // seen: one with a licence, one whose permission note the app leaves off.
+    // The photos are flat colours this script draws, so the names are
+    // labels for the check, not anybody's real credit.
+    imageCredits: d.photoCredit ? { [imagePath]: d.photoCredit } : {},
     popular: d.popular ?? false,
     featured: d.featured ?? false,
     nearbyEligible: true,

@@ -4,7 +4,7 @@ Change collection shapes only alongside `firestore.rules`, `firestore.indexes.js
 and a `schemaVersion` bump. Use the `add-collection` skill.
 
 ```
-destinations/{id}                                              // schemaVersion 4
+destinations/{id}                                              // schemaVersion 5
   name          string    required
   slug          string    required   // auto from name; used in deep links
   town          string    required   // municipality, e.g. "Peñablanca"
@@ -17,6 +17,12 @@ destinations/{id}                                              // schemaVersion 
   history       string?              // long-form; detail screen only
   coords        map       required   // { lat: number, lng: number }
   images        string[]             // Storage paths, first is the card image
+  imageCredits  map?                 // { [Storage path]: { credit?, licence? } }, v5 —
+                                     // who to credit for a photo in `images`, and
+                                     // under what licence or permission; both free
+                                     // text. Keyed by the path exactly as it is in
+                                     // `images`; a key not in `images` is stale and
+                                     // readers ignore it. See "Changes in v5".
   popular       bool      default false   // "Popular Places" rail
   featured      bool      default false   // drives the FEATURED badge
   nearbyEligible bool     default true    // may appear in others' "Nearby"
@@ -223,9 +229,47 @@ records who obtained it and when (`docs/data-intake/04-local-guides.csv`), and
 Firestore carries that fact. If the province ever needs to prove consent from the
 system rather than from a spreadsheet, that is a schema change.
 
-**schemaVersion 4** (destinations). Bump it here and in
+**schemaVersion 5** (destinations). Bump it here and in
 `destinationSchemaVersion` together with any shape change, so a client reading a
 cached document written by an older build can tell.
+
+### Changes in v5 (2026-11-18)
+
+Added `imageCredits`, optional: a photo's credit and licence, for the Wikimedia
+Commons photos the first wave published under CC BY and CC BY-SA, which must
+credit the photographer wherever the photo is shown
+(`docs/data-intake/first-wave-photos.md` is the record of each).
+
+**A map keyed by path, beside `images`, not a change to `images`.** Turning
+`images` into a list of objects would break every client already reading it as
+strings, and a second list in step with the first drifts the moment one is
+reordered (Make cover) and the other is not. Keyed by the path, a credit
+follows its photo through any reorder, and an older build simply ignores the
+field. The cost is that a key can outlive its photo; the CMS drops those on
+save and readers only ever look up a path that is in `images`.
+
+Firestore map keys may hold `/` and `.`, so the path is the key as it is. Write
+the map as a whole value (`imageCredits: {...}`); never address one entry with a
+dotted field path such as `imageCredits.destinations/x/images/1.webp`, where
+the dots would be read as nesting.
+
+- `credit`: who to name: the photographer as the licence asks ("Patrickroque01"),
+  or the owner ("Cagayan Provincial Tourism Office").
+- `licence`: the licence ("CC BY-SA 4.0") or, for a photo used by permission,
+  how it was cleared ("Province-owned; approved for the app").
+
+**The app shows `licence` only when it names a public licence**: Creative
+Commons (`CC …`, `CC0`, `Creative Commons …`) or public domain. A permission
+note is a record of how a photo was cleared, not a notice for a visitor, so a
+province photo reads "Photo: Cagayan Provincial Tourism Office" and a Commons one
+"Photo: Patrickroque01 / CC BY-SA 4.0". The rule is implemented twice, in the
+app (`photo_credit.dart`) and the CMS (`types/photo-credit.ts`, for its preview
+of that line), and both assert `cms/src/types/photo-credit-cases.json`.
+
+`firestore.rules` is unchanged: destinations are admin-written with no
+per-field validation, and the field is as public as the photos it credits.
+`scripts/import-content.mjs` writes it from sheet 5's `photographer_or_credit`
+and `licence_or_permission` columns.
 
 ### Settings v2 (2026-11-18)
 
@@ -233,7 +277,8 @@ cached document written by an older build can tell.
 six, each with an icon from a fixed list (`design/category-glyphs.json`, shared
 by the CMS and the app) and the colours of one of the six. A destination's
 `category` may now hold one of their ids. The destination document's shape is
-unchanged, so its schemaVersion stays 4; clients older than this read an added
+unchanged, so this did not bump its schemaVersion (4 then; v5 is `imageCredits`,
+above); clients older than this read an added
 category as `unknown` (Other), as they always have for values they do not know.
 
 ### Changes in v4 (2026-10-21)

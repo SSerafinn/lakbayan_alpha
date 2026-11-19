@@ -55,6 +55,9 @@ export function ToursPage() {
 
   /** `null` = closed, `"new"` = adding, otherwise the id being edited. */
   const [editing, setEditing] = useState<string | null>(null);
+  /** While a form is open, true shows the list in its place. */
+  const [peek, setPeek] = useState(false);
+  const showEditor = editing !== null && !peek;
   const [draft, setDraft] = useState<TourDraft>(emptyTour());
   const [confirmDelete, setConfirmDelete] = useState<Tour | null>(null);
 
@@ -99,11 +102,13 @@ export function ToursPage() {
   }, [rows, search, featuredOnly]);
 
   function openNew() {
+    setPeek(false);
     setDraft(emptyTour());
     setEditing("new");
   }
 
   function openEdit(t: Tour) {
+    setPeek(false);
     const {
       id: _drop,
       createdAt: _c,
@@ -258,6 +263,31 @@ export function ToursPage() {
         </Alert>
       )}
 
+      <nav className="tabs" aria-label="Tours sections">
+        <button
+          className={showEditor ? "tab" : "tab on"}
+          onClick={() => setPeek(true)}
+        >
+          All tours{" "}
+          {rows && <span className="tab-count">{rows.length}</span>}
+        </button>
+        {editing !== null ? (
+          <button
+            className={showEditor ? "tab on" : "tab"}
+            onClick={() => setPeek(false)}
+          >
+            {editing === "new"
+              ? "New tour"
+              : draft.title.trim() || "Untitled tour"}
+            {peek && <span className="tab-dot" aria-label="Open, not saved" />}
+          </button>
+        ) : (
+          <button className="tab" onClick={openNew}>
+            New tour
+          </button>
+        )}
+      </nav>
+
       <ConflictDialog
         conflict={conflict}
         noun="tour"
@@ -274,7 +304,7 @@ export function ToursPage() {
         onDismiss={() => setConflict(null)}
       />
 
-      {editing !== null && (
+      {showEditor && (
         <TourEditor
           draft={draft}
           isNew={editing === "new"}
@@ -287,133 +317,137 @@ export function ToursPage() {
         />
       )}
 
-      <div className="toolbar">
-        <input
-          className="search"
-          placeholder="Search by title"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-        <label className="toggle">
+      {!showEditor && (
+        <>
+        <div className="toolbar">
           <input
-            type="checkbox"
-            checked={featuredOnly}
-            onChange={(e) => setFeaturedOnly(e.target.checked)}
+            className="search"
+            placeholder="Search by title"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
           />
-          <span>Featured only</span>
-        </label>
-        {(search.trim() !== "" || featuredOnly) && (
-          <button
-            className="btn-quiet"
-            onClick={() => {
-              setSearch("");
-              setFeaturedOnly(false);
-            }}
-          >
-            Clear filters
-          </button>
-        )}
-      </div>
-
-      {rows === null ? (
-        <TableSkeleton />
-      ) : filtered.length === 0 ? (
-        <div className="empty">
-          {rows.length === 0 ? (
-            <>
-              <p>No tours yet.</p>
-              <button className="btn-primary" onClick={openNew}>
-                Add your first
-              </button>
-            </>
-          ) : (
-            <p>Nothing matches those filters.</p>
+          <label className="toggle">
+            <input
+              type="checkbox"
+              checked={featuredOnly}
+              onChange={(e) => setFeaturedOnly(e.target.checked)}
+            />
+            <span>Featured only</span>
+          </label>
+          {(search.trim() !== "" || featuredOnly) && (
+            <button
+              className="btn-quiet"
+              onClick={() => {
+                setSearch("");
+                setFeaturedOnly(false);
+              }}
+            >
+              Clear filters
+            </button>
           )}
         </div>
-      ) : (
-        <table className="data">
-          <thead>
-            <tr>
-              <th className="thumb-cell" aria-label="Cover" />
-              <th>Tour</th>
-              <th>Featured</th>
-              <th>Last edited</th>
-              <th />
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map((t) => {
-              const issues = problems(t);
-              const route = t.stops
-                .map((id) => byId.get(id)?.name)
-                .filter(Boolean)
-                .slice(0, 3)
-                .join(" → ");
-              return (
-                <tr
-                  key={t.id}
-                  className="opens"
-                  onClick={onRowClick(() => openEdit(t))}
-                >
-                  <td className="thumb-cell">
-                    {t.coverImg ? (
-                      <ImageThumb path={t.coverImg} className="row-thumb" />
-                    ) : (
-                      <div className="thumb row-thumb" />
-                    )}
-                  </td>
-                  {/* Title, then the route as its second line: the stops are
-                      what the tour is, so they belong with its name rather
-                      than in a column of their own. */}
-                  <td>
-                    <div className="cell-title">
-                      <span>
-                        <button
-                          className="link-button"
-                          onClick={() => openEdit(t)}
-                        >
-                          {t.title}
-                        </button>
-                        {issues.length > 0 && (
-                          <span className="badge warn" title="Broken in the app">
-                            {issues.join(", ")}
-                          </span>
-                        )}
-                      </span>
-                      <span className="hint">
-                        {t.stops.length} stop{t.stops.length === 1 ? "" : "s"}
-                        {route && ` · ${route}`}
-                        {t.stops.length > 3 ? " → …" : ""}
-                      </span>
-                    </div>
-                  </td>
-                  <td>
-                    {t.featured ? (
-                      <span className="badge">
-                        <Star size={12} aria-hidden="true" /> Featured
-                      </span>
-                    ) : (
-                      <span className="hint">—</span>
-                    )}
-                  </td>
-                  <td className="hint nowrap">
-                    {t.updatedAt
-                      ? relativeTime(t.updatedAt.toMillis(), Date.now())
-                      : "—"}
-                  </td>
-                  <td className="row actions-cell">
-                    <button
-                      className="btn-quiet sm danger"
-                      onClick={() => setConfirmDelete(t)}
-                    >
-                      Delete
-                    </button>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+
+        {rows === null ? (
+          <TableSkeleton />
+        ) : filtered.length === 0 ? (
+          <div className="empty">
+            {rows.length === 0 ? (
+              <>
+                <p>No tours yet.</p>
+                <button className="btn-primary" onClick={openNew}>
+                  Add your first
+                </button>
+              </>
+            ) : (
+              <p>Nothing matches those filters.</p>
+            )}
+          </div>
+        ) : (
+          <table className="data">
+            <thead>
+              <tr>
+                <th className="thumb-cell" aria-label="Cover" />
+                <th>Tour</th>
+                <th>Featured</th>
+                <th>Last edited</th>
+                <th />
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((t) => {
+                const issues = problems(t);
+                const route = t.stops
+                  .map((id) => byId.get(id)?.name)
+                  .filter(Boolean)
+                  .slice(0, 3)
+                  .join(" → ");
+                return (
+                  <tr
+                    key={t.id}
+                    className="opens"
+                    onClick={onRowClick(() => openEdit(t))}
+                  >
+                    <td className="thumb-cell">
+                      {t.coverImg ? (
+                        <ImageThumb path={t.coverImg} className="row-thumb" />
+                      ) : (
+                        <div className="thumb row-thumb" />
+                      )}
+                    </td>
+                    {/* Title, then the route as its second line: the stops are
+                        what the tour is, so they belong with its name rather
+                        than in a column of their own. */}
+                    <td>
+                      <div className="cell-title">
+                        <span>
+                          <button
+                            className="link-button"
+                            onClick={() => openEdit(t)}
+                          >
+                            {t.title}
+                          </button>
+                          {issues.length > 0 && (
+                            <span className="badge warn" title="Broken in the app">
+                              {issues.join(", ")}
+                            </span>
+                          )}
+                        </span>
+                        <span className="hint">
+                          {t.stops.length} stop{t.stops.length === 1 ? "" : "s"}
+                          {route && ` · ${route}`}
+                          {t.stops.length > 3 ? " → …" : ""}
+                        </span>
+                      </div>
+                    </td>
+                    <td>
+                      {t.featured ? (
+                        <span className="badge">
+                          <Star size={12} aria-hidden="true" /> Featured
+                        </span>
+                      ) : (
+                        <span className="hint">—</span>
+                      )}
+                    </td>
+                    <td className="hint nowrap">
+                      {t.updatedAt
+                        ? relativeTime(t.updatedAt.toMillis(), Date.now())
+                        : "—"}
+                    </td>
+                    <td className="row actions-cell">
+                      <button
+                        className="btn-quiet sm danger"
+                        onClick={() => setConfirmDelete(t)}
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
+        </>
       )}
 
       <Dialog

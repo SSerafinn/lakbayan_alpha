@@ -16,13 +16,16 @@ import "../../../core/widgets/controls/symbol_button.dart";
 import "../../../core/widgets/motion/motion.dart";
 import "../../../core/widgets/motion/page_transitions.dart";
 import "../domain/destination_providers.dart";
+import "../domain/photo_credit.dart";
 import "destination_detail_screen.dart" show sharePlace;
+import "photo_credit_label.dart";
 
 /// A place's photos, full screen on a dark stage in either appearance
 /// (D-19). Opened from a photo on its page, which zooms into it; close,
 /// back or a pull down shrinks the photo showing back into its tile. The
 /// stage shares Keep or Skip's softly blurred photo and translucent shade;
-/// the dots and a strip of the photos sit at its foot.
+/// the dots and a strip of the photos sit at its foot, and under them the
+/// credit of the photo showing.
 class PhotoViewer extends ConsumerStatefulWidget {
   const PhotoViewer({
     required this.id,
@@ -98,6 +101,9 @@ class _PhotoViewerState extends ConsumerState<PhotoViewer>
     final place = ref.watch(destinationByIdProvider(widget.id)).value;
     final images = place?.images ?? const <String>[];
     final page = _page.clamp(0, images.isEmpty ? 0 : images.length - 1);
+    final credit = images.isEmpty
+        ? null
+        : photoCreditLine(place?.creditFor(images[page]));
     final inset = MediaQuery.viewPaddingOf(context);
 
     return Theme(
@@ -193,16 +199,36 @@ class _PhotoViewerState extends ConsumerState<PhotoViewer>
                     ],
                   ),
                 ),
-                if (images.length > 1)
+                if (images.length > 1 || credit != null)
                   Positioned(
                     left: inset.left,
                     right: inset.right,
                     bottom: inset.bottom + AppSpace.x6,
                     child: Column(
                       children: [
-                        PageDots(count: images.length, current: page),
-                        const SizedBox(height: AppSpace.x3),
-                        _Strip(images: images, current: page, onTap: _show),
+                        if (images.length > 1) ...[
+                          PageDots(count: images.length, current: page),
+                          const SizedBox(height: AppSpace.x3),
+                          _Strip(images: images, current: page, onTap: _show),
+                        ],
+                        // The photo showing's credit, under everything that
+                        // moves between photos (`photoCreditLine`).
+                        if (credit != null) ...[
+                          if (images.length > 1)
+                            const SizedBox(height: AppSpace.x3),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: AppSpace.gutter,
+                            ),
+                            child: FadeSwap(
+                              id: credit,
+                              child: PhotoCreditLabel(
+                                credit,
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                   ),
