@@ -1,0 +1,338 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lakbayan · Cagayan, Right in Your Pocket</title>
+  <meta name="description" content="Lakbayan is the official companion app of Endless Fun, Cagayan. Find places worth the trip, hear their stories, and keep your map where the signal ends.">
+  <meta name="theme-color" content="#F3F2EE">
+  <meta property="og:title" content="Lakbayan · Cagayan, Right in Your Pocket">
+  <meta property="og:description" content="The official companion app of Endless Fun, Cagayan. Places, audio guides and offline maps for exploring the province.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://lakbayan.web.app/">
+  <meta property="og:image" content="https://lakbayan.web.app/images/palaui-island.jpg">
+  <meta property="og:image:width" content="960">
+  <meta property="og:image:height" content="641">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="canonical" href="https://lakbayan.web.app/">
+  <link rel="preload" href="fonts/cabinet-grotesk.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="fonts/satoshi.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="icon" href="images/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+  <script src="main.js" defer></script>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to Content</a>
+
+  <header class="top" data-top>
+    <div class="wrap top-row">
+      <a class="wordmark" href="#" aria-label="Lakbayan, back to top">LAKBAYAN</a>
+      <nav class="top-nav" aria-label="Sections">
+        <a href="#explore">Explore</a>
+        <a href="#audio">Audio Guides</a>
+        <a href="#offline">Offline</a>
+        <a href="#guides">Local Guides</a>
+      </nav>
+      <a class="btn btn-primary btn-small" href="#download">Get the App</a>
+    </div>
+  </header>
+
+  <main id="main">
+    <!-- Hero: the featured deck, as Explore opens on it. -->
+    <section class="hero">
+      <div class="wrap hero-grid">
+        <div class="hero-copy">
+          <p class="badge">
+            <img src="images/endless-fun-cagayan.png" alt="" width="40" height="33">
+            The official app of Endless Fun, Cagayan
+          </p>
+          <h1>Cagayan, Right in Your&nbsp;Pocket</h1>
+          <p class="lede">Find the places worth the trip, hear the stories behind them, and keep your map even where the signal ends.</p>
+          <div class="actions">
+            <a class="btn btn-primary" href="#download">Get the App</a>
+            <a class="btn btn-secondary" href="#explore">See What It Does</a>
+          </div>
+          <p class="fine">Free <span aria-hidden="true">·</span> For Android <span aria-hidden="true">·</span> Works offline</p>
+        </div>
+
+        <div class="hero-art" aria-hidden="true">
+          <div class="deck" data-deck>
+            <figure class="deck-card deck-back-2">
+              <img src="images/callao-cave.jpg" alt="" loading="eager">
+            </figure>
+            <figure class="deck-card deck-back-1">
+              <img src="images/basilica-minore-de-piat.jpg" alt="" loading="eager">
+            </figure>
+            <figure class="deck-card deck-front">
+              <img src="images/palaui-island.jpg" alt="" loading="eager">
+              <div class="deck-top">
+                <span class="glass-pill"><svg class="ic ic-fire"><use href="images/icons.svg#i-fire"/></svg>Popular This Season</span>
+                <span class="glass-circle heart" data-heart><svg class="ic"><use href="images/icons.svg#i-heart"/></svg><svg class="ic ic-save"><use href="images/icons.svg#i-heart-fill"/></svg></span>
+              </div>
+              <figcaption class="deck-foot">
+                <strong>Palaui Island</strong>
+                <span>Santa Ana</span>
+              </figcaption>
+            </figure>
+          </div>
+          <span class="bubble bubble-1"><svg class="ic"><use href="images/icons.svg#i-nature"/></svg></span>
+          <span class="bubble bubble-2"><svg class="ic"><use href="images/icons.svg#i-church"/></svg></span>
+          <span class="bubble bubble-3"><svg class="ic"><use href="images/icons.svg#i-food"/></svg></span>
+          <span class="bubble bubble-4"><svg class="ic"><use href="images/icons.svg#i-museum"/></svg></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- The places strip. The second copy only makes the loop seamless. -->
+    <section class="strip" aria-label="A few of the places in Lakbayan">
+      <div class="strip-track" data-strip>
+        <ul class="strip-list">
+          <li><svg class="ic"><use href="images/icons.svg#i-nature"/></svg>Callao Cave</li>
+          <li><svg class="ic"><use href="images/icons.svg#i-nature"/></svg>Palaui Island</li>
+          <li><svg class="ic"><use href="images/icons.svg#i-church"/></svg>Basilica Minore de Piat</li>
+          <li><svg class="ic"><use href="images/icons.svg#i-landmark"/></svg>Cape Engaño Lighthouse</li>
+          <li><svg class="ic"><use href="images/icons.svg#i-museum"/></svg>Cagayan Museum</li>
+          <li><svg class="ic"><use href="images/icons.svg#i-landmark"/></svg>Buntun Bridge</li>
+          <li><svg class="ic"><use href="images/icons.svg#i-church"/></svg>Iguig Calvary Hills</li>
+          <li><svg class="ic"><use href="images/icons.svg#i-nature"/></svg>Pinacanauan River</li>
+          <li><svg class="ic"><use href="images/icons.svg#i-food"/></svg>Pancit Batil Patung</li>
+        </ul>
+        <ul class="strip-list" aria-hidden="true">
+          <li><svg class="ic"><use href="images/icons.svg#i-nature"/></svg>Callao Cave</li>
+          <li><svg class="ic"><use href="images/icons.svg#i-nature"/></svg>Palaui Island</li>
+          <li><svg class="ic"><use href="images/icons.svg#i-church"/></svg>Basilica Minore de Piat</li>
+          <li><svg class="ic"><use href="images/icons.svg#i-landmark"/></svg>Cape Engaño Lighthouse</li>
+          <li><svg class="ic"><use href="images/icons.svg#i-museum"/></svg>Cagayan Museum</li>
+          <li><svg class="ic"><use href="images/icons.svg#i-landmark"/></svg>Buntun Bridge</li>
+          <li><svg class="ic"><use href="images/icons.svg#i-church"/></svg>Iguig Calvary Hills</li>
+          <li><svg class="ic"><use href="images/icons.svg#i-nature"/></svg>Pinacanauan River</li>
+          <li><svg class="ic"><use href="images/icons.svg#i-food"/></svg>Pancit Batil Patung</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- Explore -->
+    <section class="feature" id="explore">
+      <div class="wrap feature-grid">
+        <div class="feature-copy reveal">
+          <h2>Find the Places Worth the Trip</h2>
+          <p>Caves and islands, old churches, museums and the food Tuguegarao is known for, sorted by kind and by town. Save the ones you like and they wait for you on your profile.</p>
+        </div>
+        <div class="feature-art wash-mint reveal" aria-hidden="true">
+          <div class="panel explore-panel">
+            <div class="kind-rail">
+              <span class="kind is-chosen"><svg class="ic"><use href="images/icons.svg#i-nature-fill"/></svg>Nature</span>
+              <span class="kind"><svg class="ic"><use href="images/icons.svg#i-food"/></svg>Food</span>
+              <span class="kind"><svg class="ic"><use href="images/icons.svg#i-church"/></svg>Churches</span>
+              <span class="kind"><svg class="ic"><use href="images/icons.svg#i-museum"/></svg>Museums</span>
+              <span class="kind"><svg class="ic"><use href="images/icons.svg#i-landmark"/></svg>Landmarks</span>
+            </div>
+            <div class="photo-grid">
+              <figure class="tile tile-wide">
+                <img src="images/callao-cave.jpg" alt="" loading="lazy">
+                <span class="tile-heart is-saved"><svg class="ic"><use href="images/icons.svg#i-heart-fill"/></svg></span>
+                <figcaption>Callao Cave<small>Peñablanca</small></figcaption>
+              </figure>
+              <figure class="tile">
+                <img src="images/pinacanauan-river.jpg" alt="" loading="lazy">
+                <figcaption>Pinacanauan River<small>Peñablanca</small></figcaption>
+              </figure>
+              <figure class="tile">
+                <img src="images/palaui-island.jpg" alt="" loading="lazy">
+                <figcaption>Palaui Island<small>Santa Ana</small></figcaption>
+              </figure>
+            </div>
+          </div>
+          <span class="float-pill float-saved"><svg class="ic ic-save"><use href="images/icons.svg#i-heart-fill"/></svg>Saved</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Audio guides -->
+    <section class="feature" id="audio">
+      <div class="wrap feature-grid is-flipped">
+        <div class="feature-copy reveal">
+          <h2>Hear the Story Where It Happened</h2>
+          <p>Press play and walk. The audio guide takes you stop by stop, so a church's history or a cave's legend is told right where you stand. Headphones optional.</p>
+        </div>
+        <div class="feature-art wash-butter reveal" aria-hidden="true">
+          <div class="panel player">
+            <div class="player-photo">
+              <img src="images/basilica-minore-de-piat.jpg" alt="" loading="lazy">
+              <span class="play-disc"><svg class="ic"><use href="images/icons.svg#i-pause"/></svg></span>
+            </div>
+            <div class="player-body">
+              <strong>Basilica Minore de Piat</strong>
+              <span class="player-sub">Audio Guide <span aria-hidden="true">·</span> Stop 2 of 5</span>
+              <div class="eq" data-eq><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+              <div class="progress"><span class="progress-fill"></span></div>
+              <div class="player-times"><span>1:12</span><span>3:40</span></div>
+            </div>
+          </div>
+          <span class="bubble bubble-float"><svg class="ic"><use href="images/icons.svg#i-headphones"/></svg></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Offline -->
+    <section class="feature" id="offline">
+      <div class="wrap feature-grid">
+        <div class="feature-copy reveal">
+          <h2>No Signal? Keep Exploring.</h2>
+          <p>Download a town before you set out. Its places, photos, audio guides and map come with you, and keep working from the coast of Santa Ana to the caves of Peñablanca, bars or none.</p>
+        </div>
+        <div class="feature-art wash-sky reveal" aria-hidden="true">
+          <div class="towns">
+            <figure class="town">
+              <img src="images/callao-cave.jpg" alt="" loading="lazy">
+              <figcaption>Peñablanca<small>On your phone</small></figcaption>
+              <span class="town-state is-done"><svg class="ic"><use href="images/icons.svg#i-check"/></svg></span>
+            </figure>
+            <figure class="town">
+              <img src="images/palaui-island.jpg" alt="" loading="lazy">
+              <figcaption>Santa Ana<small>Downloading</small></figcaption>
+              <span class="town-state is-running">
+                <svg class="ring" viewBox="0 0 36 36"><circle class="ring-track" cx="18" cy="18" r="15"/><circle class="ring-fill" cx="18" cy="18" r="15" data-ring/></svg>
+              </span>
+            </figure>
+            <figure class="town">
+              <img src="images/buntun-bridge.jpg" alt="" loading="lazy">
+              <figcaption>Tuguegarao City<small>18 MB</small></figcaption>
+              <span class="town-state"><svg class="ic"><use href="images/icons.svg#i-download"/></svg></span>
+            </figure>
+          </div>
+          <span class="float-pill float-signal"><svg class="ic"><use href="images/icons.svg#i-signal-off"/></svg>No Signal</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Trips -->
+    <section class="feature" id="trips">
+      <div class="wrap feature-grid is-flipped">
+        <div class="feature-copy reveal">
+          <h2>Plan the Day, Stop by Stop</h2>
+          <p>Line up the places you want to see and Lakbayan draws your route, with how far each stop is from the last. Open it in your map app when it's time to go.</p>
+        </div>
+        <div class="feature-art wash-blush reveal" aria-hidden="true">
+          <div class="map-card">
+            <svg class="map-svg" viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice">
+              <path class="map-river" d="M-10 210 C 80 180, 150 220, 230 160 S 330 70, 420 50"/>
+              <path class="map-road" d="M0 70 L 400 170 M 130 0 L 230 300"/>
+              <path class="map-route" d="M60 130 C 100 90, 150 70, 190 85 S 280 150, 340 110" pathLength="1"/>
+              <g class="map-stop" transform="translate(60 130)"><circle r="15"/><text dy="5">1</text></g>
+              <g class="map-stop" transform="translate(190 85)"><circle r="15"/><text dy="5">2</text></g>
+              <g class="map-stop" transform="translate(340 110)"><circle r="15"/><text dy="5">3</text></g>
+            </svg>
+          </div>
+          <div class="panel stops">
+            <strong class="stops-title">A Day Around Tuguegarao</strong>
+            <ol>
+              <li><span class="num">1</span><span>Cagayan Museum<small>Tuguegarao City</small></span></li>
+              <li class="gap">3 km</li>
+              <li><span class="num">2</span><span>Buntun Bridge<small>Tuguegarao City</small></span></li>
+              <li class="gap">24 km</li>
+              <li><span class="num">3</span><span>Callao Cave<small>Peñablanca</small></span></li>
+            </ol>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- AR exhibits -->
+    <section class="feature" id="scan">
+      <div class="wrap feature-grid">
+        <div class="feature-copy reveal">
+          <h2>Exhibits That Tell Their Own Story</h2>
+          <p>At partner museums, point your camera at an exhibit's Lakbayan label. The app knows the picture, and the exhibit's story opens on your phone, read or told aloud.</p>
+        </div>
+        <div class="feature-art wash-sky reveal" aria-hidden="true">
+          <div class="phone">
+            <div class="phone-screen">
+              <img src="images/cagayan-museum.jpg" alt="" loading="lazy">
+              <div class="scan-box" data-scan>
+                <i class="corner c-tl"></i><i class="corner c-tr"></i><i class="corner c-bl"></i><i class="corner c-br"></i>
+              </div>
+              <span class="scan-hint">Come close, so the picture fills the box</span>
+              <div class="scan-sheet" data-scan-sheet>
+                <strong>Rizal Monument</strong>
+                <span><svg class="ic"><use href="images/icons.svg#i-play"/></svg>Listen to Its Story</span>
+              </div>
+            </div>
+          </div>
+          <span class="bubble bubble-float bubble-scan"><svg class="ic"><use href="images/icons.svg#i-scan"/></svg></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Local guides -->
+    <section class="feature" id="guides">
+      <div class="wrap feature-grid is-flipped">
+        <div class="feature-copy reveal">
+          <h2>Better With a Local Guide</h2>
+          <p>Lakbayan is made to work alongside Cagayan's local guides, never instead of them. When a place deserves a guide's telling, find one for that town in the app.</p>
+        </div>
+        <div class="feature-art wash-mint reveal" aria-hidden="true">
+          <div class="panel guides-panel">
+            <strong class="stops-title">Meet a Guide</strong>
+            <ul>
+              <li><span class="avatar avatar-1"><svg class="ic"><use href="images/icons.svg#i-guide"/></svg></span><span>Peñablanca<small>Caves and river trips</small></span><svg class="ic seal"><use href="images/icons.svg#i-verified"/></svg></li>
+              <li><span class="avatar avatar-2"><svg class="ic"><use href="images/icons.svg#i-guide"/></svg></span><span>Santa Ana<small>Palaui and the coast</small></span><svg class="ic seal"><use href="images/icons.svg#i-verified"/></svg></li>
+              <li><span class="avatar avatar-3"><svg class="ic"><use href="images/icons.svg#i-guide"/></svg></span><span>Piat<small>Heritage and pilgrimage</small></span><svg class="ic seal"><use href="images/icons.svg#i-verified"/></svg></li>
+            </ul>
+          </div>
+          <span class="bubble bubble-float bubble-wave"><svg class="ic"><use href="images/icons.svg#i-wave"/></svg></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- The welcome, as the app's own landing greets you. -->
+    <section class="greeting" data-greeting aria-label="Welcome">
+      <div class="wrap greeting-inner">
+        <p class="greeting-word" data-greeting-word aria-live="off">MADDULO KAMU</p>
+        <p class="greeting-body" data-greeting-body>The welcome that met every traveller at the old provincial arch. Rivers, mountains and coast, and the stories that come with them.</p>
+      </div>
+    </section>
+
+    <!-- Download -->
+    <section class="download" id="download">
+      <div class="wrap download-inner reveal">
+        <h2>Cagayan Is Waiting</h2>
+        <p>Lakbayan is free, and it is coming soon to Google Play for Android phones.</p>
+        <p class="store-soon"><svg class="ic"><use href="images/icons.svg#i-android"/></svg>Coming Soon on Google Play</p>
+      </div>
+      <img class="shoreline" src="images/shoreline.webp" alt="" width="1440" height="318" loading="lazy">
+    </section>
+  </main>
+
+  <footer class="foot">
+    <div class="wrap foot-grid">
+      <div class="foot-brand">
+        <span class="wordmark wordmark-light">LAKBAYAN</span>
+        <p>The official digital companion of Endless Fun, Cagayan. It complements the province's local guides, never replaces them.</p>
+        <img class="foot-logo" src="images/endless-fun-cagayan.png" alt="Endless Fun, Cagayan" width="120" height="98" loading="lazy">
+      </div>
+      <nav class="foot-links" aria-label="The app">
+        <strong>The App</strong>
+        <a href="#explore">Explore</a>
+        <a href="#audio">Audio Guides</a>
+        <a href="#offline">Offline Towns</a>
+        <a href="#trips">Trips</a>
+        <a href="#scan">Museum Exhibits</a>
+        <a href="#guides">Local Guides</a>
+      </nav>
+      <details class="foot-credits">
+        <summary>Photo Credits</summary>
+        <p>Every photograph here is someone else's work from Wikimedia Commons, shown unmodified under its author's licence.</p>
+        <ul>
+          <li>Callao Cave: mkirader, <a href="https://creativecommons.org/licenses/by/2.0">CC BY 2.0</a> (<a href="https://commons.wikimedia.org/wiki/File:Callao_Cave_(9407095908).jpg">source</a>)</li>
+          <li>Palaui Island: Joyfulwandering, <a href="https://creativecommons.org/licenses/by-sa/4.0">CC BY-SA 4.0</a> (<a href="https://commons.wikimedia.org/wiki/File:Palaui_Island_Sta._Ana,_Cagayan.jpg">source</a>)</li>
+          <li>Basilica Minore de Piat: JmKissme, changes by Rabanus Flavus, <a href="https://creativecommons.org/licenses/by-sa/4.0">CC BY-SA 4.0</a> (<a href="https://commons.wikimedia.org/wiki/File:Basilica_of_Our_Lady_of_Piat.jpg">source</a>)</li>
+          <li>Buntun Bridge: Patrickroque01, public domain (<a href="https://commons.wikimedia.org/wiki/File:Buntun_Bridge_(Tuguegarao,_Cagayan;_11-22-2022).jpg">source</a>)</li>
+          <li>Cagayan Museum: Patrickroque01, <a href="https://creativecommons.org/licenses/by-sa/4.0">CC BY-SA 4.0</a> (<a href="https://commons.wikimedia.org/wiki/File:Cagayan_Museum,_Rizal_Park_monument_(Rizal_Street,_Tuguegarao,_Cagayan;_11-19-2022).jpg">source</a>)</li>
+          <li>Pinacanauan River: Kathleen Mae Tugano, <a href="https://creativecommons.org/licenses/by-sa/4.0">CC BY-SA 4.0</a> (<a href="https://commons.wikimedia.org/wiki/File:Pinacanauan_River_1.jpg">source</a>)</li>
+        </ul>
+      </details>
+    </div>
+  </footer>
+</body>
+</html>

@@ -80,3 +80,6 @@ artifacts/
 # misc
 *.log
 .DS_Store
+
+# Firebase CLI deploy cache
+.firebase/
