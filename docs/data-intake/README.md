@@ -216,6 +216,12 @@ description, long form, location and access notes, tags and source. It does
 To try the places without the photos, import a copy with sheet 5's rows
 emptied; the rest validates.
 
+**Imported live on 2026-11-18:** all 31 destinations, 19 of them published,
+with 20 cleared photos. [first-wave-photos.md](first-wave-photos.md) records
+what is live, each photo's source, credit and licence, and why the rest are
+still drafts. The credits are on the destinations too (`imageCredits`, written
+2026-11-19), and the app shows them on the photos.
+
 ## What happens to it afterwards
 
 Everything imports as **draft**. Nothing becomes visible in the app until an
