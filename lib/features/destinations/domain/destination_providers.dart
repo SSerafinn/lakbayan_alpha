@@ -71,16 +71,15 @@ class Town {
   final String name;
   final List<Destination> places;
 
-  /// Its places by kind, in the order the kinds first show: the town page's
-  /// chips and what each one shows. Grouped once here, not on every build.
-  final Map<DestinationCategory, List<Destination>> byKind;
+  /// Its places by kind ([Destination.kindKey]), in the order the kinds first
+  /// show: the town page's chips and what each one shows. Grouped once here,
+  /// not on every build.
+  final Map<String, List<Destination>> byKind;
 
-  static Map<DestinationCategory, List<Destination>> _group(
-    List<Destination> places,
-  ) {
-    final byKind = <DestinationCategory, List<Destination>>{};
+  static Map<String, List<Destination>> _group(List<Destination> places) {
+    final byKind = <String, List<Destination>>{};
     for (final place in places) {
-      byKind.putIfAbsent(place.category, () => []).add(place);
+      byKind.putIfAbsent(place.kindKey, () => []).add(place);
     }
     return byKind;
   }
@@ -103,15 +102,15 @@ Stream<Destination?> destinationById(Ref ref, String id) =>
 Stream<List<Segment>> destinationSegments(Ref ref, String id) =>
     ref.watch(destinationRepositoryProvider).watchSegments(id);
 
-/// Selected category chip on Browse. `null` is "All".
+/// Selected category chip on Browse, by [PlaceKind.key]. `null` is "All".
 ///
 /// The wireframe specifies single-select, so this is one value rather than a set.
 @riverpod
 class BrowseCategory extends _$BrowseCategory {
   @override
-  DestinationCategory? build() => null;
+  String? build() => null;
 
-  void select(DestinationCategory? category) {
+  void select(String? category) {
     state = category;
     // A subcategory belongs to one category; under another it means nothing.
     ref.read(browseSubcategoryProvider.notifier).select(null);
@@ -284,7 +283,7 @@ AsyncValue<List<Destination>> browseResults(Ref ref) {
 /// The listener [browseResults] reads under [category]: every place for
 /// "All", else that category's query. What Browse and the Map invalidate to
 /// try again after a failed load.
-ProviderOrFamily browseSource(DestinationCategory? category) =>
+ProviderOrFamily browseSource(String? category) =>
     category == null ? allDestinationsProvider : browseCategoryStreamProvider;
 
 /// The subcategories among the chosen category's places, for Browse's second
@@ -411,11 +410,10 @@ List<Destination> scanPlaces(Ref ref) {
 @riverpod
 class HomeCategory extends _$HomeCategory {
   @override
-  DestinationCategory? build() => null;
+  String? build() => null;
 
-  /// Tapping the chosen category again clears it.
-  void toggle(DestinationCategory category) =>
-      state = state == category ? null : category;
+  /// Tapping the chosen category again clears it. By [PlaceKind.key].
+  void toggle(String category) => state = state == category ? null : category;
 }
 
 /// The text in the search surface's field (the bar's search cell).
@@ -432,11 +430,10 @@ class HomeQuery extends _$HomeQuery {
 @riverpod
 class SearchCategory extends _$SearchCategory {
   @override
-  DestinationCategory? build() => null;
+  String? build() => null;
 
-  /// Tapping the chosen kind again clears it.
-  void toggle(DestinationCategory category) =>
-      state = state == category ? null : category;
+  /// Tapping the chosen kind again clears it. By [PlaceKind.key].
+  void toggle(String category) => state = state == category ? null : category;
 
   void clear() => state = null;
 }
@@ -472,13 +469,13 @@ AsyncValue<List<Destination>> searchResults(Ref ref) {
 /// [browseResults]): by kind when one is chosen, and by name or town.
 List<Destination> _matching(
   List<Destination> all, {
-  required DestinationCategory? category,
+  required String? category,
   required String query,
 }) {
   final needle = query.trim().toLowerCase();
   return [
     for (final destination in all)
-      if (category == null || destination.category == category)
+      if (category == null || destination.kindKey == category)
         if (needle.isEmpty ||
             destination.name.toLowerCase().contains(needle) ||
             destination.town.toLowerCase().contains(needle))

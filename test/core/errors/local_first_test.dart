@@ -126,14 +126,14 @@ void main() {
     container.listen(browseCategoryStreamProvider, (_, _) {});
     container
         .read(browseCategoryProvider.notifier)
-        .select(DestinationCategory.nature);
+        .select(DestinationCategory.nature.name);
     await settle();
     expect(shown(container.read(browseCategoryStreamProvider)), "data");
 
     // Nature's places are not an answer for churches.
     container
         .read(browseCategoryProvider.notifier)
-        .select(DestinationCategory.church);
+        .select(DestinationCategory.church.name);
     final replacing = container.read(browseCategoryStreamProvider);
     expect(replacing.value, [callao]);
     expect(shown(replacing), "loading");

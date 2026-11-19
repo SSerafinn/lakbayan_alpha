@@ -1001,6 +1001,11 @@ code {
   padding: 0 var(--lk-space-4);
   border-radius: var(--lk-shape-capsule);
 }
+/* A switch among the filters (Tours' Featured only): bare text, so it needs
+   more air from the capsule beside it than a capsule does. */
+.toolbar .toggle {
+  margin-left: var(--lk-space-2);
+}
 .toolbar select {
   border-radius: var(--lk-shape-capsule);
   padding: 0 var(--lk-space-3) 0 var(--lk-space-4);
@@ -1093,6 +1098,13 @@ table.data .thumb-cell {
   flex-direction: column;
   align-items: flex-start;
   gap: 2px;
+  min-width: 140px;
+}
+/* An email has no break point, so on a laptop the Guides contact column held
+   its full width, squeezed names onto three lines and pushed the table past
+   the page edge. Let it break instead. */
+table.data td.contact-cell {
+  overflow-wrap: anywhere;
 }
 /* Row actions sit at the far edge, out of the way of reading across. */
 table.data td.actions-cell {
@@ -1101,6 +1113,12 @@ table.data td.actions-cell {
 /* Saved views read as tabs over the table, a step tighter than an editor's. */
 .tabs.views {
   margin-bottom: var(--lk-space-4);
+}
+/* The same step under the list tab on Guides, Tours and Users: there a
+   closed <dialog> can sit between the two, so `+` would miss it. The margins
+   collapse with .views' own, so Destinations stays as it was. */
+.tabs ~ .toolbar {
+  margin-top: var(--lk-space-4);
 }
 
 /* Action cells carry `.row` for spacing. As a flex box a <td> stops being a
@@ -1804,6 +1822,13 @@ input[type="checkbox"] {
 .thumb-actions {
   display: flex;
   align-items: center;
+  gap: var(--lk-space-2);
+}
+/* A photo's credit and licence, under its thumbnail: the credit belongs to
+   the photo, so it moves with it when another is made the cover. */
+.thumb-credit {
+  display: flex;
+  flex-direction: column;
   gap: var(--lk-space-2);
 }
 

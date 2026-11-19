@@ -45,6 +45,7 @@ import { FieldValue, getFirestore } from "firebase-admin/firestore";
 import { getStorage } from "firebase-admin/storage";
 
 import { planGuide } from "./lib/guide.mjs";
+import { needsAttribution, planCredits } from "./lib/photo-credit.mjs";
 
 // The slug is this importer's identity key — it is how a sheet row is matched
 // to a destination the CMS already created. Shared rather than reimplemented
@@ -56,7 +57,7 @@ import { slugify } from "./lib/slug.mjs";
 // schema moves, they move with it.
 // ---------------------------------------------------------------------------
 
-const DESTINATION_SCHEMA_VERSION = 4;
+const DESTINATION_SCHEMA_VERSION = 5;
 const MAX_DESCRIPTION = 140;
 const CATEGORIES = ["church", "nature", "heritage", "museum", "food", "landmark"];
 const AUDIO_EXTENSIONS = ["mp3", "m4a", "aac", "wav", "ogg"];
@@ -399,6 +400,18 @@ function validatePhotos(rows, destsByRef) {
         `no licence or permission recorded for "${filename}". The app is a ` +
           `public release; an image nobody has cleared cannot ship.`,
       );
+    } else if (
+      needsAttribution(text(r.licence_or_permission)) &&
+      !text(r.photographer_or_credit)
+    ) {
+      // The two columns become the photo's credit in the app (imageCredits,
+      // schema v5). A Creative Commons licence allows the photo only with its
+      // author's name on it, and the CMS will not publish one without.
+      err(
+        ...where,
+        `"${filename}" is under ${text(r.licence_or_permission)}, which asks ` +
+          `for the photographer to be credited, but no credit is recorded.`,
+      );
     }
 
     const bucket = byDest.get(ref) ?? [];
@@ -504,6 +517,15 @@ function objectName(filename) {
     .replace(/^-+|-+$/g, "")
     .slice(0, 60);
   return `${stem || "image"}.${ext}`;
+}
+
+/**
+ * Where a sheet photo lives in Storage. Also what keys its credit in
+ * `imageCredits`, so a run without --media can still credit a photo an
+ * earlier run uploaded.
+ */
+function imagePath(destId, filename) {
+  return `destinations/${destId}/images/${objectName(filename)}`;
 }
 
 /** Filenames in the media directory, matched case-insensitively. */
@@ -763,7 +785,7 @@ for (const [ref, r] of destsByRef) {
     for (const p of ordered) {
       const filename = text(p.filename);
       const ext = extname(filename).slice(1).toLowerCase();
-      const destPath = `destinations/${destRef.id}/images/${objectName(filename)}`;
+      const destPath = imagePath(destRef.id, filename);
       imagePaths.push(
         await upload(media.get(filename.toLowerCase()), destPath, IMAGE_MIME[ext]),
       );
@@ -771,7 +793,29 @@ for (const [ref, r] of destsByRef) {
     doc.images = imagePaths;
   }
 
-  await destRef.set(doc, { merge: true });
+  // Each photo's credit and licence, from sheet 5's two columns (v5,
+  // lib/photo-credit.mjs). With photos uploaded this run, the map is the
+  // sheet's; without, the sheet's credits go onto the photos already there.
+  const credits = planCredits({
+    photos: photos.map((p) => ({
+      path: imagePath(destRef.id, text(p.filename)),
+      credit: text(p.photographer_or_credit),
+      licence: text(p.licence_or_permission),
+    })),
+    uploaded: imagePaths !== null,
+    previousImages,
+    existing: existing?.data().imageCredits,
+  });
+
+  // One commit, so no reader sees the new photos without their credits.
+  // `imageCredits` goes in an update of its own because set-with-merge merges
+  // a map key by key, and a credit the sheet dropped would survive it; an
+  // update replaces the field whole. Applied after the set in the same
+  // commit, it works on a destination this run is creating, too.
+  const write = db.batch();
+  write.set(destRef, doc, { merge: true });
+  if (credits) write.update(destRef, { imageCredits: credits });
+  await write.commit();
 
   // Only now that the document no longer points at them. The reverse order
   // would leave a live document referencing a deleted object if the write

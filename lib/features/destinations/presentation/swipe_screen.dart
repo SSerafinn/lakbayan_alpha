@@ -23,6 +23,7 @@ import "../../../core/widgets/controls/symbol_button.dart";
 import "../../../core/widgets/motion/motion.dart";
 import "../../../core/widgets/motion/page_transitions.dart";
 import "../domain/destination_providers.dart";
+import "../domain/place_kind.dart";
 import "../domain/saved_destinations.dart";
 import "swipe_deck.dart";
 
@@ -74,9 +75,15 @@ class SwipeScreen extends ConsumerWidget {
 /// The app's dark theme, built once, for everything on the stage.
 final _stageTheme = buildAppDarkTheme();
 
-/// A place's kind as its deep tone (`role.kind`).
-Color _toneOf(BuildContext context, Destination place) =>
-    context.lakbayan.kindTone(place.category);
+/// A place's kind as its deep tone (`role.kind`): an added category's is
+/// the tone of the built-in one whose colours it takes.
+Color _toneOf(BuildContext context, Destination place) {
+  final added = ProviderScope.containerOf(
+    context,
+    listen: false,
+  ).read(addedCategoriesProvider);
+  return context.lakbayan.kindTone(kindForKey(place.kindKey, added).look);
+}
 
 /// Close and the title, over the stage.
 class _Header extends StatelessWidget {

@@ -468,7 +468,7 @@ export function GuidesPage() {
                       </div>
                     )}
                   </td>
-                  <td className="hint">{g.contact}</td>
+                  <td className="hint contact-cell">{g.contact}</td>
                   <td>
                     {g.verified ? (
                       <span className="badge ok">

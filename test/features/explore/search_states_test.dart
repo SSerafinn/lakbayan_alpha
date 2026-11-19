@@ -79,7 +79,7 @@ void main() {
 
     container
         .read(searchCategoryProvider.notifier)
-        .toggle(DestinationCategory.nature);
+        .toggle(DestinationCategory.nature.name);
     await tester.pumpAndSettle();
 
     expect(

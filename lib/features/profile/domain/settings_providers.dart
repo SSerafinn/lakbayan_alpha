@@ -22,6 +22,13 @@ SettingsRepository settingsRepository(Ref ref) => SettingsRepository(
 Stream<AppSettings?> appSettings(Ref ref) =>
     ref.watch(settingsRepositoryProvider).watchApp();
 
+/// The categories the province added beyond the six, kept alive so a place
+/// in one is named and drawn wherever it shows. Offline before it was ever
+/// read, or unwritten, it is none: such places then read as Other.
+@Riverpod(keepAlive: true)
+Stream<TaxonomySettings?> taxonomySettings(Ref ref) =>
+    ref.watch(settingsRepositoryProvider).watchTaxonomy();
+
 /// The privacy policy and terms, read when one is opened.
 @riverpod
 Stream<PolicySettings?> policies(Ref ref) =>

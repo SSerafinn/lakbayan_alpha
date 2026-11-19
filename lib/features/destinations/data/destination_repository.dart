@@ -54,10 +54,12 @@ class DestinationRepository {
   /// Search is applied client-side by the provider rather than here: Firestore
   /// has no substring matching, and the published set for one province is small
   /// enough that filtering in memory beats adding a search service.
-  Stream<List<Destination>> watchAll({DestinationCategory? category}) {
+  /// [category] is a [Destination.kindKey]: a built-in category's name or
+  /// the id of one the province added, which is what `category` stores.
+  Stream<List<Destination>> watchAll({String? category}) {
     var query = _published;
-    if (category != null && category != DestinationCategory.unknown) {
-      query = query.where("category", isEqualTo: category.name);
+    if (category != null && category != DestinationCategory.unknown.name) {
+      query = query.where("category", isEqualTo: category);
     }
     return query.orderBy("name").snapshots().map(_toList);
   }

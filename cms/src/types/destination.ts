@@ -1,5 +1,6 @@
 import type { Timestamp } from "firebase/firestore";
 import { countExhibitProblems, type ExhibitDraft } from "./exhibit";
+import { needsAttribution, type ImageCredits } from "./photo-credit";
 import { segmentProblems, type SegmentDraft } from "./segment";
 
 /**
@@ -8,7 +9,7 @@ import { segmentProblems, type SegmentDraft } from "./segment";
  * Three representations of one contract. When the schema changes, all three
  * move together — that is why the CMS lives in this repo (D-10).
  */
-export const DESTINATION_SCHEMA_VERSION = 4;
+export const DESTINATION_SCHEMA_VERSION = 5;
 
 export const CATEGORIES = [
   "church",
@@ -59,6 +60,12 @@ export type Destination = {
   coords: { lat: number; lng: number };
   /** Storage paths. The first is the card image. */
   images: string[];
+  /**
+   * Each photo's credit and licence, keyed by its path in `images` (v5).
+   * Optional: a document written before v5 has none. Edited on the Photos
+   * tab; see types/photo-credit.ts.
+   */
+  imageCredits?: ImageCredits;
   popular: boolean;
   featured: boolean;
   nearbyEligible: boolean;
@@ -140,6 +147,7 @@ export function emptyDestination(): Omit<Destination, "id"> {
     description: "",
     coords: { ...CAGAYAN_CENTRE },
     images: [],
+    imageCredits: {},
     popular: false,
     featured: false,
     nearbyEligible: true,
@@ -198,6 +206,12 @@ export function readiness(
   const desc = d.description.trim();
   const { untitled, silent } = segmentProblems(segments);
   const exhibitCounts = countExhibitProblems(exhibits);
+  const licensed = d.images.filter((p) =>
+    needsAttribution(d.imageCredits?.[p]?.licence ?? ""),
+  );
+  const unnamed = licensed.filter(
+    (p) => !d.imageCredits?.[p]?.credit?.trim(),
+  ).length;
   return [
     { label: "Name", ok: d.name.trim() !== "", tab: "details" },
     { label: "Slug", ok: d.slug.trim() !== "", tab: "details" },
@@ -223,6 +237,19 @@ export function readiness(
       tab: "media",
       why: "The card has no fallback image.",
     },
+    // Only once a photo is marked Creative Commons: most are the province's
+    // own. Those licences let the app show the photo only with its author's
+    // name on it, so one with none cannot go live.
+    ...(licensed.length > 0
+      ? [
+          {
+            label: "Every Creative Commons photo is credited",
+            ok: unnamed === 0,
+            tab: "media" as const,
+            why: `${unnamed} photo${unnamed === 1 ? " is" : "s are"} under a Creative Commons licence with no one credited — the licence asks for the photographer's name.`,
+          },
+        ]
+      : []),
     // Only meaningful once a guide exists. A destination with no segments is
     // perfectly publishable — most of them have no narration at all.
     ...(segments.length > 0
