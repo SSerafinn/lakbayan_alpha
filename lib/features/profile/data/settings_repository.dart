@@ -27,6 +27,11 @@ class SettingsRepository {
   /// saved them.
   Stream<AppSettings?> watchApp() => _watch("app", AppSettings.fromJson);
 
+  /// The towns and the categories the province added. Null until the CMS
+  /// has saved them.
+  Stream<TaxonomySettings?> watchTaxonomy() =>
+      _watch("taxonomy", TaxonomySettings.fromJson);
+
   /// The privacy policy and terms. Null until the CMS has saved them.
   Stream<PolicySettings?> watchPolicies() =>
       _watch("policies", PolicySettings.fromJson);

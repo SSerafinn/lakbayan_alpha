@@ -1,6 +1,8 @@
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
+import "../domain/place_kind.dart";
+
 import "../../../core/errors/error_copy.dart";
 import "../../../core/errors/local_first.dart";
 import "../../../core/models/destination.dart";
@@ -37,6 +39,7 @@ class BrowseScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final selected = ref.watch(browseCategoryProvider);
+    final kinds = ref.watch(placeKindsProvider);
     final subcategory = ref.watch(browseSubcategoryProvider);
     final subcategories = ref.watch(browseSubcategoriesProvider);
     final query = ref.watch(browseQueryProvider);
@@ -86,16 +89,15 @@ class BrowseScreen extends ConsumerWidget {
                 ref.read(mapShowsSavedProvider.notifier).set(false);
               },
             ),
-            for (final category in DestinationCategory.values)
-              if (category != DestinationCategory.unknown)
-                FilterChipItem(
-                  label: category.label,
-                  selected: selected == category && !savedOnly,
-                  onTap: () {
-                    ref.read(browseCategoryProvider.notifier).select(category);
-                    ref.read(mapShowsSavedProvider.notifier).set(false);
-                  },
-                ),
+            for (final kind in kinds)
+              FilterChipItem(
+                label: kind.label,
+                selected: selected == kind.key && !savedOnly,
+                onTap: () {
+                  ref.read(browseCategoryProvider.notifier).select(kind.key);
+                  ref.read(mapShowsSavedProvider.notifier).set(false);
+                },
+              ),
             FilterChipItem(
               label: "Saved",
               selected: savedOnly,
@@ -113,7 +115,8 @@ class BrowseScreen extends ConsumerWidget {
           FilterChipRow(
             items: [
               FilterChipItem(
-                label: "All ${selected.label.toLowerCase()}",
+                label:
+                    "All ${ref.watch(placeKindProvider(selected)).label.toLowerCase()}",
                 selected: subcategory == null,
                 onTap: () =>
                     ref.read(browseSubcategoryProvider.notifier).select(null),

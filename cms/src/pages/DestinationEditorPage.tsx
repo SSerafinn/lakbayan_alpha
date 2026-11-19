@@ -45,6 +45,14 @@ import { ArExhibitsTab } from "./ArExhibitsTab";
 import { formatCoord, searchPlaces, type GeocodeResult } from "../lib/geocode";
 import type { SegmentDraft } from "../types/segment";
 import { museumHasAR, type ExhibitDraft } from "../types/exhibit";
+import {
+  creditsToSave,
+  isPublicLicence,
+  needsAttribution,
+  photoCreditLine,
+  withCredit,
+  type ImageCredit,
+} from "../types/photo-credit";
 import { editorActions } from "../types/editor";
 import { relativeTime } from "../types/dashboard";
 import { CircleAlert, CircleCheck, ImagePlus } from "lucide-react";
@@ -63,6 +71,16 @@ import {
 
 type Draft = Omit<Destination, "id">;
 type Tab = "details" | "location" | "media" | "audio" | "ar";
+
+/**
+ * A loaded document as the editor holds it. `imageCredits` is filled in for
+ * one written before v5, so typing a credit and clearing it again leaves the
+ * page clean rather than different from a document that had no map at all.
+ */
+function editable(found: Destination): Draft {
+  const { id: _drop, ...rest } = found;
+  return { ...rest, imageCredits: rest.imageCredits ?? {} };
+}
 
 /**
  * Admin wireframe screens 4, 5 and 6 — Destination Editor, Audio Guide and AR.
@@ -177,7 +195,7 @@ export function DestinationEditorPage() {
         setError("That destination no longer exists.");
         return;
       }
-      const { id: _drop, ...rest } = found;
+      const rest = editable(found);
       setDraft(rest);
       setSaved(rest);
       versionRef.current = versionOf(found.updatedAt);
@@ -360,6 +378,9 @@ export function DestinationEditorPage() {
       // Derived on every save, never edited: the AR badge in the app promises
       // the camera has something to find, which only the exhibits can say.
       hasAR: museumHasAR(draft.isMuseum, exhibits),
+      // Only for photos still here, trimmed: a removed photo's credit would
+      // otherwise stay on the document, keyed by a path nothing points at.
+      imageCredits: creditsToSave(draft.images, draft.imageCredits),
     };
 
     const invalid = validate(next);
@@ -485,7 +506,7 @@ export function DestinationEditorPage() {
       setConflict(null);
       return;
     }
-    const { id: _drop, ...rest } = found;
+    const rest = editable(found);
     const [stops, items] = await Promise.all([
       listSegments(docId),
       listExhibits(docId),
@@ -1473,7 +1494,7 @@ function MediaTab({
   return (
     <Section
       title="Photos"
-      hint="The first photo is the card image. 16:9 crops best. Photos are resized for phones as they upload."
+      hint="The first photo is the card image. 16:9 crops best. Photos are resized for phones as they upload. Credit each photo as its licence asks: the app shows the credit on it."
     >
       <div className="media f wide">
         <input
@@ -1520,6 +1541,16 @@ function MediaTab({
                   Remove
                 </button>
               </div>
+              <PhotoCreditFields
+                index={i}
+                credit={draft.imageCredits?.[path]}
+                onChange={(patch) =>
+                  set(
+                    "imageCredits",
+                    withCredit(draft.imageCredits, path, patch),
+                  )
+                }
+              />
             </li>
           ))}
           {addTile}
@@ -1532,5 +1563,59 @@ function MediaTab({
         )}
       </div>
     </Section>
+  );
+}
+
+/**
+ * One photo's credit and licence, under its thumbnail (v5), and the line the
+ * app will show on it — so an editor sees that a permission note such as
+ * "Province-owned" is kept but not shown, rather than finding out on a phone.
+ */
+function PhotoCreditFields({
+  index,
+  credit,
+  onChange,
+}: {
+  index: number;
+  credit: ImageCredit | undefined;
+  onChange: (patch: ImageCredit) => void;
+}) {
+  const line = photoCreditLine(credit);
+  const licence = credit?.licence?.trim() ?? "";
+  const unnamed = needsAttribution(licence) && !credit?.credit?.trim();
+  return (
+    <div className="thumb-credit">
+      <Field
+        label="Credit"
+        error={unnamed ? "The licence asks for a name." : undefined}
+      >
+        <input
+          aria-label={`Credit for photo ${index + 1}`}
+          placeholder="Photographer or owner"
+          value={credit?.credit ?? ""}
+          onChange={(e) => onChange({ credit: e.target.value })}
+        />
+      </Field>
+      <Field label="Licence or permission">
+        <input
+          aria-label={`Licence for photo ${index + 1}`}
+          placeholder="CC BY-SA 4.0"
+          value={credit?.licence ?? ""}
+          onChange={(e) => onChange({ licence: e.target.value })}
+        />
+      </Field>
+      {line ? (
+        <p className="hint">
+          In the app: “{line}”
+          {licence && !isPublicLicence(licence)
+            ? ". The permission note is kept, not shown."
+            : ""}
+        </p>
+      ) : licence ? (
+        <p className="hint">
+          Not shown in the app: a permission note alone names no one.
+        </p>
+      ) : null}
+    </div>
   );
 }

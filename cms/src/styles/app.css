@@ -1824,6 +1824,13 @@ input[type="checkbox"] {
   align-items: center;
   gap: var(--lk-space-2);
 }
+/* A photo's credit and licence, under its thumbnail: the credit belongs to
+   the photo, so it moves with it when another is made the cover. */
+.thumb-credit {
+  display: flex;
+  flex-direction: column;
+  gap: var(--lk-space-2);
+}
 
 /* ---- tours ---------------------------------------------------------------
    Screen 8. Same one-screen shape as guides: editor card above the table. The

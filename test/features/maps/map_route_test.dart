@@ -5,6 +5,7 @@ import "package:flutter_test/flutter_test.dart";
 import "package:lakbayan/core/models/destination.dart";
 import "package:lakbayan/core/theme/app_theme.dart";
 import "package:lakbayan/features/destinations/domain/destination_providers.dart";
+import "package:lakbayan/features/destinations/domain/place_kind.dart";
 import "package:lakbayan/features/maps/domain/directions.dart";
 import "package:lakbayan/features/maps/domain/map_route.dart";
 import "package:lakbayan/features/maps/domain/tile_source.dart";
@@ -43,6 +44,10 @@ void main() {
 
     final container = ProviderContainer(
       overrides: [
+        // The chips name the province's added categories, read from
+        // Firestore. Left alone it throws in a test and Riverpod schedules a
+        // retry, and the pending timer fails the test.
+        addedCategoriesProvider.overrideWithValue(const []),
         destinationRepositoryProvider.overrideWithValue(
           FakeDestinationRepository(places ?? _places),
         ),

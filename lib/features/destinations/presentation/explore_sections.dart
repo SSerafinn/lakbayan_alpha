@@ -25,6 +25,7 @@ import "../../guides/domain/guide_providers.dart";
 import "../../itineraries/domain/itinerary_providers.dart";
 import "../../itineraries/presentation/tour_tile.dart";
 import "../domain/destination_providers.dart";
+import "../domain/place_kind.dart";
 import "../domain/recently_viewed.dart";
 import "place_photo.dart";
 
@@ -662,7 +663,7 @@ class _Hanging extends StatelessWidget {
 /// A town as its photo with its name on it, in the headings' face, and the
 /// kinds of place it holds as glyphs under it; a tap opens the town's page,
 /// the photo zooming. Explore's hanging towns and search's towns.
-class TownPhoto extends StatelessWidget {
+class TownPhoto extends ConsumerWidget {
   const TownPhoto({
     required this.town,
     required this.from,
@@ -682,76 +683,82 @@ class TownPhoto extends StatelessWidget {
   static const _kinds = 4;
 
   @override
-  Widget build(BuildContext context) => Pressable(
-    child: GestureDetector(
-      onTap: () {
-        onOpen?.call();
-        context.push(Routes.town(town.name, from: from));
-      },
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(radius),
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            ParentRadius(
-              radius: radius,
-              child: PhotoHero(
-                tag: townHeroTag(town.name, from),
-                child: CoverImage(town.cover),
-              ),
-            ),
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: MediaScrim(
-                padding: const EdgeInsets.fromLTRB(
-                  AppSpace.x2,
-                  AppSpace.x8,
-                  AppSpace.x2,
-                  AppSpace.x2,
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      town.name,
-                      style: AppTypography.titleMedium.copyWith(
-                        color: Colors.white,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    // What the town has, as pictures of the kinds it holds.
-                    const SizedBox(height: AppSpace.x1),
-                    ExcludeSemantics(
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          for (final kind in town.byKind.keys.take(_kinds))
-                            Padding(
-                              padding: const EdgeInsets.only(
-                                right: AppSpace.near,
-                              ),
-                              child: Icon(
-                                AppIcons.kind(kind, filled: true),
-                                size: AppSize.glyphMd,
-                                color: Colors.white,
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                  ],
+  Widget build(BuildContext context, WidgetRef ref) {
+    final added = ref.watch(addedCategoriesProvider);
+    return Pressable(
+      child: GestureDetector(
+        onTap: () {
+          onOpen?.call();
+          context.push(Routes.town(town.name, from: from));
+        },
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(radius),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              ParentRadius(
+                radius: radius,
+                child: PhotoHero(
+                  tag: townHeroTag(town.name, from),
+                  child: CoverImage(town.cover),
                 ),
               ),
-            ),
-          ],
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: MediaScrim(
+                  padding: const EdgeInsets.fromLTRB(
+                    AppSpace.x2,
+                    AppSpace.x8,
+                    AppSpace.x2,
+                    AppSpace.x2,
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        town.name,
+                        style: AppTypography.titleMedium.copyWith(
+                          color: Colors.white,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      // What the town has, as pictures of the kinds it holds.
+                      const SizedBox(height: AppSpace.x1),
+                      ExcludeSemantics(
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            for (final kind
+                                in town.byKind.keys
+                                    .map((key) => kindForKey(key, added))
+                                    .take(_kinds))
+                              Padding(
+                                padding: const EdgeInsets.only(
+                                  right: AppSpace.near,
+                                ),
+                                child: Icon(
+                                  kind.glyph(filled: true),
+                                  size: AppSize.glyphMd,
+                                  color: Colors.white,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 /// Places to eat, a rail of photos with the name on each: food is part of
@@ -769,7 +776,7 @@ class WhereToEat extends ConsumerWidget {
       title: "Local Eats",
       onSeeAll: () => ref
           .read(homeCategoryProvider.notifier)
-          .toggle(DestinationCategory.food),
+          .toggle(DestinationCategory.food.name),
       child: SectionCard(child: _Food(places: food)),
     );
   }
